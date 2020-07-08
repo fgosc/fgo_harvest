@@ -1,0 +1,1142 @@
+[
+  {
+    "chapter": "剣の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "chapter": "剣の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "chapter": "剣の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "chapter": "剣の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "chapter": "弓の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "chapter": "弓の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "chapter": "弓の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "chapter": "弓の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "chapter": "槍の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "chapter": "槍の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "chapter": "槍の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "chapter": "槍の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "chapter": "騎の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "chapter": "騎の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "chapter": "騎の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "chapter": "騎の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "chapter": "術の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "chapter": "術の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "chapter": "術の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "chapter": "術の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "chapter": "殺の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "chapter": "殺の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "chapter": "殺の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "chapter": "殺の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "chapter": "狂の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "chapter": "狂の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "chapter": "狂の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "chapter": "狂の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "chapter": "冬木",
+    "place": "未確認座標X-A",
+    "quest": "屋敷跡"
+  },
+  {
+    "chapter": "冬木",
+    "place": "未確認座標X-B",
+    "quest": "爆心地"
+  },
+  {
+    "chapter": "冬木",
+    "place": "未確認座標X-C",
+    "quest": "大橋"
+  },
+  {
+    "chapter": "冬木",
+    "place": "未確認座標X-D",
+    "quest": "紅く染まった港"
+  },
+  {
+    "chapter": "冬木",
+    "place": "未確認座標X-E",
+    "quest": "骸彷徨う教会"
+  },
+  {
+    "chapter": "冬木",
+    "place": "未確認座標X-F",
+    "quest": "焼け崩れた校舎"
+  },
+  {
+    "chapter": "冬木",
+    "place": "未確認座標X-G",
+    "quest": "燃え盛る森"
+  },
+  {
+    "chapter": "冬木",
+    "place": "変動座標点0号",
+    "quest": "大空洞"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "ドンレミ",
+    "quest": "ジャンヌ生誕の地"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "ヴォークルール",
+    "quest": "始まりの砦"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "ラ・シャリテ",
+    "quest": "ロワールの畔"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "ジュラ",
+    "quest": "太古の森"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "リヨン",
+    "quest": "死者の街"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "マルセイユ",
+    "quest": "地中海を臨む"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "ティエール",
+    "quest": "刃物の町"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "ボルドー",
+    "quest": "ワインで乾杯"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "オルレアン",
+    "quest": "運命の砦"
+  },
+  {
+    "chapter": "オルレアン",
+    "place": "パリ",
+    "quest": "芸術の都"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "アッピア街道",
+    "quest": "街道の女王"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "ローマ",
+    "quest": "ローマは一日にして成らず"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "エトナ火山",
+    "quest": "沸き立つ大地"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "フロレンティア",
+    "quest": "花の都"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "メディオラヌム",
+    "quest": "平原の真中"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "ゲルマニア",
+    "quest": "黒い森"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "マッシリア",
+    "quest": "いにしえの港"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "ガリア",
+    "quest": "燻る戦火"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "ブリタニア",
+    "quest": "霧深き森"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "形ある島",
+    "quest": "女神の洞窟"
+  },
+  {
+    "chapter": "セプテム",
+    "place": "連合首都",
+    "quest": "ローマの地平"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "海賊船",
+    "quest": "私掠船団"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "海賊島",
+    "quest": "海賊のアジト"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "王の住まう島",
+    "quest": "呪われし海賊たち"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "地図に記された島",
+    "quest": "牡牛の迷宮"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "暗礁海域",
+    "quest": "船の墓場"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "潮目の海",
+    "quest": "自由の海原"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "翼竜の島",
+    "quest": "竜たちの楽園"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "カルデラの島",
+    "quest": "人跡未踏の島"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "嵐の海域",
+    "quest": "さまよえる幽霊船"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "群島",
+    "quest": "静かな入り江"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "群島",
+    "quest": "隠された島"
+  },
+  {
+    "chapter": "オケアノス",
+    "place": "豊かな海",
+    "quest": "秘密航路"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "オールドストリート",
+    "quest": "霧と馬車とガス灯"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "ホワイトチャペル",
+    "quest": "貧民窟"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "シティ・オブ・ロンドン",
+    "quest": "スクエアマイル"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "ソーホー",
+    "quest": "魅惑の繁華街"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "ウェストミンスター",
+    "quest": "スコットランドヤード"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "リージェントパーク",
+    "quest": "王室の狩場"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "クラーケンウェル",
+    "quest": "癒しの井戸"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "サザーク",
+    "quest": "バラマーケット"
+  },
+  {
+    "chapter": "ロンドン",
+    "place": "ハイドパーク",
+    "quest": "水晶宮の残影"
+  },
+  {
+    "chapter": "北米",
+    "place": "ブラックヒルズ",
+    "quest": "聖なる山"
+  },
+  {
+    "chapter": "北米",
+    "place": "リバートン",
+    "quest": "大きな河床"
+  },
+  {
+    "chapter": "北米",
+    "place": "デンバー",
+    "quest": "マイル・ハイ・シティ"
+  },
+  {
+    "chapter": "北米",
+    "place": "デミング",
+    "quest": "ニューシカゴ"
+  },
+  {
+    "chapter": "北米",
+    "place": "ダラス",
+    "quest": "カウタウン・コロシアム"
+  },
+  {
+    "chapter": "北米",
+    "place": "アルカトラズ",
+    "quest": "監獄島"
+  },
+  {
+    "chapter": "北米",
+    "place": "デモイン",
+    "quest": "監視砦"
+  },
+  {
+    "chapter": "北米",
+    "place": "モントゴメリー",
+    "quest": "ハート・オブ・ディクシー"
+  },
+  {
+    "chapter": "北米",
+    "place": "ラボック",
+    "quest": "テキサス・レンジャー"
+  },
+  {
+    "chapter": "北米",
+    "place": "アレクサンドリア",
+    "quest": "ウィークス・アイランド"
+  },
+  {
+    "chapter": "北米",
+    "place": "カーニー",
+    "quest": "グレートプレーンズ"
+  },
+  {
+    "chapter": "北米",
+    "place": "シャーロット",
+    "quest": "ゴールドラッシュ"
+  },
+  {
+    "chapter": "北米",
+    "place": "ワシントン",
+    "quest": "特別行政区"
+  },
+  {
+    "chapter": "北米",
+    "place": "シカゴ",
+    "quest": "ウィンディ・シティ"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "砂嵐の砂漠",
+    "quest": "神獣の庭"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "明けの砂丘",
+    "quest": "灼熱の頂"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "死の荒野",
+    "quest": "血沸き肉躍る狂宴"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "東の村",
+    "quest": "枯れ果てた山稜"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "円卓の砦",
+    "quest": "遊撃騎士隊"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "晩鐘廟",
+    "quest": "死を告げる天使"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "西の村跡",
+    "quest": "無情の残影"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "アトラス院",
+    "quest": "巨人の穴倉"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "聖都正門",
+    "quest": "聖別の門"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "聖都市街",
+    "quest": "理想都市"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "隠れ村",
+    "quest": "夢幻の蜃気楼"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "王城",
+    "quest": "千年王国"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "無の大地",
+    "quest": "荒涼たる世界"
+  },
+  {
+    "chapter": "キャメロット",
+    "place": "大神殿",
+    "quest": "太陽王の居城"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "廃都バビロン",
+    "quest": "失われた都"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "北の高台",
+    "quest": "戦禍の眺望"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "黒い杉の森",
+    "quest": "魔獣の住処"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "高原",
+    "quest": "旅人の抜け道"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "湿原",
+    "quest": "川間の大地"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "ウル",
+    "quest": "ジャガー・パーク"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "エリドゥ",
+    "quest": "王権の地"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "観測所",
+    "quest": "母なる海"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "葦の原",
+    "quest": "豊穣祈願"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "クタ",
+    "quest": "冥界のとば口"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "北壁",
+    "quest": "魔獣戦線跡地"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "ニップル",
+    "quest": "天と地の結び目"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "エビフ山",
+    "quest": "震える霊峰"
+  },
+  {
+    "chapter": "バビロニア",
+    "place": "鮮血神殿",
+    "quest": "胎動せし山"
+  },
+  {
+    "chapter": "新宿",
+    "place": "代々木二丁目",
+    "quest": "雑居ビル街"
+  },
+  {
+    "chapter": "新宿",
+    "place": "国道20号",
+    "quest": "テリトリー"
+  },
+  {
+    "chapter": "新宿",
+    "place": "新宿駅",
+    "quest": "コンクリートダンジョン"
+  },
+  {
+    "chapter": "新宿",
+    "place": "新宿四丁目",
+    "quest": "ホテル街"
+  },
+  {
+    "chapter": "新宿",
+    "place": "歌舞伎町",
+    "quest": "不夜城"
+  },
+  {
+    "chapter": "新宿",
+    "place": "バレルタワー",
+    "quest": "ライフリングホール"
+  },
+  {
+    "chapter": "新宿",
+    "place": "パーティー会場",
+    "quest": "キリングパーティー"
+  },
+  {
+    "chapter": "新宿",
+    "place": "タワー最上階",
+    "quest": "ブリーチローダー"
+  },
+  {
+    "chapter": "新宿",
+    "place": "新宿御苑",
+    "quest": "デモンズガーデン"
+  },
+  {
+    "chapter": "新宿",
+    "place": "新宿二丁目",
+    "quest": "レインボータウン"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "地底平原",
+    "quest": "苔照らす野原"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "野営地",
+    "quest": "戦士の狩場"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "川辺の町",
+    "quest": "アマゾネスの宴"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "桃源郷",
+    "quest": "夢想の里"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "イース",
+    "quest": "背徳の都"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "北の断崖",
+    "quest": "罪人捨て場"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "不夜城",
+    "quest": "眠らぬ街"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "山裾の密林",
+    "quest": "ジャングルハイキング"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "竜宮城",
+    "quest": "湖中楼閣"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "地底大河",
+    "quest": "ジャングルクルーズ"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "エルドラド",
+    "quest": "黄金郷"
+  },
+  {
+    "chapter": "アガルタ",
+    "place": "大地の裂け目",
+    "quest": "ダイヤモンドの谷"
+  },
+  {
+    "chapter": "下総国",
+    "place": "田んぼ",
+    "quest": "田園風景"
+  },
+  {
+    "chapter": "下総国",
+    "place": "里",
+    "quest": "寂寂たる集落"
+  },
+  {
+    "chapter": "下総国",
+    "place": "庵",
+    "quest": "千手千眼"
+  },
+  {
+    "chapter": "下総国",
+    "place": "城下町",
+    "quest": "栄枯盛衰"
+  },
+  {
+    "chapter": "下総国",
+    "place": "合戦場",
+    "quest": "兵どもが夢の跡"
+  },
+  {
+    "chapter": "下総国",
+    "place": "土気城",
+    "quest": "貴船の城"
+  },
+  {
+    "chapter": "下総国",
+    "place": "裏山",
+    "quest": "名もなき霊峰"
+  },
+  {
+    "chapter": "下総国",
+    "place": "荒川の原",
+    "quest": "古戦場"
+  },
+  {
+    "chapter": "下総国",
+    "place": "裏山",
+    "quest": "戦戦恐恐"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "静寂な森",
+    "quest": "ループステリトリー"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "カーター家",
+    "quest": "クロウズネスト"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "公会堂",
+    "quest": "コートルーム"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "波止場",
+    "quest": "ダービーワーフ"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "ウェイトリー家",
+    "quest": "アルケミックフィールド"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "郊外の屋敷",
+    "quest": "セブンゲイブルズ"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "ガローの丘",
+    "quest": "エクスキューションサイト"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "牧草地",
+    "quest": "コモンズビュー"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "空き家",
+    "quest": "ビューリティドメイン"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "隠れ家",
+    "quest": "セーフハウス"
+  },
+  {
+    "chapter": "セイレム",
+    "place": "留置所",
+    "quest": "ウィッチダンジョン"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "アンカーポイント",
+    "quest": "ルーシ高地"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "ヤガ・スモレンスク",
+    "quest": "獣の街"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "風穴氷窟",
+    "quest": "地下冷凍庫"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "叛逆軍の砦",
+    "quest": "崖上の城塞"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "ヤガ・スィチョーフカ",
+    "quest": "梟の村"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "焼き払われた村",
+    "quest": "雪に沈む焼け跡"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "ヤガ・ヴャジマ",
+    "quest": "見捨てられた村"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "ヤガ・ジェメンスク",
+    "quest": "辺境の村"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "ヤガ・トゥーラ",
+    "quest": "悴む教会"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "潰れた村",
+    "quest": "巨像の足跡"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "ヤガ・モスクワ",
+    "quest": "眠れる都"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "大渓谷の砦",
+    "quest": "雪渓の城塞"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "大樹の根元",
+    "quest": "裂けた凍土"
+  },
+  {
+    "chapter": "アナスタシア",
+    "place": "ヤガ・リャザン",
+    "quest": "牢獄跡"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "ランディングポイント",
+    "quest": "穏やかな雪原"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "薄氷の丘",
+    "quest": "銀世界"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "巨人の花園",
+    "quest": "炎と氷の狭間"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "第23集落",
+    "quest": "クローズドシェルター"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "英雄の穴倉",
+    "quest": "皇帝の寝床"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "雪と氷の城",
+    "quest": "氷の架け橋"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "果てへと至る道",
+    "quest": "絶佳峡谷"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "炎の館",
+    "quest": "霜息吹く山脈"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "第67集落",
+    "quest": "クローンシェルター"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "北の境界",
+    "quest": "限界領域"
+  },
+  {
+    "chapter": "ゲッテルデメルング",
+    "place": "忘れられた神殿",
+    "quest": "死せる戦士たちの武器庫"
+  },
+  {
+    "chapter": "シン",
+    "place": "シーディングポイント",
+    "quest": "収穫日和"
+  },
+  {
+    "chapter": "シン",
+    "place": "隣村",
+    "quest": "凄凄切切"
+  },
+  {
+    "chapter": "シン",
+    "place": "氷冷窟",
+    "quest": "虎穴虎子"
+  },
+  {
+    "chapter": "シン",
+    "place": "芥の陣幕",
+    "quest": "ヒナゲシの園"
+  },
+  {
+    "chapter": "シン",
+    "place": "景陽原",
+    "quest": "仰天不愧"
+  },
+  {
+    "chapter": "シン",
+    "place": "山陽丘",
+    "quest": "有明遠来"
+  },
+  {
+    "chapter": "シン",
+    "place": "収容所",
+    "quest": "青点白目"
+  },
+  {
+    "chapter": "シン",
+    "place": "石泉峡",
+    "quest": "水紫山明"
+  },
+  {
+    "chapter": "シン",
+    "place": "大坪峪",
+    "quest": "白黒分明"
+  },
+  {
+    "chapter": "シン",
+    "place": "咸陽",
+    "quest": "鳳鳴朝陽"
+  },
+  {
+    "chapter": "シン",
+    "place": "八門洞",
+    "quest": "地下鍛錬場"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "イニシエートポイント",
+    "quest": "修行の旅路"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "ビーチュ",
+    "quest": "信心深き町"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "隠遁窟",
+    "quest": "瞑想の岩屋"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "北の霊峰",
+    "quest": "悟りの頂"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "西の断層",
+    "quest": "祈りの広場"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "ディーヴァール",
+    "quest": "壁の村"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "神の空岩跡",
+    "quest": "悪魔の縄張り"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "南の町",
+    "quest": "癒されし町"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "無窮の地",
+    "quest": "大龍の寝床"
+  },
+  {
+    "chapter": "ユガ・クシェートラ",
+    "place": "東の花園",
+    "quest": "デーヴァローカ"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "セーリングポイント",
+    "quest": "幻の海洋"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "ヘスティア島",
+    "quest": "焚火の海辺"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "ヘカテ島",
+    "quest": "三叉の野原"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "デイモス島",
+    "quest": "恐怖の荒野"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "アストライア島",
+    "quest": "正義の神殿"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "テティス島",
+    "quest": "母なる砂浜"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "エリス島",
+    "quest": "争いの平原"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "ネメシス島",
+    "quest": "神罰の荒海"
+  },
+  {
+    "chapter": "アトランティス",
+    "place": "タナトス島",
+    "quest": "死の祭壇"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "グライディングポイント",
+    "quest": "人知れぬ辺境"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "星間都市西部",
+    "quest": "大神殿を望む都"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "星間都市南部",
+    "quest": "大地と豊穣の都"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "星間都市東部",
+    "quest": "美と愛の都"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "大工房",
+    "quest": "黎明の鍛冶場"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "破神同盟基地",
+    "quest": "アンダー・フロント"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "祭壇街",
+    "quest": "神の膝元"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "空中庭園",
+    "quest": "神々の庭"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "機神回廊", 
+    "quest": "巨神の通り道"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "大祭壇",
+    "quest": "神託の祭壇"
+  },
+  {
+    "chapter": "オリュンポス",
+    "place": "地下機構帯・外周部",
+    "quest": "シークレット・ハンガー"
+  }
+]

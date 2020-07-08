@@ -1,0 +1,10 @@
+TwitterConsumerKey = ''
+TwitterConsumerSecret = ''
+TwitterAccessToken = ''
+TwitterAccessTokenSecret = ''
+
+ExcludeAccounts = (
+    'monnsuto01',
+)
+
+LatestTweetIDFile = 'latest_tweet.txt'

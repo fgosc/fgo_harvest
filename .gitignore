@@ -1,0 +1,8 @@
+.mypy_cache/
+.pytest_cache/
+*.pyc
+
+settings.py
+*.log
+*.txt
+output/
