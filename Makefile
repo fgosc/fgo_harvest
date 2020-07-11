@@ -1,5 +1,5 @@
-.PHONY: test
+.PHONY: lock
 
-test:
-	pytest -v
-	find -type f -name "*.py" | xargs mypy
+lock:
+	pipenv lock -r > harvest/requirements.txt
+	pipenv lock -r --dev > harvest/requirements-dev.txt

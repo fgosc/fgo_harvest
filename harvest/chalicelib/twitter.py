@@ -195,11 +195,16 @@ class RunReport:
             runcount=self.runcount,
             items=self.items,
             freequest=self.is_freequest,
+            quest_id=self.quest_id,
         )
 
     @property
     def is_freequest(self) -> bool:
         return freequest.defaultDetector.is_freequest(self.chapter, self.place)
+
+    @property
+    def quest_id(self) -> str:
+        return freequest.defaultDetector.get_quest_id(self.chapter, self.place)
 
 
 def parse_tweet(tweet: TweetCopy) -> RunReport:

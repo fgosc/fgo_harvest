@@ -1,0 +1,48 @@
+{% extends "base.jinja2" %}
+{% macro table(reports) -%}
+<table class="table is-striped is-fullwidth">
+  <thead>
+    <tr>
+      <th>投稿日時</th>
+      <th>投稿者</th>
+      <th style="min-width: 11rem">場所</th>
+      <th style="min-width: 5rem">周回数</th>
+      <th>ドロップ</ht>
+    </tr>
+  </thead>
+{% for r in reports %}<tr>
+  <td>
+    <a href="https://twitter.com/{{ r.reporter }}/status/{{ r.id }}" target="_blank">
+      {{ r.timestamp.strftime("%Y-%m-%d") }}<br>
+      {{ r.timestamp.strftime("%H:%M:%S") }}
+      <span style="margin-left: 0.1rem"><small><i class="fas fa-external-link-alt"></i></small></span>
+    </a>
+  </td>
+  <td>
+    <a href="../user/{{ r.reporter }}.html">
+      {{ r.reporter }}
+    </a>
+  </td>
+  <td>{{ r.chapter }}<br>{{ r.place }}</td>
+  <td>{{ r.runcount }}</td>
+  <td>{% for k, v in r['items'].items() %}{{ k }}: {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+</tr>{% endfor %}
+</table>
+
+{%- endmacro -%}
+
+{% block title %}{{ quest }}{% endblock %}
+
+{% block body %}
+
+<h1 class="title" style="margin-bottom: 2.5rem">
+  {{ quest }}
+</h1>
+
+{% if reports %}
+{{ table(reports) }}
+{% else %}
+<p style="margin-bottom: 2rem">なし</p>
+{% endif %}
+
+{% endblock %}

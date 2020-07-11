@@ -3,25 +3,27 @@ import json
 import io
 import os
 from datetime import date, datetime, timedelta
+from enum import Enum
 from logging import getLogger
 from typing import (
     Any, BinaryIO, Dict, List,
-    Sequence,
+    Sequence, Set,
 )
+from typing_extensions import Protocol
 
 import boto3  # type: ignore
-import botocore.exceptions # type: ignore
+import botocore.exceptions  # type: ignore
 from jinja2 import (
     Environment,
     PackageLoader,
     select_autoescape,
 )
 
-from . import twitter
+from . import freequest, twitter
 
 logger = getLogger(__name__)
 jinja2_env = Environment(
-    loader=PackageLoader('lib', 'templates'),
+    loader=PackageLoader('chalicelib', 'templates'),
     autoescape=select_autoescape(['html'])
 )
 
@@ -32,6 +34,14 @@ def json_serialize_helper(o: Any):
     raise TypeError(
         f'Object of type {o.__class__.__name__} is not JSON serializable'
     )
+
+
+class OutputFormat(Enum):
+    JSON = ('json', 'json')
+    TEXT = ('txt', 'txt')
+    USERHTML = ('userhtml', 'html')
+    DATEHTML = ('datehtml', 'html')
+    QUESTHTML = ('questhtml', 'html')
 
 
 class AbstractTweetStorage:
@@ -68,18 +78,24 @@ class FilesystemTweetStorage(AbstractTweetStorage):
     
     def readall(self) -> List[twitter.TweetCopy]:
         tweets: List[twitter.TweetCopy] = []
+        id_cache: Set[int] = set()
 
         entries = os.listdir(self.output_dir)
         for entry in entries:
             if os.path.splitext(entry)[1] != '.json':
                 continue
             entrypath = os.path.join(self.output_dir, entry)
-            logger.info(f'load {entrypath}')
+            logger.info(f'loading {entrypath}')
             with open(entrypath) as fp:
                 loaded = json.load(fp)
             _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
             logger.info(f'{len(_tweets)} tweets retrieved')
-            tweets.extend(_tweets)
+            for tw in _tweets:
+                if tw.tweet_id in id_cache:
+                    logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
+                else:
+                    tweets.append(tw)
+                    id_cache.add(tw.tweet_id)
 
         # 新しい順
         tweets.sort(key=lambda e: e.tweet_id)
@@ -102,17 +118,98 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
         
         obj.upload_fileobj(bio)
 
+    def readall(self) -> List[twitter.TweetCopy]:
+        tweets: List[twitter.TweetCopy] = []
+        id_cache: Set[int] = set()
+
+        object_summaries = self.bucket.objects.filter(Prefix=self.output_dir)
+
+        for entry in object_summaries:
+            resp = entry.get()
+            loaded = json.load(resp['Body'])
+            _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
+            logger.info(f'{len(_tweets)} tweets retrieved')
+            for tw in _tweets:
+                if tw.tweet_id in id_cache:
+                    logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
+                else:
+                    tweets.append(tw)
+                    id_cache.add(tw.tweet_id)
+
+        # 新しい順
+        tweets.sort(key=lambda e: e.tweet_id)
+        tweets.reverse()
+
+        logger.info(f'total: {len(tweets)} tweets')
+        return tweets
+
+
+class SupportPartitioningRule(Protocol):
+    def dispatch(
+            self,
+            partitions: Dict[str, List[twitter.RunReport]],
+            report: twitter.RunReport) -> None:
+        ...
+
+
+class PartitioningRuleByDate:
+    def dispatch(
+            self,
+            partitions: Dict[str, List[twitter.RunReport]],
+            report: twitter.RunReport,
+        ) -> None:
+
+        date = report.timestamp.date().isoformat()
+        if date not in partitions:
+            partitions[date] = []
+        partitions[date].append(report)
+
+
+class PartitioningRuleByUser:
+    def dispatch(
+            self,
+            partitions: Dict[str, List[twitter.RunReport]],
+            report: twitter.RunReport,
+        ) -> None:
+
+        if report.reporter not in partitions:
+            partitions[report.reporter] = []
+        partitions[report.reporter].append(report)
+        # TODO 今のところ解析不能ツイートは含まれない想定の
+        # コードになっているが、将来そうしたツイートもまとめて
+        # ここを通過することになった場合に対応が必要。
+
+
+class PartitioningRuleByQuest:
+    def dispatch(
+            self,
+            partitions: Dict[str, List[twitter.RunReport]],
+            report: twitter.RunReport,
+        ) -> None:
+
+        detector = freequest.defaultDetector
+        qid = detector.get_quest_id(report.chapter, report.place)
+        if qid not in partitions:
+            partitions[qid] = []
+        partitions[qid].append(report)
+
 
 class AbstractRecorder:
-    def __init__(self, formats: Sequence[str]):
-        self.table_by_date: Dict[str, List[twitter.RunReport]] = {}
+    # TODO サブクラスとスーパークラスに処理が分散しており
+    # コードを追うときにいったりきたりが必要。
+    # 正直いっていまいちな設計。そのうち考え直したい
+
+    def __init__(
+            self,
+            partitioningRule: SupportPartitioningRule,
+            formats: Sequence[OutputFormat],
+        ):
+        self.partitions: Dict[str, List[twitter.RunReport]] = {}
+        self.partitioningRule = partitioningRule
         self.formats = formats
 
     def add(self, report: twitter.RunReport) -> None:
-        date = report.timestamp.date().isoformat()
-        if date not in self.table_by_date:
-            self.table_by_date[date] = []
-        self.table_by_date[date].append(report)
+        self.partitioningRule.dispatch(self.partitions, report)
     
     def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
         raise NotImplementedError
@@ -127,7 +224,7 @@ class AbstractRecorder:
         raise NotImplementedError
 
     def save(self, force: bool = False, ignore_original: bool = False):
-        for key, reports in self.table_by_date.items():
+        for key, reports in self.partitions.items():
             if len(reports) == 0:
                 continue
             if ignore_original:
@@ -136,16 +233,17 @@ class AbstractRecorder:
             else:
                 original = self._get_original_json(key)
 
-            for fmt in self.formats:
-                logger.info(f'target file: {key}.{fmt}')
-                processor = create_processor(fmt)
+            for outputFormat in self.formats:
+                _, ext = outputFormat.value
+                logger.info(f'target file: {key}.{ext}')
+                processor = create_processor(outputFormat)
                 merged_reports = processor.merge(reports, original)
                 if not force and merged_reports == original:
-                    logger.info(f'no new reports to write {key}.{fmt}, skip')
+                    logger.info(f'no new reports to write {key}.{ext}, skip')
                     continue
-                stream = self._get_output_stream(key, fmt)
-                logger.info(f'writing reports to {key}.{fmt}')
-                processor.dump(merged_reports, stream, date=key)
+                stream = self._get_output_stream(key, ext)
+                logger.info(f'writing reports to {key}.{ext}')
+                processor.dump(merged_reports, stream, key=key)
                 logger.info('done')
                 self._close_stream(stream)
 
@@ -161,9 +259,10 @@ class FilesystemRecorder(AbstractRecorder):
     def __init__(
             self,
             rootdir: str,
-            formats: Sequence[str] = ('json', 'html'),
+            partitioningRule: SupportPartitioningRule,
+            formats: Sequence[OutputFormat],
         ):
-        super().__init__(formats)
+        super().__init__(partitioningRule, formats)
         if not os.path.exists(rootdir):
             logger.info(f'create a directory "{rootdir}"')
             os.makedirs(rootdir)
@@ -192,9 +291,10 @@ class AmazonS3Recorder(AbstractRecorder):
             self,
             bucket: str,
             output_dir: str,
-            formats: Sequence[str] = ('json', 'html'),
+            partitioningRule: SupportPartitioningRule,
+            formats: Sequence[OutputFormat],
         ):
-        super().__init__(formats)
+        super().__init__(partitioningRule, formats)
         self.s3 = boto3.resource('s3')
         self.s3client = boto3.client('s3')
         self.bucket = self.s3.Bucket(bucket)
@@ -208,8 +308,9 @@ class AmazonS3Recorder(AbstractRecorder):
                 Key=s3key,
             )
             return True
+
         except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] == 'NoSuchKey':
+            if e.response['Error']['Code'] == '404':
                 return False
             # Unexpceted Error
             raise
@@ -234,12 +335,22 @@ class AmazonS3Recorder(AbstractRecorder):
 
     def _close_stream(self, stream: BinaryIO) -> None:
         for s3key, bio in self.key_stream_pairs.items():
-            if bio is stream:
-                obj = self.bucket.Object(s3key)
-                logger.info(f'put s3://{self.bucket.name}/{s3key}')
-                obj.upload_fileobj(stream)
-                stream.close()
-                return
+            if bio is not stream:
+                continue
+            obj = self.bucket.Object(s3key)
+            if s3key.endswith('.json'):
+                content_type = 'application/json'
+            elif s3key.endswith('.html'):
+                content_type = 'text/html'
+            elif s3key.endswith('.txt'):
+                content_type = 'text/plain'
+            else:
+                content_type = 'application/octet-stream'
+            logger.info(f'put s3://{self.bucket.name}/{s3key}, content_type={content_type}')
+            bio.seek(0)
+            obj.upload_fileobj(stream, ExtraArgs={'ContentType': content_type})
+            stream.close()
+            return
         raise ValueError('could not put a stream object to S3')
 
 
@@ -299,11 +410,11 @@ class TextProcessor(Processor):
             stream: BinaryIO,
             **kwargs,
         ):
-        pass
+        raise NotImplementedError
 
 
-class HTMLProcessor(Processor):
-    template_html = 'report.jinja2'
+class DateHTMLProcessor(Processor):
+    template_html = 'report_bydate.jinja2'
 
     def dump(
             self,
@@ -313,7 +424,7 @@ class HTMLProcessor(Processor):
         ):
         freequest_reports = [r for r in merged_reports if r['freequest']]
         event_reports = [r for r in merged_reports if not r['freequest']]
-        today = kwargs['date']
+        today = kwargs['key']
         today_obj = date.fromisoformat(today)
         yesterday = (today_obj + timedelta(days=-1)).isoformat()
         tomorrow = (today_obj + timedelta(days=+1)).isoformat()
@@ -328,12 +439,53 @@ class HTMLProcessor(Processor):
         stream.write(html.encode('UTF-8'))
 
 
-def create_processor(fmt: str) -> Processor:
-    if fmt == 'json':
+class UserHTMLProcessor(Processor):
+    template_html = 'report_byuser.jinja2'
+
+    def dump(
+            self,
+            merged_reports: List[Dict[str, Any]],
+            stream: BinaryIO,
+            **kwargs,
+        ):
+        freequest_reports = [r for r in merged_reports if r['freequest']]
+        event_reports = [r for r in merged_reports if not r['freequest']]
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            freequest_reports=freequest_reports,
+            event_reports=event_reports,
+            reporter=kwargs['key'],
+        )
+        stream.write(html.encode('UTF-8'))
+
+
+class QuestHTMLProcessor(Processor):
+    template_html = 'report_byquest.jinja2'
+
+    def dump(
+            self,
+            merged_reports: List[Dict[str, Any]],
+            stream: BinaryIO,
+            **kwargs,
+        ):
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            reports=merged_reports,
+            quest=freequest.defaultDetector.get_quest_name(kwargs['key']),
+        )
+        stream.write(html.encode('UTF-8'))
+
+
+def create_processor(fmt: OutputFormat) -> Processor:
+    if fmt == OutputFormat.JSON:
         return JSONProcessor()
-    elif fmt == 'txt':
+    elif fmt == OutputFormat.TEXT:
         return TextProcessor()
-    elif fmt == 'html':
-        return HTMLProcessor()
+    elif fmt == OutputFormat.DATEHTML:
+        return DateHTMLProcessor()
+    elif fmt == OutputFormat.USERHTML:
+        return UserHTMLProcessor()
+    elif fmt == OutputFormat.QUESTHTML:
+        return QuestHTMLProcessor()
 
     raise ValueError(f'Unsupported format: {fmt}')

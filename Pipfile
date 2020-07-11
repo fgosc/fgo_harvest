@@ -5,14 +5,17 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
-mypy = "*"
 rope = "*"
+flake8 = "*"
+pyflakes = "*"
 
 [packages]
 tweepy = "*"
 boto3 = "*"
 jinja2 = "*"
 pytz = "*"
+chalice = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.8"

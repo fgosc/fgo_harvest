@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
+"""
+    ローカル実行用のエントリポイント。
+"""
+
 import argparse
 import logging
 import os
 from datetime import datetime
 
-import settings
-from lib import twitter, recording
+from chalicelib import settings, twitter, recording
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,7 @@ def main(args):
         os.makedirs(storage_dir)
     storage = recording.FilesystemTweetStorage(output_dir=storage_dir)
 
-    if not args.reconstract:
+    if not args.rebuild:
         since_id = None
         if os.path.exists(settings.LatestTweetIDFile):
             with open(settings.LatestTweetIDFile) as fp:
@@ -47,25 +50,52 @@ def main(args):
     else:
         tweets = storage.readall()
 
-    contents_dir = os.path.join(args.output_dir, 'contents')
-    if not os.path.exists(contents_dir):
-        os.makedirs(contents_dir)
-    recorder = recording.FilesystemRecorder(rootdir=contents_dir)
+    contents_date_dir = os.path.join(args.output_dir, 'contents', 'date')
+    if not os.path.exists(contents_date_dir):
+        os.makedirs(contents_date_dir)
+    recorder_bydate = recording.FilesystemRecorder(
+        rootdir=contents_date_dir,
+        partitioningRule=recording.PartitioningRuleByDate(),
+        formats=(recording.OutputFormat.JSON, recording.OutputFormat.DATEHTML),
+    )
+
+    contents_user_dir = os.path.join(args.output_dir, 'contents', 'user')
+    if not os.path.exists(contents_user_dir):
+        os.makedirs(contents_user_dir)
+    recorder_byuser = recording.FilesystemRecorder(
+        rootdir=contents_user_dir,
+        partitioningRule=recording.PartitioningRuleByUser(),
+        formats=(recording.OutputFormat.JSON, recording.OutputFormat.USERHTML),
+    )
+
+    contents_quest_dir = os.path.join(args.output_dir, 'contents', 'quest')
+    if not os.path.exists(contents_quest_dir):
+        os.makedirs(contents_quest_dir)
+    recorder_byquest = recording.FilesystemRecorder(
+        rootdir=contents_quest_dir,
+        partitioningRule=recording.PartitioningRuleByQuest(),
+        formats=(recording.OutputFormat.JSON, recording.OutputFormat.QUESTHTML),
+    )
+
     for tweet in tweets:
         try:
             report = twitter.parse_tweet(tweet)
             logger.info(report)
-            recorder.add(report)
+            recorder_bydate.add(report)
+            recorder_byuser.add(report)
+            recorder_byquest.add(report)
 
         except twitter.ParseError as e:
             logger.error(e)
             # TODO エラーになったツイートもHTMLには入れたい...
             logger.error(tweet)
 
-    ignore_original = args.reconstract
-    recorder.save(ignore_original=ignore_original)
+    ignore_original = args.rebuild
+    recorder_bydate.save(ignore_original=ignore_original)
+    recorder_byuser.save(ignore_original=ignore_original)
+    recorder_byquest.save(ignore_original=ignore_original)
 
-    if not args.reconstract:
+    if not args.rebuild:
         if len(tweets) == 0:
             return
         latest_tweet = tweets[0]
@@ -91,7 +121,7 @@ def parse_args():
         nargs='+',
     )
     parser.add_argument(
-        '--reconstract',
+        '--rebuild',
         action='store_true',
     )
     parser.add_argument(
