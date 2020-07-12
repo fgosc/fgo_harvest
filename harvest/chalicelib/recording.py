@@ -145,18 +145,19 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
 
 class SupportPartitioningRule(Protocol):
     def dispatch(
-            self,
-            partitions: Dict[str, List[twitter.RunReport]],
-            report: twitter.RunReport) -> None:
+        self,
+        partitions: Dict[str, List[twitter.RunReport]],
+        report: twitter.RunReport,
+    ) -> None:
         ...
 
 
 class PartitioningRuleByDate:
     def dispatch(
-            self,
-            partitions: Dict[str, List[twitter.RunReport]],
-            report: twitter.RunReport,
-        ) -> None:
+        self,
+        partitions: Dict[str, List[twitter.RunReport]],
+        report: twitter.RunReport,
+    ) -> None:
 
         date = report.timestamp.date().isoformat()
         if date not in partitions:
@@ -166,10 +167,10 @@ class PartitioningRuleByDate:
 
 class PartitioningRuleByUser:
     def dispatch(
-            self,
-            partitions: Dict[str, List[twitter.RunReport]],
-            report: twitter.RunReport,
-        ) -> None:
+        self,
+        partitions: Dict[str, List[twitter.RunReport]],
+        report: twitter.RunReport,
+    ) -> None:
 
         if report.reporter not in partitions:
             partitions[report.reporter] = []
@@ -181,10 +182,10 @@ class PartitioningRuleByUser:
 
 class PartitioningRuleByQuest:
     def dispatch(
-            self,
-            partitions: Dict[str, List[twitter.RunReport]],
-            report: twitter.RunReport,
-        ) -> None:
+        self,
+        partitions: Dict[str, List[twitter.RunReport]],
+        report: twitter.RunReport,
+    ) -> None:
 
         detector = freequest.defaultDetector
         qid = detector.get_quest_id(report.chapter, report.place)
@@ -195,12 +196,12 @@ class PartitioningRuleByQuest:
 
 class Recorder:
     def __init__(
-            self,
-            partitioningRule: SupportPartitioningRule,
-            fileStorage: storage.SupportStorage,
-            basedir: str,
-            formats: Sequence[OutputFormat],
-        ):
+        self,
+        partitioningRule: SupportPartitioningRule,
+        fileStorage: storage.SupportStorage,
+        basedir: str,
+        formats: Sequence[OutputFormat],
+    ):
         self.partitions: Dict[str, List[twitter.RunReport]] = {}
         self.partitioningRule = partitioningRule
         self.fileStorage = fileStorage

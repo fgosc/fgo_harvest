@@ -9,7 +9,8 @@ class Detector:
     def __init__(self, freequests: List[Dict[str, str]]):
         self.freequest_db: Dict[str, str] = _build_db(freequests)
         self.eventquest_cache: Dict[str, str] = {}
-        self.quest_reverse_index: Dict[str, str] = _build_reverse_index(freequests)
+        self.quest_reverse_index: Dict[str, str] = \
+            _build_reverse_index(freequests)
 
     def is_freequest(self, chapter: str, place: str) -> bool:
         key = f'{chapter}\t{place}'
@@ -24,7 +25,8 @@ class Detector:
         elif key in self.eventquest_cache:
             return self.eventquest_cache[key]
 
-        qid = urlsafe_b64encode(md5(key.encode('utf-8')).digest())[:8].decode('utf-8')
+        b64digest = urlsafe_b64encode(md5(key.encode('utf-8')).digest())
+        qid = b64digest[:8].decode('utf-8')
         self.eventquest_cache[key] = qid
         self.quest_reverse_index[qid] = key.replace('\t', ' ')
         return qid

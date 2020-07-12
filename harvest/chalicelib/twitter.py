@@ -64,23 +64,25 @@ class TweetCopy:
 
 
 class Agent:
-    def __init__(self,
-            consumer_key: str,
-            consumer_secret: str,
-            access_token: str,
-            access_token_secret: str,
-        ):
-        
+    def __init__(
+        self,
+        consumer_key: str,
+        consumer_secret: str,
+        access_token: str,
+        access_token_secret: str,
+    ):
+
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth)
 
-    def collect(self,
-            fetch_count: int = 100,
-            max_repeat: int = 10,
-            since_id: Optional[int] = None,
-            exclude_accounts: Sequence[str] = (),
-        ) -> List[TweetCopy]:
+    def collect(
+        self,
+        fetch_count: int = 100,
+        max_repeat: int = 10,
+        since_id: Optional[int] = None,
+        exclude_accounts: Sequence[str] = (),
+    ) -> List[TweetCopy]:
 
         max_id: Optional[int] = None
         objects: List[TweetCopy] = []
@@ -114,7 +116,7 @@ class Agent:
 
             if len(tweets) < fetch_count:
                 return objects
-            
+
             max_id = tweets[-1].id
 
         # ここまで到達するということは、総取得件数よりもフェッチ可能な
@@ -144,7 +146,10 @@ class Agent:
             raise ValueError('length of tweet_id_list must be lower than 100')
 
         logger.info('>>> get_multi) statuses_lookup: %s', tweet_id_list)
-        tweets = self.api.statuses_lookup(tweet_id_list, include_entities=False)
+        tweets = self.api.statuses_lookup(
+            tweet_id_list,
+            include_entities=False,
+        )
         logger.info('>>> fetched %s tweets', len(tweets))
         return {tw.id: TweetCopy(tw) for tw in tweets}
 
@@ -157,15 +162,16 @@ class RunReport:
     """
         周回報告レポート
     """
-    def __init__(self,
-            tweet_id: int,
-            reporter: str,
-            chapter: str,
-            place: str,
-            runcount: int,
-            items: Dict[str, str],
-            timestamp: datetime,
-        ):
+    def __init__(
+        self,
+        tweet_id: int,
+        reporter: str,
+        chapter: str,
+        place: str,
+        runcount: int,
+        items: Dict[str, str],
+        timestamp: datetime,
+    ):
         self.tweet_id = tweet_id
         self.reporter = reporter
         self.chapter = chapter
@@ -236,11 +242,13 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
 
         if line[-1].isdigit():
             lines.append(line)
-        
+
         # 【周回場所】
         # 100周
         # のように2行に割れているヘッダーを拾う
-        if header_found and i == header_linenum + 1 and re.match('[1-9][0-9]*周', line):
+        if header_found \
+            and i == header_linenum + 1 \
+                and re.match('[1-9][0-9]*周', line):
             header += line
 
     if not header_found:
@@ -278,7 +286,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     for line in lines:
         tokens = line.strip().split('-')
         items_with_counts.extend(tokens)
-    
+
     logger.debug('items_with_counts: %s', items_with_counts)
     item_dict: Dict[str, str] = {}
 
@@ -294,7 +302,9 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
                 item = token[:i+1]
                 count = token[i+1:]
                 if item in item_dict:
-                    raise ParseError(f'item {item} has already been registered')
+                    raise ParseError(
+                        f'item {item} has already been registered'
+                    )
                 if count == '':
                     raise ParseError(f'could not parse collectly: {token}')
                 item_dict[item] = count

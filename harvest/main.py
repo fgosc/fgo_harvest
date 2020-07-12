@@ -59,7 +59,10 @@ def main(args):
         partitioningRule=recording.PartitioningRuleByDate(),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_date_dir,
-        formats=(recording.OutputFormat.JSON, recording.OutputFormat.DATEHTML),
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.DATEHTML,
+        ),
     )
     recorders.append(recorder_bydate)
 
@@ -70,7 +73,10 @@ def main(args):
         partitioningRule=recording.PartitioningRuleByUser(),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_user_dir,
-        formats=(recording.OutputFormat.JSON, recording.OutputFormat.USERHTML),
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.USERHTML,
+        ),
     )
     recorders.append(recorder_byuser)
 
@@ -81,7 +87,10 @@ def main(args):
         partitioningRule=recording.PartitioningRuleByQuest(),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_quest_dir,
-        formats=(recording.OutputFormat.JSON, recording.OutputFormat.QUESTHTML),
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.QUESTHTML,
+        ),
     )
     recorders.append(recorder_byquest)
 

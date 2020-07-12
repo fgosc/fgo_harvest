@@ -27,7 +27,10 @@ def render_contents(app, tweets, ignore_original=False):
         partitioningRule=recording.PartitioningRuleByDate(),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=outdir_bydate,
-        formats=(recording.OutputFormat.JSON, recording.OutputFormat.DATEHTML),
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.DATEHTML,
+        ),
     )
     recorders.append(recorder_bydate)
 
@@ -36,7 +39,10 @@ def render_contents(app, tweets, ignore_original=False):
         partitioningRule=recording.PartitioningRuleByUser(),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=outdir_byuser,
-        formats=(recording.OutputFormat.JSON, recording.OutputFormat.USERHTML),
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.USERHTML,
+        ),
     )
     recorders.append(recorder_byuser)
 
@@ -45,7 +51,10 @@ def render_contents(app, tweets, ignore_original=False):
         partitioningRule=recording.PartitioningRuleByQuest(),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=outdir_byquest,
-        formats=(recording.OutputFormat.JSON, recording.OutputFormat.QUESTHTML),
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.QUESTHTML,
+        ),
     )
     recorders.append(recorder_byquest)
 
@@ -72,10 +81,11 @@ def collect_tweets(event):
         bucket=settings.S3Bucket,
         output_dir=settings.TweetStorageDir,
     )
-    
+
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(settings.S3Bucket)
-    latest_tweet_id_file_key = f'{settings.SettingsDir}/{settings.LatestTweetIDFile}'
+    latest_tweet_id_file_key = \
+        f'{settings.SettingsDir}/{settings.LatestTweetIDFile}'
     bio = io.BytesIO()
     app.log.info('checking latest_tweet_id file: %s', latest_tweet_id_file_key)
     try:
@@ -84,7 +94,7 @@ def collect_tweets(event):
     except botocore.exceptions.ClientError as e:
         app.log.warning(e)
         latest_tweet_id_str = ''
-    
+
     try:
         since_id = int(latest_tweet_id_str)
     except ValueError:
@@ -96,10 +106,10 @@ def collect_tweets(event):
         max_repeat=5,
         exclude_accounts=settings.ExcludeAccounts,
     )
-    app.log.info(f'collected %s tweets', len(tweets))
+    app.log.info('collected %s tweets', len(tweets))
 
     tweet_log_file = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-    app.log.info(f'tweet_log: {tweet_log_file}')
+    app.log.info('tweet_log: %s', tweet_log_file)
     tweet_storage.put(tweet_log_file, tweets)
 
     render_contents(app, tweets)
@@ -108,8 +118,9 @@ def collect_tweets(event):
         return
 
     latest_tweet = tweets[0]
-    app.log.info(f'saving the latest tweet id: {latest_tweet.tweet_id}')
-    latest_tweet_id_stream = io.BytesIO(str(latest_tweet.tweet_id).encode('utf-8'))
+    app.log.info('saving the latest tweet id: %s', latest_tweet.tweet_id)
+    latest_tweet_id_bytes = str(latest_tweet.tweet_id).encode('utf-8')
+    latest_tweet_id_stream = io.BytesIO(latest_tweet_id_bytes)
     bucket.upload_fileobj(latest_tweet_id_stream, latest_tweet_id_file_key)
 
 
@@ -121,7 +132,7 @@ def rebuild_outputs(event, context):
     )
 
     tweets = tweet_storage.readall()
-    app.log.info(f'retrieved %s tweets', len(tweets))
+    app.log.info('retrieved %s tweets', len(tweets))
 
     render_contents(app, tweets, ignore_original=True)
     app.log.info('finished rebuilding outputs')
