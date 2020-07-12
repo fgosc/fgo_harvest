@@ -20,6 +20,8 @@ def setup_twitter_agent():
 
 
 def render_contents(app, tweets, ignore_original=False):
+    recorders = []
+
     outdir_bydate = f'{settings.ProcessorOutputDir}/date'
     recorder_bydate = recording.AmazonS3Recorder(
         bucket=settings.S3Bucket,
@@ -27,6 +29,7 @@ def render_contents(app, tweets, ignore_original=False):
         partitioningRule=recording.PartitioningRuleByDate(),
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.DATEHTML),
     )
+    recorders.append(recorder_bydate)
 
     outdir_byuser = f'{settings.ProcessorOutputDir}/user'
     recorder_byuser = recording.AmazonS3Recorder(
@@ -35,6 +38,7 @@ def render_contents(app, tweets, ignore_original=False):
         partitioningRule=recording.PartitioningRuleByUser(),
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.USERHTML),
     )
+    recorders.append(recorder_byuser)
 
     outdir_byquest = f'{settings.ProcessorOutputDir}/quest'
     recorder_byquest = recording.AmazonS3Recorder(
@@ -43,22 +47,21 @@ def render_contents(app, tweets, ignore_original=False):
         partitioningRule=recording.PartitioningRuleByQuest(),
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.QUESTHTML),
     )
+    recorders.append(recorder_byquest)
 
     for tweet in tweets:
         try:
             report = twitter.parse_tweet(tweet)
-            recorder_bydate.add(report)
-            recorder_byuser.add(report)
-            recorder_byquest.add(report)
+            for recorder in recorders:
+                recorder.add(report)
 
         except twitter.ParseError as e:
             app.log.error(e)
             # TODO エラーになったツイートもHTMLには入れたい...
             app.log.error(tweet)
 
-    recorder_bydate.save(ignore_original=ignore_original)
-    recorder_byuser.save(ignore_original=ignore_original)
-    recorder_byquest.save(ignore_original=ignore_original)
+    for recorder in recorders:
+        recorder.save(ignore_original=ignore_original)
 
 
 @app.schedule(Rate(15, unit=Rate.MINUTES))

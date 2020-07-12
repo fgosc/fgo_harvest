@@ -50,6 +50,8 @@ def main(args):
     else:
         tweets = storage.readall()
 
+    recorders = []
+
     contents_date_dir = os.path.join(args.output_dir, 'contents', 'date')
     if not os.path.exists(contents_date_dir):
         os.makedirs(contents_date_dir)
@@ -58,6 +60,7 @@ def main(args):
         partitioningRule=recording.PartitioningRuleByDate(),
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.DATEHTML),
     )
+    recorders.append(recorder_bydate)
 
     contents_user_dir = os.path.join(args.output_dir, 'contents', 'user')
     if not os.path.exists(contents_user_dir):
@@ -67,6 +70,7 @@ def main(args):
         partitioningRule=recording.PartitioningRuleByUser(),
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.USERHTML),
     )
+    recorders.append(recorder_byuser)
 
     contents_quest_dir = os.path.join(args.output_dir, 'contents', 'quest')
     if not os.path.exists(contents_quest_dir):
@@ -76,14 +80,14 @@ def main(args):
         partitioningRule=recording.PartitioningRuleByQuest(),
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.QUESTHTML),
     )
+    recorders.append(recorder_byquest)
 
     for tweet in tweets:
         try:
             report = twitter.parse_tweet(tweet)
             logger.info(report)
-            recorder_bydate.add(report)
-            recorder_byuser.add(report)
-            recorder_byquest.add(report)
+            for recorder in recorders:
+                recorder.add(report)
 
         except twitter.ParseError as e:
             logger.error(e)
@@ -91,9 +95,8 @@ def main(args):
             logger.error(tweet)
 
     ignore_original = args.rebuild
-    recorder_bydate.save(ignore_original=ignore_original)
-    recorder_byuser.save(ignore_original=ignore_original)
-    recorder_byquest.save(ignore_original=ignore_original)
+    for recorder in recorders:
+        recorder.save(ignore_original=ignore_original)
 
     if not args.rebuild:
         if len(tweets) == 0:
