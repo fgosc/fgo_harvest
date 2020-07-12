@@ -9,7 +9,7 @@ import logging
 import os
 from datetime import datetime
 
-from chalicelib import settings, twitter, recording
+from chalicelib import settings, storage, twitter, recording
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def main(args):
     storage_dir = os.path.join(args.output_dir, 'tweets')
     if not os.path.exists(storage_dir):
         os.makedirs(storage_dir)
-    storage = recording.FilesystemTweetStorage(output_dir=storage_dir)
+    tweet_storage = recording.FilesystemTweetStorage(output_dir=storage_dir)
 
     if not args.rebuild:
         since_id = None
@@ -46,18 +46,19 @@ def main(args):
         )
 
         key = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-        storage.put(key, tweets)
+        tweet_storage.put(key, tweets)
     else:
-        tweets = storage.readall()
+        tweets = tweet_storage.readall()
 
     recorders = []
 
     contents_date_dir = os.path.join(args.output_dir, 'contents', 'date')
     if not os.path.exists(contents_date_dir):
         os.makedirs(contents_date_dir)
-    recorder_bydate = recording.FilesystemRecorder(
-        rootdir=contents_date_dir,
+    recorder_bydate = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByDate(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_date_dir,
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.DATEHTML),
     )
     recorders.append(recorder_bydate)
@@ -65,9 +66,10 @@ def main(args):
     contents_user_dir = os.path.join(args.output_dir, 'contents', 'user')
     if not os.path.exists(contents_user_dir):
         os.makedirs(contents_user_dir)
-    recorder_byuser = recording.FilesystemRecorder(
-        rootdir=contents_user_dir,
+    recorder_byuser = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByUser(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_user_dir,
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.USERHTML),
     )
     recorders.append(recorder_byuser)
@@ -75,9 +77,10 @@ def main(args):
     contents_quest_dir = os.path.join(args.output_dir, 'contents', 'quest')
     if not os.path.exists(contents_quest_dir):
         os.makedirs(contents_quest_dir)
-    recorder_byquest = recording.FilesystemRecorder(
-        rootdir=contents_quest_dir,
+    recorder_byquest = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByQuest(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_quest_dir,
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.QUESTHTML),
     )
     recorders.append(recorder_byquest)

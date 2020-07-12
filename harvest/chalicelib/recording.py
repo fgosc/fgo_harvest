@@ -12,14 +12,13 @@ from typing import (
 from typing_extensions import Protocol
 
 import boto3  # type: ignore
-import botocore.exceptions  # type: ignore
 from jinja2 import (
     Environment,
     PackageLoader,
     select_autoescape,
 )
 
-from . import freequest, twitter
+from . import freequest, storage, twitter
 
 logger = getLogger(__name__)
 jinja2_env = Environment(
@@ -52,7 +51,7 @@ class AbstractTweetStorage:
             default=json_serialize_helper,
         )
         self._put_json(key, s)
-    
+
     def _put_json(self, key: str, sjson: str) -> None:
         raise NotImplementedError
 
@@ -75,7 +74,7 @@ class FilesystemTweetStorage(AbstractTweetStorage):
         filepath = os.path.join(self.output_dir, key)
         with open(filepath, 'w') as fp:
             fp.write(sjson)
-    
+
     def readall(self) -> List[twitter.TweetCopy]:
         tweets: List[twitter.TweetCopy] = []
         id_cache: Set[int] = set()
@@ -115,7 +114,7 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
         s3key = f'{self.output_dir}/{key}'
         obj = self.bucket.Object(s3key)
         bio = io.BytesIO(sjson.encode('UTF-8'))
-        
+
         obj.upload_fileobj(bio)
 
     def readall(self) -> List[twitter.TweetCopy]:
@@ -194,58 +193,23 @@ class PartitioningRuleByQuest:
         partitions[qid].append(report)
 
 
-class AbstractRecorder:
-    # TODO サブクラスとスーパークラスに処理が分散しており
-    # コードを追うときにいったりきたりが必要。
-    # 正直いっていまいちな設計。そのうち考え直したい
-
+class Recorder:
     def __init__(
             self,
             partitioningRule: SupportPartitioningRule,
+            fileStorage: storage.SupportStorage,
+            basedir: str,
             formats: Sequence[OutputFormat],
         ):
         self.partitions: Dict[str, List[twitter.RunReport]] = {}
         self.partitioningRule = partitioningRule
+        self.fileStorage = fileStorage
+        self.basedir = basedir
         self.formats = formats
+        self.basepath = fileStorage.path_object(self.basedir)
 
     def add(self, report: twitter.RunReport) -> None:
         self.partitioningRule.dispatch(self.partitions, report)
-    
-    def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
-        raise NotImplementedError
-
-    def _load_json(self, buf: str) -> List[Dict[str, Any]]:
-        return json.loads(buf, object_hook=AbstractRecorder._load_hook)
-
-    def _get_output_stream(self, key: str, fmt: str) -> BinaryIO:
-        raise NotImplementedError
-
-    def _close_stream(self, stream: BinaryIO) -> None:
-        raise NotImplementedError
-
-    def save(self, force: bool = False, ignore_original: bool = False):
-        for key, reports in self.partitions.items():
-            if len(reports) == 0:
-                continue
-            if ignore_original:
-                logger.info(f'ignore original: {key}.json')
-                original = []
-            else:
-                original = self._get_original_json(key)
-
-            for outputFormat in self.formats:
-                _, ext = outputFormat.value
-                logger.info(f'target file: {key}.{ext}')
-                processor = create_processor(outputFormat)
-                merged_reports = processor.merge(reports, original)
-                if not force and merged_reports == original:
-                    logger.info(f'no new reports to write {key}.{ext}, skip')
-                    continue
-                stream = self._get_output_stream(key, ext)
-                logger.info(f'writing reports to {key}.{ext}')
-                processor.dump(merged_reports, stream, key=key)
-                logger.info('done')
-                self._close_stream(stream)
 
     @staticmethod
     def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
@@ -254,104 +218,38 @@ class AbstractRecorder:
             d['timestamp'] = datetime.fromisoformat(ts)
         return d
 
-
-class FilesystemRecorder(AbstractRecorder):
-    def __init__(
-            self,
-            rootdir: str,
-            partitioningRule: SupportPartitioningRule,
-            formats: Sequence[OutputFormat],
-        ):
-        super().__init__(partitioningRule, formats)
-        if not os.path.exists(rootdir):
-            logger.info(f'create a directory "{rootdir}"')
-            os.makedirs(rootdir)
-        self.rootdir = rootdir
-
     def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
-        filepath = os.path.join(self.rootdir, f'{key}.json')
-        if not os.path.exists(filepath):
-            return []
-        with open(filepath) as fp:
-            buf = fp.read()
-            if not buf:
-                return []
-            return self._load_json(buf)
+        keypath = str(self.basepath / key)
+        logger.info('retrieving original json: %s', keypath)
+        text = self.fileStorage.get_as_text(keypath)
+        return json.loads(text, object_hook=Recorder._load_hook)
 
-    def _get_output_stream(self, key: str, fmt: str) -> BinaryIO:
-        filepath = os.path.join(self.rootdir, f'{key}.{fmt}')
-        return open(filepath, 'wb')
-
-    def _close_stream(self, stream: BinaryIO) -> None:
-        stream.close()
-
-
-class AmazonS3Recorder(AbstractRecorder):
-    def __init__(
-            self,
-            bucket: str,
-            output_dir: str,
-            partitioningRule: SupportPartitioningRule,
-            formats: Sequence[OutputFormat],
-        ):
-        super().__init__(partitioningRule, formats)
-        self.s3 = boto3.resource('s3')
-        self.s3client = boto3.client('s3')
-        self.bucket = self.s3.Bucket(bucket)
-        self.output_dir = output_dir
-        self.key_stream_pairs: Dict[str, BinaryIO] = {}
-
-    def _exists(self, s3key: str) -> bool:
-        try:
-            self.s3client.head_object(
-                Bucket=self.bucket.name,
-                Key=s3key,
-            )
-            return True
-
-        except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] == '404':
-                return False
-            # Unexpceted Error
-            raise
-
-    def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
-        s3key = f'{self.output_dir}/{key}.json'
-        logger.info(f'get s3://{self.bucket.name}/{s3key}')
-        if not self._exists(s3key):
-            return []
-        
-        bio = io.BytesIO()
-        self.bucket.download_fileobj(s3key, bio)
-        return self._load_json(bio.getvalue().decode('UTF-8'))
-
-    def _get_output_stream(self, key: str, fmt: str) -> BinaryIO:
-        bio = io.BytesIO()
-        # この時点で key を記憶しておかないと後で stream を渡されたときに
-        # 対応する key を復元できなくなる
-        s3key = f'{self.output_dir}/{key}.{fmt}'
-        self.key_stream_pairs[s3key] = bio
-        return bio
-
-    def _close_stream(self, stream: BinaryIO) -> None:
-        for s3key, bio in self.key_stream_pairs.items():
-            if bio is not stream:
+    def save(self, force: bool = False, ignore_original: bool = False):
+        for key, reports in self.partitions.items():
+            if len(reports) == 0:
                 continue
-            obj = self.bucket.Object(s3key)
-            if s3key.endswith('.json'):
-                content_type = 'application/json'
-            elif s3key.endswith('.html'):
-                content_type = 'text/html'
-            elif s3key.endswith('.txt'):
-                content_type = 'text/plain'
+            if ignore_original:
+                logger.info(f'ignore original json: {key}.json')
+                original = []
             else:
-                content_type = 'application/octet-stream'
-            logger.info(f'put s3://{self.bucket.name}/{s3key}, content_type={content_type}')
-            bio.seek(0)
-            obj.upload_fileobj(stream, ExtraArgs={'ContentType': content_type})
-            stream.close()
-            return
-        raise ValueError('could not put a stream object to S3')
+                original = self._get_original_json(key)
+
+            for outputFormat in self.formats:
+                _, ext = outputFormat.value
+                targetfile = f'{key}.{ext}'
+                logger.info(f'target file: {targetfile}')
+                processor = create_processor(outputFormat)
+                merged_reports = processor.merge(reports, original)
+                if not force and merged_reports == original:
+                    logger.info(f'no new reports to write {targetfile}, skip')
+                    continue
+                path = str(self.basepath / targetfile)
+                logger.info('report path: %s', path)
+                stream = self.fileStorage.get_output_stream(path)
+                logger.info('writing reports to %s', targetfile)
+                processor.dump(merged_reports, stream, key=key)
+                logger.info('done')
+                self.fileStorage.close_output_stream(stream)
 
 
 class Processor:
@@ -361,7 +259,8 @@ class Processor:
             s.add(r['id'])
         return s
 
-    def merge(self,
+    def merge(
+            self,
             reports: List[twitter.RunReport],
             original: List[Dict[str, Any]],
         ):

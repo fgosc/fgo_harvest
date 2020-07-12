@@ -5,7 +5,7 @@ import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
 from chalice import Chalice, Rate  # type: ignore
 
-from chalicelib import settings, twitter, recording
+from chalicelib import settings, storage, twitter, recording
 
 app = Chalice(app_name='harvest')
 
@@ -23,28 +23,28 @@ def render_contents(app, tweets, ignore_original=False):
     recorders = []
 
     outdir_bydate = f'{settings.ProcessorOutputDir}/date'
-    recorder_bydate = recording.AmazonS3Recorder(
-        bucket=settings.S3Bucket,
-        output_dir=outdir_bydate,
+    recorder_bydate = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByDate(),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir_bydate,
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.DATEHTML),
     )
     recorders.append(recorder_bydate)
 
     outdir_byuser = f'{settings.ProcessorOutputDir}/user'
-    recorder_byuser = recording.AmazonS3Recorder(
-        bucket=settings.S3Bucket,
-        output_dir=outdir_byuser,
+    recorder_byuser = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByUser(),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir_byuser,
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.USERHTML),
     )
     recorders.append(recorder_byuser)
 
     outdir_byquest = f'{settings.ProcessorOutputDir}/quest'
-    recorder_byquest = recording.AmazonS3Recorder(
-        bucket=settings.S3Bucket,
-        output_dir=outdir_byquest,
+    recorder_byquest = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByQuest(),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir_byquest,
         formats=(recording.OutputFormat.JSON, recording.OutputFormat.QUESTHTML),
     )
     recorders.append(recorder_byquest)
@@ -68,7 +68,7 @@ def render_contents(app, tweets, ignore_original=False):
 def collect_tweets(event):
     agent = setup_twitter_agent()
 
-    storage = recording.AmazonS3TweetStorage(
+    tweet_storage = recording.AmazonS3TweetStorage(
         bucket=settings.S3Bucket,
         output_dir=settings.TweetStorageDir,
     )
@@ -100,7 +100,7 @@ def collect_tweets(event):
 
     tweet_log_file = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
     app.log.info(f'tweet_log: {tweet_log_file}')
-    storage.put(tweet_log_file, tweets)
+    tweet_storage.put(tweet_log_file, tweets)
 
     render_contents(app, tweets)
 
@@ -115,12 +115,12 @@ def collect_tweets(event):
 
 @app.lambda_function()
 def rebuild_outputs(event, context):
-    storage = recording.AmazonS3TweetStorage(
+    tweet_storage = recording.AmazonS3TweetStorage(
         bucket=settings.S3Bucket,
         output_dir=settings.TweetStorageDir,
     )
 
-    tweets = storage.readall()
+    tweets = tweet_storage.readall()
     app.log.info(f'retrieved %s tweets', len(tweets))
 
     render_contents(app, tweets, ignore_original=True)
