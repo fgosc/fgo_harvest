@@ -44,6 +44,19 @@ class OutputFormat(Enum):
 
 
 class AbstractTweetStorage:
+    """
+        TODO できればストレージ固有の処理は storage モジュールに統合したい。
+        そうすると、このクラスの役割は
+        - List[twitter.TweetCopy] の永続化
+        - readall() による List[twitter.TweetCopy] の復元
+        だけになる。
+        ただし優先度は低い。
+        また、簡単に統合できるかどうかはわからない。ざっと現実装を見た感じでは
+        - 書き込み処理
+        - パスを指定すると、その下にあるファイルをなめて
+          次々に stream を返すようなイテレータを返す処理
+        が提供されればよさそう。
+    """
     def put(self, key: str, tweets: List[twitter.TweetCopy]) -> None:
         s = json.dumps(
             [tw.as_dict() for tw in tweets],
