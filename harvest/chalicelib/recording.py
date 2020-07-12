@@ -239,7 +239,8 @@ class Recorder:
                 targetfile = f'{key}.{ext}'
                 logger.info(f'target file: {targetfile}')
                 processor = create_processor(outputFormat)
-                merged_reports = processor.merge(reports, original)
+                merger = ReportMerger()
+                merged_reports = merger.merge(reports, original)
                 if not force and merged_reports == original:
                     logger.info(f'no new reports to write {targetfile}, skip')
                     continue
@@ -252,7 +253,17 @@ class Recorder:
                 self.fileStorage.close_output_stream(stream)
 
 
-class Processor:
+class PageProcessorSupport(Protocol):
+    def dump(
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        ...
+
+
+class ReportMerger:
     def _make_index(self, original: List[Dict[str, Any]]):
         s = set()
         for r in original:
@@ -260,10 +271,10 @@ class Processor:
         return s
 
     def merge(
-            self,
-            reports: List[twitter.RunReport],
-            original: List[Dict[str, Any]],
-        ):
+        self,
+        reports: List[twitter.RunReport],
+        original: List[Dict[str, Any]],
+    ):
         logger.info('original reports: %d', len(original))
         merged = copy.deepcopy(original)
         index = self._make_index(merged)
@@ -278,22 +289,14 @@ class Processor:
         logger.info('additional reports: %d', c)
         return merged
 
-    def dump(
-            self,
-            merged_reports: List[Dict[str, Any]],
-            stream: BinaryIO,
-            **kwargs,
-        ):
-        raise NotImplementedError
 
-
-class JSONProcessor(Processor):
+class JSONPageProcessor:
     def dump(
-            self,
-            merged_reports: List[Dict[str, Any]],
-            stream: BinaryIO,
-            **kwargs,
-        ):
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
         s = json.dumps(
             merged_reports,
             ensure_ascii=False,
@@ -302,25 +305,26 @@ class JSONProcessor(Processor):
         stream.write(s.encode('UTF-8'))
 
 
-class TextProcessor(Processor):
+class TextPageProcessor:
     def dump(
-            self,
-            merged_reports: List[Dict[str, Any]],
-            stream: BinaryIO,
-            **kwargs,
-        ):
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        # TODO 実装
         raise NotImplementedError
 
 
-class DateHTMLProcessor(Processor):
+class DateHTMLPageProcessor:
     template_html = 'report_bydate.jinja2'
 
     def dump(
-            self,
-            merged_reports: List[Dict[str, Any]],
-            stream: BinaryIO,
-            **kwargs,
-        ):
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
         freequest_reports = [r for r in merged_reports if r['freequest']]
         event_reports = [r for r in merged_reports if not r['freequest']]
         today = kwargs['key']
@@ -338,15 +342,15 @@ class DateHTMLProcessor(Processor):
         stream.write(html.encode('UTF-8'))
 
 
-class UserHTMLProcessor(Processor):
+class UserHTMLPageProcessor:
     template_html = 'report_byuser.jinja2'
 
     def dump(
-            self,
-            merged_reports: List[Dict[str, Any]],
-            stream: BinaryIO,
-            **kwargs,
-        ):
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
         freequest_reports = [r for r in merged_reports if r['freequest']]
         event_reports = [r for r in merged_reports if not r['freequest']]
         template = jinja2_env.get_template(self.template_html)
@@ -358,15 +362,15 @@ class UserHTMLProcessor(Processor):
         stream.write(html.encode('UTF-8'))
 
 
-class QuestHTMLProcessor(Processor):
+class QuestHTMLPageProcessor:
     template_html = 'report_byquest.jinja2'
 
     def dump(
-            self,
-            merged_reports: List[Dict[str, Any]],
-            stream: BinaryIO,
-            **kwargs,
-        ):
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
         template = jinja2_env.get_template(self.template_html)
         html = template.render(
             reports=merged_reports,
@@ -375,16 +379,16 @@ class QuestHTMLProcessor(Processor):
         stream.write(html.encode('UTF-8'))
 
 
-def create_processor(fmt: OutputFormat) -> Processor:
+def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
     if fmt == OutputFormat.JSON:
-        return JSONProcessor()
+        return JSONPageProcessor()
     elif fmt == OutputFormat.TEXT:
-        return TextProcessor()
+        return TextPageProcessor()
     elif fmt == OutputFormat.DATEHTML:
-        return DateHTMLProcessor()
+        return DateHTMLPageProcessor()
     elif fmt == OutputFormat.USERHTML:
-        return UserHTMLProcessor()
+        return UserHTMLPageProcessor()
     elif fmt == OutputFormat.QUESTHTML:
-        return QuestHTMLProcessor()
+        return QuestHTMLPageProcessor()
 
     raise ValueError(f'Unsupported format: {fmt}')
