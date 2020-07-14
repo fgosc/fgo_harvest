@@ -349,7 +349,10 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         if line == '':
             continue
 
+        # 数値または NaN で終わる行はアイテム行とみなす
         if line[-1].isdigit():
+            lines.append(line)
+        if len(line) > 3 and line[-3:] == 'NaN':
             lines.append(line)
 
         # 【周回場所】
@@ -393,7 +396,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     logger.debug('place: %s', place)
     logger.debug('runcount: %s', runcount)
 
-    items_with_counts = []
+    items_with_counts: List[str] = []
     for line in lines:
         tokens = line.strip().split('-')
         items_with_counts.extend(tokens)
