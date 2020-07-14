@@ -5,7 +5,7 @@
     <tr>
       <th>投稿日時</th>
       <th>投稿者</th>
-      <th style="min-width: 11rem">場所</th>
+      <th style="min-width: 12rem">場所</th>
       <th style="min-width: 5rem">周回数</th>
       <th>ドロップ</ht>
     </tr>
@@ -36,7 +36,7 @@
 {% block body %}
 
 <h1 class="title" style="margin-bottom: 2.5rem">
-  {{ quest }}
+  {{ quest }} ({{ reports | length }})
 </h1>
 
 {% if reports %}
