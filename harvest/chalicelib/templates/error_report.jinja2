@@ -1,0 +1,41 @@
+{% extends "base.jinja2" %}
+
+{% block title %}解析できなかった報告ツイート{% endblock %}
+
+{% block body %}
+
+<h1 class="title" style="margin-bottom: 2.5rem">
+解析できなかった報告ツイート
+</h1>
+
+<table class="table is-striped is-fullwidth">
+  <thead>
+    <tr>
+      <th>投稿日時</th>
+      <th>投稿者</th>
+      <th style="min-width: 11rem">ツイート</th>
+      <th>エラーメッセージ</th>
+    </tr>
+  </thead>
+{% for tw in tweets %}<tr>
+  <td>
+      {{ tw.timestamp.strftime("%Y-%m-%d") }}<br>
+      {{ tw.timestamp.strftime("%H:%M:%S") }}
+    <a href="https://twitter.com/{{ tw.screen_name }}/status/{{ tw.tweet_id }}" target="_blank">
+      <span style="margin-left: 0.1rem"><small><i class="fas fa-external-link-alt"></i></small></span>
+    </a>
+  </td>
+  <td>
+    <a href="../user/{{ tw.screen_name }}.html">
+      {{ tw.screen_name }}
+    </a>
+  </td>
+  <td>
+    {{ tw.short_text }}
+  </td>
+  <td>
+    {{ tw.error_message }}
+  </td>
+</tr>{% endfor %}
+</table>
+{% endblock %}

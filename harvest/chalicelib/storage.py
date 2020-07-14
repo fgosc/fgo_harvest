@@ -88,7 +88,7 @@ class AmazonS3Storage:
         self.key_stream_pairs[path] = bio
         return bio
 
-    def close_stream(self, stream: BinaryIO) -> None:
+    def close_output_stream(self, stream: BinaryIO) -> None:
         for s3key, bio in self.key_stream_pairs.items():
             if bio is not stream:
                 continue

@@ -94,6 +94,19 @@ def main(args):
     )
     recorders.append(recorder_byquest)
 
+    contents_error_dir = os.path.join(args.output_dir, 'contents', 'errors')
+    if not os.path.exists(contents_error_dir):
+        os.makedirs(contents_error_dir)
+    error_recorder = recording.ErrorPageRecorder(
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_error_dir,
+        key='error',
+        formats=(
+            recording.ErrorOutputFormat.JSON,
+            recording.ErrorOutputFormat.HTML,
+        )
+    )
+
     for tweet in tweets:
         try:
             report = twitter.parse_tweet(tweet)
@@ -101,14 +114,19 @@ def main(args):
             for recorder in recorders:
                 recorder.add(report)
 
-        except twitter.ParseError as e:
+        except twitter.TweetParseError as e:
             logger.error(e)
-            # TODO エラーになったツイートもHTMLには入れたい...
             logger.error(tweet)
+            etw = twitter.ParseErrorTweet(
+                tweet=tweet,
+                error_message=e.get_message(),
+            )
+            error_recorder.add_error(etw)
 
     ignore_original = args.rebuild
     for recorder in recorders:
         recorder.save(ignore_original=ignore_original)
+    error_recorder.save(ignore_original=ignore_original)
 
     if not args.rebuild:
         if len(tweets) == 0:

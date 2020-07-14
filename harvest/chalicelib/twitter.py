@@ -52,12 +52,94 @@ class TweetCopy:
             created_at=self.created_at.isoformat(),
         )
 
+    @property
+    def short_text(self):
+        s = self.full_text[:25]
+        if len(self.full_text) > 25:
+            s += '...'
+        return s
+
+    @property
+    def timestamp(self):
+        # tweepy で取得した時刻にはタイムゾーン情報が付加されていない。
+        return pytz.UTC.localize(self.created_at).astimezone(tz)
+
     @staticmethod
     def retrieve(data: Dict[str, Union[int, str]]) -> TweetCopy:
         tw = TweetCopy(None)
         tw.tweet_id = data['id']
         tw.screen_name = data['screen_name']
         tw.full_text = data['full_text']
+        created_at = cast(str, data['created_at'])
+        tw.created_at = datetime.fromisoformat(created_at)
+        return tw
+
+
+class ParseErrorTweet:
+    """
+        TweetCopy とほぼ同じ構造を持つが、エラーメッセージを保持する
+        ことができる。
+        TweetCopy とメソッドや構造はほぼ同じであるが、用途が違う上、
+        また微妙に共通化が難しいためあえて別々に分けている。
+    """
+    def __init__(
+        self,
+        tweet: Optional[TweetCopy],
+        error_message: Optional[str],
+    ):
+        if tweet:
+            self.tweet_id = tweet.tweet_id
+            self.screen_name = tweet.screen_name
+            self.full_text = tweet.full_text
+            self.created_at = tweet.created_at
+        if error_message:
+            self.error_message = error_message
+
+    def __str__(self) -> str:
+        return '{} {} {} {}'.format(
+            self.created_at,
+            self.url(),
+            self.full_text.split('\n')[0],
+            self.error_message,
+        )
+
+    def __repr__(self) -> str:
+        return f'<ParseErrorTweet {self.tweet_id} {self.created_at}>'
+
+    def url(self) -> str:
+        return 'https://twitter.com/{}/status/{}'.format(
+            self.screen_name,
+            self.tweet_id,
+        )
+
+    def as_dict(self) -> Dict[str, Union[int, str]]:
+        return dict(
+            id=self.tweet_id,
+            screen_name=self.screen_name,
+            full_text=self.full_text,
+            error_message=self.error_message,
+            created_at=self.created_at.isoformat(),
+        )
+
+    @property
+    def timestamp(self):
+        # tweepy で取得した時刻にはタイムゾーン情報が付加されていない。
+        return pytz.UTC.localize(self.created_at).astimezone(tz)
+
+    @property
+    def short_text(self):
+        s = self.full_text[:25]
+        if len(self.full_text) > 25:
+            s += '...'
+        return s
+
+    @staticmethod
+    def retrieve(data: Dict[str, Union[int, str]]) -> ParseErrorTweet:
+        tw = ParseErrorTweet(tweet=None, error_message=None)
+        tw.tweet_id = data['id']
+        tw.screen_name = data['screen_name']
+        tw.full_text = data['full_text']
+        tw.error_message = cast(str, data['error_message'])
         created_at = cast(str, data['created_at'])
         tw.created_at = datetime.fromisoformat(created_at)
         return tw
@@ -154,10 +236,6 @@ class Agent:
         return {tw.id: TweetCopy(tw) for tw in tweets}
 
 
-class ParseError(Exception):
-    pass
-
-
 class RunReport:
     """
         周回報告レポート
@@ -213,10 +291,41 @@ class RunReport:
         return freequest.defaultDetector.get_quest_id(self.chapter, self.place)
 
 
+class TweetParseError(Exception):
+    message = ''
+
+    def get_message(self) -> str:
+        return self.message
+
+
+class HeaderNotFoundError(TweetParseError):
+    message = 'ヘッダー行が見つかりません。'
+
+
+class HeaderEndBracketNotFoundError(TweetParseError):
+    message = 'ヘッダーの終端文字 "】" が見つかりません。'
+
+
+class LocationNotFoundError(TweetParseError):
+    message = '周回場所を検出できません。'
+
+
+class RunCountNotFoundError(TweetParseError):
+    message = '周回数を検出できません。'
+
+
+class DuplicatedItemsError(TweetParseError):
+    message = '報告されている素材に重複があります。'
+
+
+class ItemCountNotFoundError(TweetParseError):
+    message = '個数が取得できない素材があります。'
+
+
 def parse_tweet(tweet: TweetCopy) -> RunReport:
     """
         周回報告ツイートを周回報告オブジェクトに変換する。
-        変換できない場合 ParseError を投げる。
+        変換できない場合 TweetParseError を投げる。
     """
     logger.debug('tweet id: %s', tweet.tweet_id)
 
@@ -252,19 +361,21 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
             header += line
 
     if not header_found:
-        raise ParseError('header not found')
+        raise HeaderNotFoundError('header not found')
 
     logger.debug('header: %s', header)
 
     index0 = header.find('】')
     if index0 == -1:
-        raise ParseError(f'symbol "】" not found in header: {header}')
+        raise HeaderEndBracketNotFoundError(
+            f'symbol "】" not found in header: {header}'
+        )
     location = header[1:index0]
 
     logger.debug('location: %s', location)
 
     if not re.search('[ \u3000]', location):
-        raise ParseError(f'wrong location format: {location}')
+        raise LocationNotFoundError(f'wrong location format: {location}')
 
     # 全角スペースによる区切りも許容する
     location_tokens = re.split('[ \u3000]', location)
@@ -273,9 +384,9 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
 
     index1 = header.rfind('周')
     if index1 == -1:
-        raise ParseError(f'symbol "周" not found: {header}')
+        raise RunCountNotFoundError(f'symbol "周" not found: {header}')
     if index0 + 1 >= index1:
-        raise ParseError(f'could not extract runcount: {header}')
+        raise RunCountNotFoundError(f'could not extract runcount: {header}')
     runcount = int(header[index0+1:index1])
 
     logger.debug('chapter: %s', chapter)
@@ -302,11 +413,13 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
                 item = token[:i+1]
                 count = token[i+1:]
                 if item in item_dict:
-                    raise ParseError(
+                    raise DuplicatedItemsError(
                         f'item {item} has already been registered'
                     )
                 if count == '':
-                    raise ParseError(f'could not parse collectly: {token}')
+                    raise ItemCountNotFoundError(
+                        f'could not parse collectly: {token}'
+                    )
                 item_dict[item] = count
                 logger.debug(f'{item}: {count}')
                 break
@@ -320,7 +433,5 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         place=place,
         runcount=runcount,
         items=item_dict,
-        # tweepy で取得した時刻にはタイムゾーン情報が付加されていない。
-        # この時点で timezone aware にしておく。
-        timestamp=pytz.UTC.localize(tweet.created_at).astimezone(tz),
+        timestamp=tweet.timestamp,
     )

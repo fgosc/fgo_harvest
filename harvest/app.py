@@ -58,19 +58,36 @@ def render_contents(app, tweets, ignore_original=False):
     )
     recorders.append(recorder_byquest)
 
+    outdir_error = f'{settings.ProcessorOutputDir}/errors'
+    error_recorder = recording.ErrorPageRecorder(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir_error,
+        key='error',
+        formats=(
+            recording.ErrorOutputFormat.JSON,
+            recording.ErrorOutputFormat.HTML,
+        )
+    )
+
     for tweet in tweets:
         try:
             report = twitter.parse_tweet(tweet)
             for recorder in recorders:
                 recorder.add(report)
 
-        except twitter.ParseError as e:
+        except twitter.TweetParseError as e:
             app.log.error(e)
-            # TODO エラーになったツイートもHTMLには入れたい...
             app.log.error(tweet)
+            etw = twitter.ParseErrorTweet(
+                tweet=tweet,
+                error_message=e.get_message(),
+            )
+            error_recorder.add_error(etw)
 
     for recorder in recorders:
         recorder.save(ignore_original=ignore_original)
+
+    error_recorder.save(ignore_original=ignore_original)
 
 
 @app.schedule(Rate(15, unit=Rate.MINUTES))

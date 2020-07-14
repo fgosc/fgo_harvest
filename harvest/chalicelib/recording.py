@@ -43,6 +43,11 @@ class OutputFormat(Enum):
     QUESTHTML = ('questhtml', 'html')
 
 
+class ErrorOutputFormat(Enum):
+    JSON = ('json', 'json')
+    HTML = ('html', 'html')
+
+
 class AbstractTweetStorage:
     """
         TODO できればストレージ固有の処理は storage モジュールに統合したい。
@@ -233,9 +238,11 @@ class Recorder:
         return d
 
     def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
-        keypath = str(self.basepath / key)
+        keypath = str(self.basepath / f'{key}.json')
         logger.info('retrieving original json: %s', keypath)
         text = self.fileStorage.get_as_text(keypath)
+        if text == '':
+            return []
         return json.loads(text, object_hook=Recorder._load_hook)
 
     def save(self, force: bool = False, ignore_original: bool = False):
@@ -404,5 +411,141 @@ def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
         return UserHTMLPageProcessor()
     elif fmt == OutputFormat.QUESTHTML:
         return QuestHTMLPageProcessor()
+
+    raise ValueError(f'Unsupported format: {fmt}')
+
+
+class ErrorPageRecorder:
+    def __init__(
+        self,
+        fileStorage: storage.SupportStorage,
+        basedir: str,
+        key: str,
+        formats: Sequence[ErrorOutputFormat],
+    ):
+        self.fileStorage = fileStorage
+        self.basedir = basedir
+        self.key = key
+        self.formats = formats
+        self.errors: List[twitter.ParseErrorTweet] = []
+        self.basepath = fileStorage.path_object(basedir)
+
+    def add_error(self, tweet: twitter.ParseErrorTweet) -> None:
+        self.errors.append(tweet)
+
+    @staticmethod
+    def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+        if 'timestamp' in d:
+            ts = d['timestamp']
+            d['timestamp'] = datetime.fromisoformat(ts)
+        return d
+
+    def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
+        keypath = str(self.basepath / f'{key}.json')
+        logger.info('retrieving original json: %s', keypath)
+        text = self.fileStorage.get_as_text(keypath)
+        if text == '':
+            return []
+        return json.loads(text)
+
+    def save(self, force: bool = False, ignore_original: bool = False) -> None:
+        if len(self.errors) == 0:
+            logger.info('no error tweets')
+            return
+        if ignore_original:
+            logger.info(f'ignore original json: {self.key}.json')
+            original = []
+        else:
+            original = self._get_original_json(self.key)
+
+        for outputFormat in self.formats:
+            processor = create_errorpage_processor(outputFormat)
+            original_tweets = [
+                twitter.ParseErrorTweet.retrieve(d) for d in original
+            ]
+            merger = ErrorMerger()
+            merged_errors = merger.merge(self.errors, original_tweets)
+            if not force and merged_errors == original_tweets:
+                logger.info('no new tweets to write to error page, skip')
+                continue
+
+            _, ext = outputFormat.value
+            path = str(self.basepath / f'{self.key}.{ext}')
+            stream = self.fileStorage.get_output_stream(path)
+            processor.dump(merged_errors, stream)
+            self.fileStorage.close_output_stream(stream)
+
+
+class ErrorMerger:
+    def _make_index(self, original: List[twitter.ParseErrorTweet]):
+        s = set()
+        for r in original:
+            s.add(r.tweet_id)
+        return s
+
+    def merge(
+        self,
+        errors: List[twitter.ParseErrorTweet],
+        original: List[twitter.ParseErrorTweet],
+    ):
+        logger.info('original error tweets: %d', len(original))
+        merged = copy.deepcopy(original)
+        index = self._make_index(merged)
+
+        c = 0
+        for err in errors:
+            if err.tweet_id not in index:
+                merged.append(err)
+                c += 1
+        merged.sort(key=lambda e: e.tweet_id)
+        merged.reverse()
+        logger.info('additional error tweets: %d', c)
+        return merged
+
+
+class ErrorPageProcessorSupport(Protocol):
+    def dump(
+        self,
+        errors: List[twitter.ParseErrorTweet],
+        stream: BinaryIO,
+    ) -> None:
+        ...
+
+
+class JSONErrorPageProcessor:
+    def dump(
+        self,
+        errors: List[twitter.ParseErrorTweet],
+        stream: BinaryIO,
+    ) -> None:
+        data = [tw.as_dict() for tw in errors]
+        s = json.dumps(
+            data,
+            ensure_ascii=False,
+            default=json_serialize_helper,
+        )
+        stream.write(s.encode('UTF-8'))
+
+
+class HTMLErrorPageProcessor:
+    template_html = 'error_report.jinja2'
+
+    def dump(
+        self,
+        errors: List[twitter.ParseErrorTweet],
+        stream: BinaryIO,
+    ) -> None:
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(tweets=errors)
+        stream.write(html.encode('utf-8'))
+
+
+def create_errorpage_processor(
+        fmt: ErrorOutputFormat) -> ErrorPageProcessorSupport:
+
+    if fmt == ErrorOutputFormat.JSON:
+        return JSONErrorPageProcessor()
+    elif fmt == ErrorOutputFormat.HTML:
+        return HTMLErrorPageProcessor()
 
     raise ValueError(f'Unsupported format: {fmt}')
