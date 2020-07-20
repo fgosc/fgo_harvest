@@ -390,7 +390,15 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         raise RunCountNotFoundError(f'symbol "周" not found: {header}')
     if index0 + 1 >= index1:
         raise RunCountNotFoundError(f'could not extract runcount: {header}')
-    runcount = int(header[index0+1:index1])
+
+    # 【下総国 里】もう100周
+    # のように "】" の直後が数値でないケースで int() を通すと
+    # ValueError が発生する。捕捉して TweetParseError に置き換える。
+    try:
+        runcount = int(header[index0+1:index1])
+
+    except ValueError:
+        raise RunCountNotFoundError(f'could not extract runcount: {header}')
 
     logger.debug('chapter: %s', chapter)
     logger.debug('place: %s', place)
