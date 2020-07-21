@@ -4,7 +4,12 @@
   "stages": {
     "dev": {
       "api_gateway_stage": "api",
-      "lambda_timeout": 180
+      "lambda_functions": {
+        "rebuild_outputs": {
+          "lambda_timeout": 180,
+          "lambda_memory_size": 256
+        }
+      }
     }
   }
 }
