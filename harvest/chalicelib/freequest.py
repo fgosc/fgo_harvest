@@ -69,8 +69,21 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
 
         if f'{chapter}\t{place}' in d:
             raise KeyError(f'key "{chapter} {place}" has already registered')
-
         d[f'{chapter}\t{place}'] = qid
+
+        # 修練場のようにクエスト名がないパターンがあるので
+        # 存在チェックが必要。
+        if quest:
+            if f'{chapter}\t{quest}' in d:
+                # これらは登録済みで正しい
+                if (chapter, place, quest) in quests_in_same_place:
+                    continue
+                # それ以外が二重に登録されるのはDBの設定ミス
+                else:
+                    raise KeyError(
+                        f'key "{chapter} {quest}" has already registered'
+                    )
+            d[f'{chapter}\t{quest}'] = qid
 
     # 周回カウンタに登録されているクエスト名が特殊
     d['オルレアン\tティエール(刃物の町)'] = d['オルレアン\tティエール']
