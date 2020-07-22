@@ -8,7 +8,6 @@
   <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/bulma-calendar@6.0.7/dist/js/bulma-calendar.min.js"></script>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -20,8 +19,50 @@
 <body>
   <section class="section">
     <div class="container">
+      <nav class="navbar" style="margin-bottom: 1rem;" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+          <a role="button" class="navbar-burger burger" aria-label="menu" aria-expanded="false" data-target="theNavbar">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+
+        <div class="navbar-menu" id="theNavbar">
+          <div class="navbar-end">
+            <a class="navbar-item" href="../date/latest.html">by date</a>
+            <a class="navbar-item" href="../user/all.html">by user</a>
+            <a class="navbar-item" href="../quest/all.html">by quest</a>
+            <a class="navbar-item" href="../errors/error.html">errors</a>
+          </div>
+        </div>
+      </nav>
+
 {% block body %}{% endblock %}
     </div>
   </section>
+  <script>
+(function(){
+  document.addEventListener('DOMContentLoaded', () => {
+    // Get all "navbar-burger" elements
+    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+    // Check if there are any navbar burgers
+    if ($navbarBurgers.length > 0) {
+      // Add a click event on each of them
+      $navbarBurgers.forEach( el => {
+        el.addEventListener('click', () => {
+          // Get the target from the "data-target" attribute
+          const target = el.dataset.target;
+          const $target = document.getElementById(target);
+
+          // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+          el.classList.toggle('is-active');
+          $target.classList.toggle('is-active');
+        });
+      });
+    }
+  });
+})();
+  </script>
 </body>
 </html>
