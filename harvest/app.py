@@ -58,6 +58,30 @@ def render_contents(app, tweets, ignore_original=False):
     )
     recorders.append(recorder_byquest)
 
+    # 出力先は outdir_byuser
+    recorder_byuserlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByUserList(),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir_byuser,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.USERLISTHTML,
+        )
+    )
+    recorders.append(recorder_byuserlist)
+
+    # outdir_byquest
+    recorder_byquestlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByQuestList(),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir_byquest,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.QUESTLISTHTML,
+        )
+    )
+    recorders.append(recorder_byquestlist)
+
     outdir_error = f'{settings.ProcessorOutputDir}/errors'
     error_recorder = recording.ErrorPageRecorder(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
@@ -69,6 +93,7 @@ def render_contents(app, tweets, ignore_original=False):
         )
     )
 
+    app.log.info('starting to parse tweets...')
     for tweet in tweets:
         try:
             report = twitter.parse_tweet(tweet)
@@ -84,10 +109,21 @@ def render_contents(app, tweets, ignore_original=False):
             )
             error_recorder.add_error(etw)
 
+    app.log.info('starting to render pages...')
     for recorder in recorders:
         recorder.save(ignore_original=ignore_original)
 
     error_recorder.save(ignore_original=ignore_original)
+
+    # 出力先は outdir_bydate
+    # 少なくとも bydate の HTML レンダリングが完了してからでないと実行できない。
+    # したがってこの位置で実行する。
+    latestDatePageBuilder = recording.LatestDatePageBuilder(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir_bydate,
+    )
+    latestDatePageBuilder.build()
+    app.log.info('done')
 
 
 @app.schedule(Rate(15, unit=Rate.MINUTES))
