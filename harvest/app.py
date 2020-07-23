@@ -1,11 +1,16 @@
 import io
+import os
 from datetime import datetime
+from logging import getLogger
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
 from chalice import Chalice, Rate  # type: ignore
 
 from chalicelib import settings, storage, twitter, recording
+
+logger = getLogger()
+logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 app = Chalice(app_name='harvest')
 
