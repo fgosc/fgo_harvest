@@ -332,6 +332,10 @@ class ItemCountNotFoundError(TweetParseError):
     message = '個数が取得できない素材があります。'
 
 
+class RunCountZeroError(TweetParseError):
+    message = '周回数が 0 です。'
+
+
 def parse_tweet(tweet: TweetCopy) -> RunReport:
     """
         周回報告ツイートを周回報告オブジェクトに変換する。
@@ -409,6 +413,9 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
 
     except ValueError:
         raise RunCountNotFoundError(f'could not extract runcount: {header}')
+
+    if runcount == 0:
+        raise RunCountZeroError()
 
     logger.debug('chapter: %s', chapter)
     logger.debug('place: %s', place)
