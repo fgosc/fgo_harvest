@@ -297,7 +297,9 @@ class RunReport:
 
     @property
     def quest_id(self) -> str:
-        return freequest.defaultDetector.get_quest_id(self.chapter, self.place)
+        return freequest.defaultDetector.get_quest_id(
+            self.chapter, self.place, self.timestamp.year,
+        )
 
 
 class TweetParseError(Exception):

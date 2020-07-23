@@ -213,7 +213,8 @@ class PartitioningRuleByQuest:
     ) -> None:
 
         detector = freequest.defaultDetector
-        qid = detector.get_quest_id(report.chapter, report.place)
+        year = report.timestamp.year
+        qid = detector.get_quest_id(report.chapter, report.place, year)
         if qid not in partitions:
             partitions[qid] = []
         partitions[qid].append(report)
@@ -222,7 +223,7 @@ class PartitioningRuleByQuest:
 class QuestListElement:
     def __init__(self, chapter: str, place: str, since: datetime):
         detector = freequest.defaultDetector
-        self.quest_id = detector.get_quest_id(chapter, place)
+        self.quest_id = detector.get_quest_id(chapter, place, since.year)
         self.is_freequest = detector.is_freequest(chapter, place)
         self.quest_name = detector.get_quest_name(self.quest_id)
         self.chapter = chapter
@@ -495,7 +496,11 @@ class QuestListHTMLPageProcessor:
         template = jinja2_env.get_template(self.template_html)
         html = template.render(
             freequests=sorted(freequests, key=itemgetter('id')),
-            eventquests=sorted(eventquests, key=itemgetter('since'), reverse=True),
+            eventquests=sorted(
+                            eventquests,
+                            key=itemgetter('since'),
+                            reverse=True,
+                        ),
         )
         stream.write(html.encode('UTF-8'))
 
