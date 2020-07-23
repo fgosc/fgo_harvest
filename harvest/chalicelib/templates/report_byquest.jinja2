@@ -10,11 +10,12 @@
       <th>ドロップ</ht>
     </tr>
   </thead>
+  <tbody>
 {% for r in reports %}<tr>
   <td>
+    <a href="https://twitter.com/{{ r.reporter }}/status/{{ r.id }}" target="_blank">
       {{ r.timestamp.strftime("%Y-%m-%d") }}<br>
       {{ r.timestamp.strftime("%H:%M:%S") }}
-    <a href="https://twitter.com/{{ r.reporter }}/status/{{ r.id }}" target="_blank">
       <span style="margin-left: 0.1rem"><small><i class="fas fa-external-link-alt"></i></small></span>
     </a>
   </td>
@@ -27,6 +28,7 @@
   <td>{{ r.runcount }}</td>
   <td>{% for k, v in r['items'].items() %}{{ k }}: {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
 </tr>{% endfor %}
+  </tbody>
 </table>
 
 {%- endmacro -%}

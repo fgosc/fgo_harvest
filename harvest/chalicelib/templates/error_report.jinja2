@@ -17,11 +17,12 @@
       <th>エラーメッセージ</th>
     </tr>
   </thead>
+  <tbody>
 {% for tw in tweets %}<tr>
   <td>
+    <a href="https://twitter.com/{{ tw.screen_name }}/status/{{ tw.tweet_id }}" target="_blank">
       {{ tw.timestamp.strftime("%Y-%m-%d") }}<br>
       {{ tw.timestamp.strftime("%H:%M:%S") }}
-    <a href="https://twitter.com/{{ tw.screen_name }}/status/{{ tw.tweet_id }}" target="_blank">
       <span style="margin-left: 0.1rem"><small><i class="fas fa-external-link-alt"></i></small></span>
     </a>
   </td>
@@ -37,5 +38,6 @@
     {{ tw.error_message }}
   </td>
 </tr>{% endfor %}
+  </tbody>
 </table>
 {% endblock %}

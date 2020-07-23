@@ -13,22 +13,24 @@ class Detector:
             _build_reverse_index(freequests)
 
     def is_freequest(self, chapter: str, place: str) -> bool:
-        key = f'{chapter}\t{place}'
-        return key in self.freequest_db
+        key_for_freequest = f'{chapter}\t{place}'
+        return key_for_freequest in self.freequest_db
 
-    def get_quest_id(self, chapter: str, place: str) -> str:
-        key = f'{chapter}\t{place}'
+    def get_quest_id(self, chapter: str, place: str, year: int) -> str:
+        key_for_freequest = f'{chapter}\t{place}'
+        key_for_eventquest = f'{chapter}\t{place}\t{year}'
 
-        if key in self.freequest_db:
-            return self.freequest_db[key]
+        if key_for_freequest in self.freequest_db:
+            return self.freequest_db[key_for_freequest]
 
-        elif key in self.eventquest_cache:
-            return self.eventquest_cache[key]
+        elif key_for_eventquest in self.eventquest_cache:
+            return self.eventquest_cache[key_for_eventquest]
 
-        b64digest = urlsafe_b64encode(md5(key.encode('utf-8')).digest())
-        qid = b64digest[:8].decode('utf-8')
-        self.eventquest_cache[key] = qid
-        self.quest_reverse_index[qid] = key.replace('\t', ' ')
+        encoded_key = key_for_eventquest.encode('utf-8')
+        b64digest = urlsafe_b64encode(md5(encoded_key).digest())
+        qid = b64digest[:12].decode('utf-8')
+        self.eventquest_cache[key_for_eventquest] = qid
+        self.quest_reverse_index[qid] = f'[{year}] {chapter} {place}'
         return qid
 
     def get_quest_name(self, qid: str) -> str:

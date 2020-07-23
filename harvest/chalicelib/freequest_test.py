@@ -33,10 +33,11 @@ testdata_get_quest_id = [
     ('下総国 裏山', '戦戦恐恐', '15c09'),
     ('オルレアン', 'ティエール(刃物の町)', '10b07'),
     ('セプテム', 'ゲルマニア(黒い森)', '10c06'),
-    ('自動防衛装置・ハント', '典位+級', 'fTkS1bPJ')
+    ('自動防衛装置・ハント', '典位+級', 'hc80ypM4YIKh')
 ]
 
 
 @pytest.mark.parametrize('chapter,place,expected', testdata_get_quest_id)
 def test_get_quest_id(chapter, place, expected):
-    assert freequest.defaultDetector.get_quest_id(chapter, place) == expected
+    assert freequest.defaultDetector.get_quest_id(
+        chapter, place, 2020) == expected

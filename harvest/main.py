@@ -94,6 +94,30 @@ def main(args):
     )
     recorders.append(recorder_byquest)
 
+    # 出力先は contents_user_dir
+    recorder_byuserlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByUserList(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_user_dir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.USERLISTHTML,
+        ),
+    )
+    recorders.append(recorder_byuserlist)
+
+    # 出力先は contents_quest_dir
+    recorder_byquestlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByQuestList(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_quest_dir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.QUESTLISTHTML,
+        ),
+    )
+    recorders.append(recorder_byquestlist)
+
     contents_error_dir = os.path.join(args.output_dir, 'contents', 'errors')
     if not os.path.exists(contents_error_dir):
         os.makedirs(contents_error_dir)
@@ -127,6 +151,15 @@ def main(args):
     for recorder in recorders:
         recorder.save(ignore_original=ignore_original)
     error_recorder.save(ignore_original=ignore_original)
+
+    # 出力先は contents_date_dir
+    # 少なくとも bydate の HTML レンダリングが完了してからでないと実行できない。
+    # したがってこの位置で実行する。
+    latestDatePageBuilder = recording.LatestDatePageBuilder(
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_date_dir,
+    )
+    latestDatePageBuilder.build()
 
     if not args.rebuild:
         if len(tweets) == 0:
