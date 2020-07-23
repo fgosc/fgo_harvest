@@ -5,6 +5,7 @@ import os
 from datetime import date, datetime, timedelta
 from enum import Enum
 from logging import getLogger
+from operator import itemgetter
 from typing import (
     Any, BinaryIO, Dict, List,
     Sequence, Set,
@@ -41,6 +42,7 @@ class OutputFormat(Enum):
     USERHTML = ('userhtml', 'html')
     DATEHTML = ('datehtml', 'html')
     QUESTHTML = ('questhtml', 'html')
+    QUESTLISTHTML = ('questlisthtml', 'html')
 
 
 class ErrorOutputFormat(Enum):
@@ -161,10 +163,18 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
         return tweets
 
 
+class SupportDictConversible(Protocol):
+    def as_dict(self) -> Dict[str, Any]:
+        ...
+
+    def get_id(self) -> Any:
+        ...
+
+
 class SupportPartitioningRule(Protocol):
     def dispatch(
         self,
-        partitions: Dict[str, List[twitter.RunReport]],
+        partitions: Dict[str, List[SupportDictConversible]],
         report: twitter.RunReport,
     ) -> None:
         ...
@@ -173,7 +183,7 @@ class SupportPartitioningRule(Protocol):
 class PartitioningRuleByDate:
     def dispatch(
         self,
-        partitions: Dict[str, List[twitter.RunReport]],
+        partitions: Dict[str, List[SupportDictConversible]],
         report: twitter.RunReport,
     ) -> None:
 
@@ -186,22 +196,19 @@ class PartitioningRuleByDate:
 class PartitioningRuleByUser:
     def dispatch(
         self,
-        partitions: Dict[str, List[twitter.RunReport]],
+        partitions: Dict[str, List[SupportDictConversible]],
         report: twitter.RunReport,
     ) -> None:
 
         if report.reporter not in partitions:
             partitions[report.reporter] = []
         partitions[report.reporter].append(report)
-        # TODO 今のところ解析不能ツイートは含まれない想定の
-        # コードになっているが、将来そうしたツイートもまとめて
-        # ここを通過することになった場合に対応が必要。
 
 
 class PartitioningRuleByQuest:
     def dispatch(
         self,
-        partitions: Dict[str, List[twitter.RunReport]],
+        partitions: Dict[str, List[SupportDictConversible]],
         report: twitter.RunReport,
     ) -> None:
 
@@ -212,6 +219,75 @@ class PartitioningRuleByQuest:
         partitions[qid].append(report)
 
 
+class QuestListElement:
+    def __init__(self, chapter: str, place: str, since: datetime):
+        detector = freequest.defaultDetector
+        self.quest_id = detector.get_quest_id(chapter, place)
+        self.is_freequest = detector.is_freequest(chapter, place)
+        self.quest_name = detector.get_quest_name(self.quest_id)
+        self.chapter = chapter
+        self.place = place
+        self.since = since
+
+    def as_dict(self) -> Dict[str, Any]:
+        """
+            for SupportDictConversible
+        """
+        return {
+            'id': self.quest_id,
+            'name': self.quest_name,
+            'is_freequest': self.is_freequest,
+            'chapter': self.chapter,
+            'place': self.place,
+            'since': self.since.isoformat(),
+        }
+
+    def get_id(self) -> Any:
+        """
+            for SupportDictConversible
+        """
+        return self.quest_id
+
+
+class PartitioningRuleByQuestList:
+    """
+        既存の PartitioningRule の枠組みを利用して
+        quest list を作る
+    """
+    def __init__(self):
+        self.quest_dict: Dict[str, QuestListElement] = {}
+
+    def dispatch(
+        self,
+        partitions: Dict[str, List[SupportDictConversible]],
+        report: twitter.RunReport,
+    ) -> None:
+
+        e = QuestListElement(report.chapter, report.place, report.timestamp)
+
+        exists = False
+        if e.quest_id in self.quest_dict:
+            existing_e = self.quest_dict[e.quest_id]
+            # ID が同じでもより古いものを優先
+            if existing_e.since < e.since:
+                return
+            else:
+                exists = True
+        self.quest_dict[e.quest_id] = e
+
+        # パーティションは常に1つ
+        if 'all' not in partitions:
+            partitions['all'] = []
+
+        ps = partitions['all']
+        if exists:
+            # すでにリストにある重複要素をあらかじめ取り除く
+            ps = [el for el in ps if el.get_id() != e.quest_id]
+
+        ps.append(e)
+        partitions['all'] = ps
+
+
 class Recorder:
     def __init__(
         self,
@@ -220,7 +296,7 @@ class Recorder:
         basedir: str,
         formats: Sequence[OutputFormat],
     ):
-        self.partitions: Dict[str, List[twitter.RunReport]] = {}
+        self.partitions: Dict[str, List[SupportDictConversible]] = {}
         self.partitioningRule = partitioningRule
         self.fileStorage = fileStorage
         self.basedir = basedir
@@ -285,6 +361,11 @@ class PageProcessorSupport(Protocol):
 
 
 class ReportMerger:
+    """
+        original の各要素に id エントリが必ずあり、それが
+        additional_items の id と一致する型であることが
+        暗黙的に要求される。
+    """
     def _make_index(self, original: List[Dict[str, Any]]):
         s = set()
         for r in original:
@@ -293,7 +374,7 @@ class ReportMerger:
 
     def merge(
         self,
-        reports: List[twitter.RunReport],
+        additional_items: List[SupportDictConversible],
         original: List[Dict[str, Any]],
     ):
         logger.info('original reports: %d', len(original))
@@ -301,9 +382,9 @@ class ReportMerger:
         index = self._make_index(merged)
 
         c = 0
-        for report in reports:
-            if report.tweet_id not in index:
-                merged.append(report.as_dict())
+        for item in additional_items:
+            if item.get_id() not in index:
+                merged.append(item.as_dict())
                 c += 1
         merged.sort(key=lambda e: e['id'])
         merged.reverse()
@@ -400,6 +481,25 @@ class QuestHTMLPageProcessor:
         stream.write(html.encode('UTF-8'))
 
 
+class QuestListHTMLPageProcessor:
+    template_html = 'all_quest.jinja2'
+
+    def dump(
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        freequests = [r for r in merged_reports if r['is_freequest']]
+        eventquests = [r for r in merged_reports if not r['is_freequest']]
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            freequests=sorted(freequests, key=itemgetter('id')),
+            eventquests=sorted(eventquests, key=itemgetter('since'), reverse=True),
+        )
+        stream.write(html.encode('UTF-8'))
+
+
 def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
     if fmt == OutputFormat.JSON:
         return JSONPageProcessor()
@@ -411,6 +511,8 @@ def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
         return UserHTMLPageProcessor()
     elif fmt == OutputFormat.QUESTHTML:
         return QuestHTMLPageProcessor()
+    elif fmt == OutputFormat.QUESTLISTHTML:
+        return QuestListHTMLPageProcessor()
 
     raise ValueError(f'Unsupported format: {fmt}')
 

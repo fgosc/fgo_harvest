@@ -94,6 +94,18 @@ def main(args):
     )
     recorders.append(recorder_byquest)
 
+    # 出力先は contents_quest_dir
+    recorder_byquestlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByQuestList(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_quest_dir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.QUESTLISTHTML,
+        ),
+    )
+    recorders.append(recorder_byquestlist)
+
     contents_error_dir = os.path.join(args.output_dir, 'contents', 'errors')
     if not os.path.exists(contents_error_dir):
         os.makedirs(contents_error_dir)

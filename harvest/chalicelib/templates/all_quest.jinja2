@@ -1,0 +1,32 @@
+{% macro table(quests) -%}
+<table class="table is-striped is-fullwidth">
+  <thead>
+    <tr>
+      <th>クエスト名</th>
+    </tr>
+  </thead>
+  <tbody>
+{% for quest in quests %}<tr>
+  <td><a href="{{ quest.id }}.html">{{ quest.name }}</a></td>
+</tr>{% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% extends "base.jinja2" %}
+
+{% block title %}クエスト一覧{% endblock %}
+
+{% block body %}
+
+<h1 class="title" style="margin-bottom: 2.5rem">
+クエスト一覧
+</h1>
+
+<p class="subtitle">イベント</p>
+{{ table(eventquests) }}
+
+<p class="subtitle">恒常フリークエスト</p>
+{{ table(freequests) }}
+
+{% endblock %}

@@ -270,6 +270,9 @@ class RunReport:
         )
 
     def as_dict(self) -> Dict[str, Any]:
+        """
+            for reporting.SupportDictConversible
+        """
         return dict(
             id=self.tweet_id,
             timestamp=self.timestamp,
@@ -281,6 +284,12 @@ class RunReport:
             freequest=self.is_freequest,
             quest_id=self.quest_id,
         )
+
+    def get_id(self) -> Any:
+        """
+            for reporting.SupportDictConversible
+        """
+        return self.tweet_id
 
     @property
     def is_freequest(self) -> bool:
