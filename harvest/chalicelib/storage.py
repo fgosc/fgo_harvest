@@ -1,6 +1,7 @@
 import io
 import os
 import pathlib
+import shutil
 from logging import getLogger
 from typing import BinaryIO, Dict
 from typing_extensions import Protocol
@@ -27,6 +28,9 @@ class SupportStorage(Protocol):
     def path_object(self, basedir: str) -> pathlib.PurePath:
         ...
 
+    def copy(self, src: str, dest: str) -> None:
+        ...
+
 
 class FilesystemStorage:
     def exists(self, path: str) -> bool:
@@ -46,6 +50,9 @@ class FilesystemStorage:
 
     def path_object(self, basedir: str) -> pathlib.PurePath:
         return pathlib.Path(basedir)
+
+    def copy(self, src: str, dest: str) -> None:
+        shutil.copyfile(src, dest)
 
 
 class AmazonS3Storage:
@@ -116,3 +123,7 @@ class AmazonS3Storage:
 
     def path_object(self, basedir: str) -> pathlib.PurePath:
         return pathlib.PurePosixPath(basedir)
+
+    def copy(self, src: str, dest: str) -> None:
+        source = {'Bucket': self.bucket.name, 'Key': src}
+        self.bucket.copy(source, dest)

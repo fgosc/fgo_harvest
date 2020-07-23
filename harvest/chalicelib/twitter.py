@@ -11,10 +11,9 @@ from typing import (
 import pytz
 import tweepy  # type: ignore
 
-from . import freequest
+from . import freequest, timezone
 
 logger = getLogger(__name__)
-tz = pytz.timezone('Asia/Tokyo')
 
 
 class TweetCopy:
@@ -61,8 +60,8 @@ class TweetCopy:
 
     @property
     def timestamp(self):
-        # tweepy で取得した時刻にはタイムゾーン情報が付加されていない。
-        return pytz.UTC.localize(self.created_at).astimezone(tz)
+        # tweepy で取得した時刻は UTC かつタイムゾーン情報が付加されていない。
+        return pytz.UTC.localize(self.created_at).astimezone(timezone.Local)
 
     @staticmethod
     def retrieve(data: Dict[str, Union[int, str]]) -> TweetCopy:
@@ -124,7 +123,7 @@ class ParseErrorTweet:
     @property
     def timestamp(self):
         # tweepy で取得した時刻にはタイムゾーン情報が付加されていない。
-        return pytz.UTC.localize(self.created_at).astimezone(tz)
+        return pytz.UTC.localize(self.created_at).astimezone(timezone.Local)
 
     @property
     def short_text(self):

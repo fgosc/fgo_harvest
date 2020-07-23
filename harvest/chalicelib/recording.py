@@ -19,7 +19,7 @@ from jinja2 import (
     select_autoescape,
 )
 
-from . import freequest, storage, twitter
+from . import freequest, storage, timezone, twitter
 
 logger = getLogger(__name__)
 jinja2_env = Environment(
@@ -42,6 +42,7 @@ class OutputFormat(Enum):
     USERHTML = ('userhtml', 'html')
     DATEHTML = ('datehtml', 'html')
     QUESTHTML = ('questhtml', 'html')
+    USERLISTHTML = ('userlisthtml', 'html')
     QUESTLISTHTML = ('questlisthtml', 'html')
 
 
@@ -218,6 +219,51 @@ class PartitioningRuleByQuest:
         if qid not in partitions:
             partitions[qid] = []
         partitions[qid].append(report)
+
+
+class UserListElement:
+    def __init__(self, uid):
+        self.uid = uid
+
+    def as_dict(self) -> Dict[str, Any]:
+        """
+            for SupportDictConversible
+        """
+        return {
+            'id': self.uid
+        }
+
+    def get_id(self) -> Any:
+        """
+            for SupportDictConversible
+        """
+        return self.uid
+
+
+class PartitioningRuleByUserList:
+    """
+        既存の PartitioningRule の枠組みを利用して
+        user list を作る
+    """
+    def __init__(self):
+        self.existing_reporters: Set[str] = set()
+
+    def dispatch(
+        self,
+        partitions: Dict[str, List[SupportDictConversible]],
+        report: twitter.RunReport,
+    ) -> None:
+
+        if report.reporter in self.existing_reporters:
+            return
+        self.existing_reporters.add(report.reporter)
+
+        e = UserListElement(report.reporter)
+
+        # パーティションは常に1つ
+        if 'all' not in partitions:
+            partitions['all'] = []
+        partitions['all'].append(e)
 
 
 class QuestListElement:
@@ -482,6 +528,22 @@ class QuestHTMLPageProcessor:
         stream.write(html.encode('UTF-8'))
 
 
+class UserListHTMLPageProcessor:
+    template_html = 'all_user.jinja2'
+
+    def dump(
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            users=sorted(merged_reports, key=itemgetter('id')),
+        )
+        stream.write(html.encode('UTF-8'))
+
+
 class QuestListHTMLPageProcessor:
     template_html = 'all_quest.jinja2'
 
@@ -516,10 +578,54 @@ def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
         return UserHTMLPageProcessor()
     elif fmt == OutputFormat.QUESTHTML:
         return QuestHTMLPageProcessor()
+    elif fmt == OutputFormat.USERLISTHTML:
+        return UserListHTMLPageProcessor()
     elif fmt == OutputFormat.QUESTLISTHTML:
         return QuestListHTMLPageProcessor()
 
     raise ValueError(f'Unsupported format: {fmt}')
+
+
+class LatestDatePageBuilder:
+    def __init__(
+        self,
+        fileStorage: storage.SupportStorage,
+        basedir: str,
+    ):
+        self.fileStorage = fileStorage
+        self.basedir = basedir
+        self.basepath = fileStorage.path_object(basedir)
+
+    def _find_latest_page(self, origin: datetime) -> str:
+        # 30 は適当な数値。それだけさかのぼれば何かしらの
+        # ファイルがあるだろうという期待の数値。
+        # ふつうは当日か前日のデータが見つかるだろう。
+        for i in range(30):
+            target_date = origin - timedelta(days=i)
+            filename = '{}.html'.format(target_date.date().isoformat())
+            keypath = str(self.basepath / filename)
+            if self.fileStorage.exists(keypath):
+                return str(keypath)
+        return ''
+
+    def _latest_path(self):
+        return str(self.basepath / 'latest.html')
+
+    def build(self):
+        """
+            プログラム実行時点の日付で yyyy-MM-dd.html を探す。
+            なければ1日前に戻る。これを繰り返して最新の
+            yyyy-MM-dd.html を特定する。特定できたらこれを
+            latest.html という名前でコピーする。
+        """
+        now = timezone.now()
+        src = self._find_latest_page(now)
+        if not src:
+            logger.warning('skip building the latest page')
+            return
+        dest = self._latest_path()
+        logger.info('building the latest page from "%s"', src)
+        self.fileStorage.copy(src, dest)
 
 
 class ErrorPageRecorder:

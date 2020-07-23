@@ -1,0 +1,28 @@
+{% macro table(quests) -%}
+<table class="table is-striped is-fullwidth">
+  <thead>
+    <tr>
+      <th>screen_name</th>
+    </tr>
+  </thead>
+  <tbody>
+{% for user in users %}<tr>
+  <td><a href="{{ user.id }}.html">{{ user.id }}</a></td>
+</tr>{% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% extends "base.jinja2" %}
+
+{% block title %}報告者一覧{% endblock %}
+
+{% block body %}
+
+<h1 class="title" style="margin-bottom: 2.5rem">
+報告者一覧
+</h1>
+
+{{ table(users) }}
+
+{% endblock %}
