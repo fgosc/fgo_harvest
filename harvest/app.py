@@ -166,14 +166,14 @@ def collect_tweets(event):
     )
     app.log.info('collected %s tweets', len(tweets))
 
+    if len(tweets) == 0:
+        return
+
     tweet_log_file = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
     app.log.info('tweet_log: %s', tweet_log_file)
     tweet_storage.put(tweet_log_file, tweets)
 
     render_contents(app, tweets)
-
-    if len(tweets) == 0:
-        return
 
     latest_tweet = tweets[0]
     app.log.info('saving the latest tweet id: %s', latest_tweet.tweet_id)
