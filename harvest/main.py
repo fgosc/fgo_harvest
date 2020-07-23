@@ -45,8 +45,12 @@ def main(args):
             exclude_accounts=settings.ExcludeAccounts,
         )
 
+        if len(tweets) == 0:
+            return
+
         key = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
         tweet_storage.put(key, tweets)
+
     else:
         tweets = tweet_storage.readall()
 
