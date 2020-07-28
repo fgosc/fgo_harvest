@@ -2,12 +2,13 @@ import json
 import os
 from base64 import urlsafe_b64encode
 from hashlib import md5
-from typing import Dict, List
+from typing import Dict, List, Set
 
 
 class Detector:
     def __init__(self, freequests: List[Dict[str, str]]):
         self.freequest_db: Dict[str, str] = _build_db(freequests)
+        self.freequest_chapter_db: Set[str] = _build_chapter_db(freequests)
         self.eventquest_cache: Dict[str, str] = {}
         self.quest_reverse_index: Dict[str, str] = \
             _build_reverse_index(freequests)
@@ -35,6 +36,18 @@ class Detector:
 
     def get_quest_name(self, qid: str) -> str:
         return self.quest_reverse_index[qid]
+
+    def match_freequest_chapter(self, expr) -> str:
+        """
+            与えられた文字列がフリークエストの章名で始まるかどうかを調べる。
+            もし何らかの章名で始まっている場合は、その章名を返す。
+            ただし北米のみ例外的に地名でもマッチする。
+            いずれの章ともマッチしなければ、空文字列 '' を返す。
+        """
+        for chapter in self.freequest_chapter_db:
+            if expr.startswith(chapter):
+                return chapter
+        return ''
 
 
 def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
@@ -110,6 +123,22 @@ def _build_reverse_index(freequests: List[Dict[str, str]]) -> Dict[str, str]:
         d[qid] = ' '.join([chapter, place, quest])
 
     return d
+
+
+def _build_chapter_db(freequests: List[Dict[str, str]]) -> Set[str]:
+    s = set()
+
+    for fq in freequests:
+        if fq['chapter'] not in s:
+            s.add(fq['chapter'])
+        # 歴史的事情を考慮
+        if fq['chapter'] == '北米':
+            if fq['place'] in s:
+                msg = f'key {fq["place"]} has already been registered'
+                raise KeyError(msg)
+            s.add(fq['place'])
+
+    return s
 
 
 with open(os.path.join(os.path.dirname(__file__), 'freequest.json')) as fp:

@@ -400,10 +400,19 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     normalized_location = unicodedata.normalize('NFKC', location)
     logger.debug('normalized location: %s', normalized_location)
 
-    if ' ' not in normalized_location:
-        raise LocationNotFoundError(f'wrong location format: {location}')
+    if ' ' in normalized_location:
+        location_tokens = normalized_location.split(' ')
+    else:
+        # chapter と place の間にスペースなし
+        # 恒常フリクエのみ chapter のリストと照合することで救済可能
+        chapter = freequest.defaultDetector.match_freequest_chapter(
+            normalized_location)
+        if chapter:
+            place = normalized_location[len(chapter):]
+            location_tokens = [chapter, place]
+        else:
+            raise LocationNotFoundError(f'wrong location format: {location}')
 
-    location_tokens = normalized_location.split(' ')
     if len(location_tokens) == 2:
         chapter = location_tokens[0]
         place = location_tokens[1]
