@@ -211,7 +211,11 @@ class Agent:
             ツイートIDを指定し、そのツイートを取得する。
         """
         logger.info('>>> get) statuses_lookup: %s', tweet_id)
-        tweets = self.api.statuses_lookup([tweet_id], include_entities=False)
+        tweets = self.api.statuses_lookup(
+            [tweet_id],
+            include_entities=False,
+            tweet_mode='extended',
+        )
         logger.info('>>> fetched %s tweets', len(tweets))
         if len(tweets) == 0:
             return None
@@ -230,6 +234,7 @@ class Agent:
         tweets = self.api.statuses_lookup(
             tweet_id_list,
             include_entities=False,
+            tweet_mode='extended',
         )
         logger.info('>>> fetched %s tweets', len(tweets))
         return {tw.id: TweetCopy(tw) for tw in tweets}
