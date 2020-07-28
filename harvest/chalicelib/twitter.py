@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from datetime import datetime
 from logging import getLogger
 from typing import (
@@ -393,14 +394,16 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
             f'symbol "】" not found in header: {header}'
         )
     location = header[1:index0].strip()
-
     logger.debug('location: %s', location)
 
-    if not re.search('[ \u3000]', location):
+    normalized_location = unicodedata.normalize('NFKC', location)
+    logger.debug('normalized location: %s', normalized_location)
+
+    if ' ' not in normalized_location:
         raise LocationNotFoundError(f'wrong location format: {location}')
 
     # 全角スペースによる区切りも許容する
-    location_tokens = re.split('[ \u3000]', location)
+    location_tokens = normalized_location.split(' ')
     chapter = ' '.join(location_tokens[:-1])
     place = location_tokens[-1]
 
