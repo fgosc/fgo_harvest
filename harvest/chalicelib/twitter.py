@@ -392,7 +392,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         raise HeaderEndBracketNotFoundError(
             f'symbol "】" not found in header: {header}'
         )
-    location = header[1:index0]
+    location = header[1:index0].strip()
 
     logger.debug('location: %s', location)
 
