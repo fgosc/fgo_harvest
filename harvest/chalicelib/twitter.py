@@ -396,16 +396,26 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     location = header[1:index0].strip()
     logger.debug('location: %s', location)
 
+    # 全角スペースにや全角カッコなどはここで正規化されて半角になる
     normalized_location = unicodedata.normalize('NFKC', location)
     logger.debug('normalized location: %s', normalized_location)
 
     if ' ' not in normalized_location:
         raise LocationNotFoundError(f'wrong location format: {location}')
 
-    # 全角スペースによる区切りも許容する
     location_tokens = normalized_location.split(' ')
-    chapter = ' '.join(location_tokens[:-1])
-    place = location_tokens[-1]
+    if len(location_tokens) == 2:
+        chapter = location_tokens[0]
+        place = location_tokens[1]
+    elif location_tokens[-1].startswith('(') and location_tokens[-1].endswith(')'):
+        # 第二階層 極光の間 (裏) のようにカッコ書き部分の前に
+        # スペースが混入するケースの救済措置
+        chapter = ' '.join(location_tokens[:-2])
+        # カッコ () 直前のスペースは除去
+        place = ''.join(location_tokens[-2:])
+    else:
+        chapter = ' '.join(location_tokens[:-1])
+        place = location_tokens[-1]
 
     index1 = header.rfind('周')
     if index1 == -1:
