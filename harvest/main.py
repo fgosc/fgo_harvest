@@ -112,7 +112,8 @@ def main(args):
 
     # 出力先は contents_quest_dir
     recorder_byquestlist = recording.Recorder(
-        partitioningRule=recording.PartitioningRuleByQuestList(),
+        # この partitioningRule は rebuild フラグを個別に渡す必要あり
+        partitioningRule=recording.PartitioningRuleByQuestList(args.rebuild),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_quest_dir,
         formats=(
