@@ -399,10 +399,6 @@ class PartitioningRuleByQuestList:
         ps = partitions['all']
         if new_entry:
             ps.append(actual_e)
-            # # すでにリストにある重複要素をあらかじめ取り除く
-            # # FIXME dispatch が呼ばれるたびに O(n) の操作は効率が悪い。
-            # # 件数が少ないのでとりあえずこれで妥協。
-            # ps = [el for el in ps if el.get_id() != actual_e.quest_id]
 
         partitions['all'] = ps
 
