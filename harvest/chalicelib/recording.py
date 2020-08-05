@@ -2,13 +2,14 @@ import copy
 import json
 import io
 import os
+import pathlib
 from datetime import date, datetime, timedelta
 from enum import Enum
 from logging import getLogger
 from operator import itemgetter
 from typing import (
     Any, BinaryIO, Dict, List,
-    Sequence, Set,
+    Sequence, Set, Union,
 )
 from typing_extensions import Protocol
 
@@ -181,6 +182,22 @@ class SupportPartitioningRule(Protocol):
         ...
 
 
+class SupportStatefulPartitioningRule(Protocol):
+    def setup(
+        self,
+        fileStorage: storage.SupportStorage,
+        basepath: pathlib.PurePath,
+    ) -> None:
+        ...
+
+    def dispatch(
+        self,
+        partitions: Dict[str, List[SupportDictConversible]],
+        report: twitter.RunReport,
+    ) -> None:
+        ...
+
+
 class PartitioningRuleByDate:
     def dispatch(
         self,
@@ -267,14 +284,25 @@ class PartitioningRuleByUserList:
 
 
 class QuestListElement:
-    def __init__(self, chapter: str, place: str, since: datetime):
+    def __init__(self,
+        chapter: str,
+        place: str,
+        timestamp: datetime,
+        count: int = 1,
+    ):
         detector = freequest.defaultDetector
-        self.quest_id = detector.get_quest_id(chapter, place, since.year)
+        self.quest_id = detector.get_quest_id(chapter, place, timestamp.year)
         self.is_freequest = detector.is_freequest(chapter, place)
         self.quest_name = detector.get_quest_name(self.quest_id)
         self.chapter = chapter
         self.place = place
-        self.since = since
+        self.since = timestamp
+        self.latest = timestamp
+        self.count = count
+
+    def countup(self, timestamp: datetime) -> None:
+        self.count += 1
+        self.latest = timestamp
 
     def as_dict(self) -> Dict[str, Any]:
         """
@@ -287,6 +315,8 @@ class QuestListElement:
             'chapter': self.chapter,
             'place': self.place,
             'since': self.since.isoformat(),
+            'latest': self.latest,
+            'count': self.count,
         }
 
     def get_id(self) -> Any:
@@ -301,8 +331,44 @@ class PartitioningRuleByQuestList:
         既存の PartitioningRule の枠組みを利用して
         quest list を作る
     """
-    def __init__(self):
+    def __init__(self, rebuild=False):
         self.quest_dict: Dict[str, QuestListElement] = {}
+        self.rebuild = rebuild
+
+    def setup(
+        self,
+        fileStorage: storage.SupportStorage,
+        basepath: pathlib.PurePath,
+    ) -> None:
+        # rebuild ならば蓄積されたデータは使わないので、
+        # setup の必要はない。
+        if self.rebuild:
+            return
+
+        # 既存クエストであっても countup をする必要があるため、
+        # 最初に過去データをすべてロードしておく必要がある。
+        filepath = str(basepath / 'all.json')
+        text = fileStorage.get_as_text(filepath)
+
+        def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+            if 'since' in d:
+                ts = d['since']
+                d['since'] = datetime.fromisoformat(ts)
+            if 'latest' in d:
+                ts = d['latest']
+                d['latest'] = datetime.fromisoformat(ts)
+            return d
+
+        quest_list = json.loads(text, object_hook=_load_hook)
+        for q in quest_list:
+            e = QuestListElement(q['chapter'], q['place'], q['since'])
+            if e.quest_id != q['id']:
+                logger.error(f'json: {q}')
+                raise ValueError('incorrect data: {}'.format(q['id']))
+            # TODO JSON の後方互換性
+            e.latest = q.get('latest', q['since'])
+            e.count = q.get('count', 0)
+            self.quest_dict[e.quest_id] = e
 
     def dispatch(
         self,
@@ -312,33 +378,38 @@ class PartitioningRuleByQuestList:
 
         e = QuestListElement(report.chapter, report.place, report.timestamp)
 
-        exists = False
-        if e.quest_id in self.quest_dict:
+        if e.quest_id not in self.quest_dict:
+            self.quest_dict[e.quest_id] = e
+            new_entry = True
+        else:
             existing_e = self.quest_dict[e.quest_id]
-            # ID が同じでもより古いものを優先
+            # より古いデータが見つかった場合は、その値で since を上書き
             if existing_e.since < e.since:
-                return
-            else:
-                exists = True
-        self.quest_dict[e.quest_id] = e
+                existing_e.since = e.since
+
+            existing_e.countup(e.latest)
+            new_entry = False
+
+        actual_e = self.quest_dict[e.quest_id]
 
         # パーティションは常に1つ
         if 'all' not in partitions:
-            partitions['all'] = []
+            partitions['all'] = [e for e in self.quest_dict.values()]
 
         ps = partitions['all']
-        if exists:
-            # すでにリストにある重複要素をあらかじめ取り除く
-            ps = [el for el in ps if el.get_id() != e.quest_id]
+        if new_entry:
+            ps.append(actual_e)
 
-        ps.append(e)
         partitions['all'] = ps
 
 
 class Recorder:
     def __init__(
         self,
-        partitioningRule: SupportPartitioningRule,
+        partitioningRule: Union[
+            SupportPartitioningRule,
+            SupportStatefulPartitioningRule
+        ],
         fileStorage: storage.SupportStorage,
         basedir: str,
         formats: Sequence[OutputFormat],
@@ -349,6 +420,9 @@ class Recorder:
         self.basedir = basedir
         self.formats = formats
         self.basepath = fileStorage.path_object(self.basedir)
+        # for SupportStatefulPartitioningRule
+        if hasattr(self.partitioningRule, 'setup'):
+            self.partitioningRule.setup(self.fileStorage, self.basepath)
 
     def add(self, report: twitter.RunReport) -> None:
         self.partitioningRule.dispatch(self.partitions, report)

@@ -77,7 +77,8 @@ def render_contents(app, tweets, ignore_original=False):
 
     # outdir_byquest
     recorder_byquestlist = recording.Recorder(
-        partitioningRule=recording.PartitioningRuleByQuestList(),
+        # この partitioningRule は rebuild フラグを個別に渡す必要あり
+        partitioningRule=recording.PartitioningRuleByQuestList(ignore_original),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=outdir_byquest,
         formats=(

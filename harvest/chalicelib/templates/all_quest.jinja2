@@ -7,7 +7,7 @@
   </thead>
   <tbody>
 {% for quest in quests %}<tr>
-  <td><a href="{{ quest.id }}.html">{{ quest.name }}</a></td>
+  <td><a href="{{ quest.id }}.html">{{ quest.name }} ({{ quest.count }})</a></td>
 </tr>{% endfor %}
   </tbody>
 </table>
