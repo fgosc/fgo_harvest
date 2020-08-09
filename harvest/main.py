@@ -25,6 +25,12 @@ def main(args):
         tweet_dict = agent.get_multi(args.tweet_id)
         for tid, tw in tweet_dict.items():
             logger.info(f'id: {tid}, tw: {tw}')
+            try:
+                report = twitter.parse_tweet(tw)
+                logger.info(report)
+
+            except twitter.TweetParseError as e:
+                logger.error(e)
         return
 
     storage_dir = os.path.join(args.output_dir, 'tweets')
