@@ -326,6 +326,12 @@ class QuestListElement:
         """
         return self.quest_id
 
+    def __str__(self) -> str:
+        return f'<QuestListElement: {self.as_dict()}>'
+
+    def __repr__(self) -> str:
+        return f'<QuestListElement: {self.as_dict()}>'
+
 
 class PartitioningRuleByQuestList:
     """
@@ -393,9 +399,13 @@ class PartitioningRuleByQuestList:
 
         actual_e = self.quest_dict[e.quest_id]
 
-        # パーティションは常に1つ
+        # パーティションは常に all のみ
         if 'all' not in partitions:
             partitions['all'] = [e for e in self.quest_dict.values()]
+            # パーティション初期化時に self.quest_dict の中身をコピー
+            # するが、この時点で e は partitions に登録済みであることが
+            # 確実なので、以降の処理は必要ない。
+            return
 
         ps = partitions['all']
         if new_entry:
