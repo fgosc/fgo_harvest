@@ -416,7 +416,8 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     if len(location_tokens) == 2:
         chapter = location_tokens[0]
         place = location_tokens[1]
-    elif location_tokens[-1].startswith('(') and location_tokens[-1].endswith(')'):
+    elif location_tokens[-1].startswith('(') \
+            and location_tokens[-1].endswith(')'):
         # 第二階層 極光の間 (裏) のようにカッコ書き部分の前に
         # スペースが混入するケースの救済措置
         chapter = ' '.join(location_tokens[:-2])
