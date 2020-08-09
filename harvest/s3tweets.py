@@ -27,7 +27,9 @@ def exec_pull(args):
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
 
-    object_summary_iterator = s3bucket.objects.filter(Prefix=settings.TweetStorageDir)
+    object_summary_iterator = s3bucket.objects.filter(
+        Prefix=settings.TweetStorageDir,
+    )
 
     for object_summary in object_summary_iterator:
         key = object_summary.key
@@ -112,7 +114,9 @@ def exec_clean(args):
         target_dir にある JSON ファイルと同名のファイルを
         S3 から削除する。
     """
-    object_summary_iterator = s3bucket.objects.filter(Prefix=settings.TweetStorageDir)
+    object_summary_iterator = s3bucket.objects.filter(
+        Prefix=settings.TweetStorageDir,
+    )
     output_dir = pathlib.Path(args.target_dir)
 
     for object_summary in object_summary_iterator:
@@ -153,12 +157,20 @@ def build_parser():
 
     marge_parser = subparsers.add_parser('merge')
     marge_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
-    marge_parser.add_argument('-o', '--output-dir', default='output/mergedtweets')
+    marge_parser.add_argument(
+        '-o',
+        '--output-dir',
+        default='output/mergedtweets',
+    )
     add_common_arguments(marge_parser)
     marge_parser.set_defaults(func=exec_merge)
 
     push_parser = subparsers.add_parser('push')
-    push_parser.add_argument('-d', '--target-dir', default='output/mergedtweets')
+    push_parser.add_argument(
+        '-d',
+        '--target-dir',
+        default='output/mergedtweets',
+    )
     push_parser.add_argument('--dry-run', action='store_true')
     add_common_arguments(push_parser)
     push_parser.set_defaults(func=exec_push)

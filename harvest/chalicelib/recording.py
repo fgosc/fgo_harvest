@@ -8,7 +8,7 @@ from enum import Enum
 from logging import getLogger
 from operator import itemgetter
 from typing import (
-    Any, BinaryIO, Dict, List,
+    cast, Any, BinaryIO, Dict, List,
     Sequence, Set, Union,
 )
 from typing_extensions import Protocol
@@ -284,7 +284,8 @@ class PartitioningRuleByUserList:
 
 
 class QuestListElement:
-    def __init__(self,
+    def __init__(
+        self,
         chapter: str,
         place: str,
         timestamp: datetime,
@@ -422,7 +423,11 @@ class Recorder:
         self.basepath = fileStorage.path_object(self.basedir)
         # for SupportStatefulPartitioningRule
         if hasattr(self.partitioningRule, 'setup'):
-            self.partitioningRule.setup(self.fileStorage, self.basepath)
+            statefulPartitioningRule = cast(
+                SupportStatefulPartitioningRule,
+                self.partitioningRule,
+            )
+            statefulPartitioningRule.setup(self.fileStorage, self.basepath)
 
     def add(self, report: twitter.RunReport) -> None:
         self.partitioningRule.dispatch(self.partitions, report)
