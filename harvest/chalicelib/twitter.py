@@ -349,7 +349,9 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     """
     logger.debug('tweet id: %s', tweet.tweet_id)
 
-    dirtylines = tweet.full_text.split('\n')
+    dirtylines = [ln.strip() for ln in tweet.full_text.split('\n')]
+    logger.debug('dirtylines: %s', dirtylines)
+
     header = ''
     header_found = False
     header_linenum = 0
