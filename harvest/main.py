@@ -28,6 +28,7 @@ def main(args):
             try:
                 report = twitter.parse_tweet(tw)
                 logger.info(report)
+                logger.info('is_freequest: %s', report.is_freequest)
 
             except twitter.TweetParseError as e:
                 logger.error(e)

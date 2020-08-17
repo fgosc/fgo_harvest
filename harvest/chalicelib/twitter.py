@@ -406,14 +406,15 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         location_tokens = normalized_location.split(' ')
     else:
         # chapter と place の間にスペースなし
-        # 恒常フリクエのみ chapter のリストと照合することで救済可能
+        # 恒常フリクエは chapter のリストと照合することで救済可能
+        # そうでない場合は place が空文字列の location として扱う
         chapter = freequest.defaultDetector.match_freequest_chapter(
             normalized_location)
         if chapter:
             place = normalized_location[len(chapter):]
             location_tokens = [chapter, place]
         else:
-            raise LocationNotFoundError(f'wrong location format: {location}')
+            location_tokens = [normalized_location, '']
 
     if len(location_tokens) == 2:
         chapter = location_tokens[0]

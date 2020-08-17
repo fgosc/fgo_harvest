@@ -20,7 +20,7 @@ from jinja2 import (
     select_autoescape,
 )
 
-from . import freequest, storage, timezone, twitter
+from . import freequest, settings, storage, timezone, twitter
 
 logger = getLogger(__name__)
 jinja2_env = Environment(
@@ -114,6 +114,8 @@ class FilesystemTweetStorage(AbstractTweetStorage):
             for tw in _tweets:
                 if tw.tweet_id in id_cache:
                     logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
+                elif tw.screen_name in settings.ExcludeAccounts:
+                    logger.warning("ignoring exclude account's tweet: %s", tw.tweet_id)
                 else:
                     tweets.append(tw)
                     id_cache.add(tw.tweet_id)
@@ -153,6 +155,8 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
             for tw in _tweets:
                 if tw.tweet_id in id_cache:
                     logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
+                elif tw.screen_name in settings.ExcludeAccounts:
+                    logger.warning("ignoring exclude account's tweet: %s", tw.tweet_id)
                 else:
                     tweets.append(tw)
                     id_cache.add(tw.tweet_id)

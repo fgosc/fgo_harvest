@@ -67,16 +67,12 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
         place = fq['place']
         quest = fq['quest']
 
-        # 歴史的理由により北米のみ【chapter place】ではなく
-        # 【place quest】形式で投稿されることが多い。
-        if chapter == '北米':
-            d[(f'{place}\t{quest}')] = qid
-
         # 修練場のようにクエスト名がないパターンがあるので
         # 存在チェックが必要。
         if quest:
             d[f'{chapter}\t{quest}'] = qid
             d[f'{chapter} {place}\t{quest}'] = qid
+            d[(f'{place}\t{quest}')] = qid
 
         if (chapter, place, quest) in quests_in_same_place:
             # quests_in_same_place のクエストたちに限っては
