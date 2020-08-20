@@ -4,7 +4,13 @@ TwitterAccessToken = ''
 TwitterAccessTokenSecret = ''
 
 ExcludeAccounts = (
-    'monnsuto01',
+)
+NGWords = (
 )
 
 LatestTweetIDFile = 'latest_tweet.txt'
+
+S3Bucket = ''
+TweetStorageDir = 'harvest/tweets'
+ProcessorOutputDir = 'harvest/contents'
+SettingsDir = 'harvest/settings'

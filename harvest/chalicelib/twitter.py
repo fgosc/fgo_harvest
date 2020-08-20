@@ -12,7 +12,7 @@ from typing import (
 import pytz
 import tweepy  # type: ignore
 
-from . import freequest, timezone
+from . import freequest, settings, timezone
 
 logger = getLogger(__name__)
 
@@ -158,6 +158,11 @@ class Agent:
         auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth)
 
+    def appropriate_tweet(self, tw: tweepy.Status) -> bool:
+        return not any([
+            True for word in settings.NGWords if word in tw.user.name
+        ])
+
     def collect(
         self,
         fetch_count: int = 100,
@@ -193,7 +198,10 @@ class Agent:
             logger.info('>>> fetched %s tweets', len(tweets))
 
             if tweets:
-                wrapped = [TweetCopy(tw) for tw in tweets]
+                wrapped = [
+                    TweetCopy(tw) for tw in tweets
+                        if self.appropriate_tweet(tw)
+                ]
                 objects.extend(wrapped)
 
             if len(tweets) < fetch_count:
@@ -220,6 +228,10 @@ class Agent:
         logger.info('>>> fetched %s tweets', len(tweets))
         if len(tweets) == 0:
             return None
+        tw = tweets[0]
+        if not self.appropriate_tweet(tw):
+            logger.info('inappropriate tweet: %s', tw.id)
+            return None
         return TweetCopy(tweets[0])
 
     def get_multi(self, tweet_id_list: List[int]) -> Dict[int, TweetCopy]:
@@ -237,8 +249,12 @@ class Agent:
             include_entities=False,
             tweet_mode='extended',
         )
+        logger.debug(tweets)
         logger.info('>>> fetched %s tweets', len(tweets))
-        return {tw.id: TweetCopy(tw) for tw in tweets}
+        return {
+            tw.id: TweetCopy(tw) for tw in tweets
+                if self.appropriate_tweet(tw)
+        }
 
 
 class RunReport:
