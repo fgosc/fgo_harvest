@@ -156,6 +156,11 @@ def collect_tweets(event):
         app.log.warning(e)
         latest_tweet_id_str = ''
 
+    censored_accounts = twitter.CensoredAccounts(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        filepath=f'{settings.SettingsDir}/{settings.CensoredAccountsFile}',
+    )
+
     try:
         since_id = int(latest_tweet_id_str)
     except ValueError:
@@ -163,9 +168,9 @@ def collect_tweets(event):
     app.log.info(f'since_id: {since_id}')
 
     tweets = agent.collect(
-        since_id=since_id,
         max_repeat=5,
-        exclude_accounts=settings.ExcludeAccounts,
+        since_id=since_id,
+        censored=censored_accounts,
     )
     app.log.info('collected %s tweets', len(tweets))
 
@@ -184,6 +189,8 @@ def collect_tweets(event):
     latest_tweet_id_stream = io.BytesIO(latest_tweet_id_bytes)
     bucket.upload_fileobj(latest_tweet_id_stream, latest_tweet_id_file_key)
 
+    censored_accounts.save()
+
 
 @app.lambda_function()
 def rebuild_outputs(event, context):
@@ -192,7 +199,12 @@ def rebuild_outputs(event, context):
         output_dir=settings.TweetStorageDir,
     )
 
-    tweets = tweet_storage.readall()
+    censored_accounts = twitter.CensoredAccounts(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        filepath=f'{settings.SettingsDir}/{settings.CensoredAccountsFile}',
+    )
+
+    tweets = tweet_storage.readall(set(censored_accounts.list()))
     app.log.info('retrieved %s tweets', len(tweets))
 
     render_contents(app, tweets, ignore_original=True)

@@ -3,12 +3,11 @@ TwitterConsumerSecret = ''
 TwitterAccessToken = ''
 TwitterAccessTokenSecret = ''
 
-ExcludeAccounts = (
-)
 NGWords = (
 )
 
 LatestTweetIDFile = 'latest_tweet.txt'
+CensoredAccountsFile = 'censored_accounts.json'
 
 S3Bucket = ''
 TweetStorageDir = 'harvest/tweets'

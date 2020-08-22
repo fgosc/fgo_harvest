@@ -20,7 +20,7 @@ from jinja2 import (
     select_autoescape,
 )
 
-from . import freequest, settings, storage, timezone, twitter
+from . import freequest, storage, timezone, twitter
 
 logger = getLogger(__name__)
 jinja2_env = Environment(
@@ -77,7 +77,7 @@ class AbstractTweetStorage:
     def _put_json(self, key: str, sjson: str) -> None:
         raise NotImplementedError
 
-    def readall(self) -> List[twitter.TweetCopy]:
+    def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
         raise NotImplementedError
 
     @staticmethod
@@ -97,7 +97,7 @@ class FilesystemTweetStorage(AbstractTweetStorage):
         with open(filepath, 'w') as fp:
             fp.write(sjson)
 
-    def readall(self) -> List[twitter.TweetCopy]:
+    def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
         tweets: List[twitter.TweetCopy] = []
         id_cache: Set[int] = set()
 
@@ -114,8 +114,11 @@ class FilesystemTweetStorage(AbstractTweetStorage):
             for tw in _tweets:
                 if tw.tweet_id in id_cache:
                     logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
-                elif tw.screen_name in settings.ExcludeAccounts:
-                    logger.warning("ignoring exclude account's tweet: %s", tw.tweet_id)
+                elif tw.screen_name in exclude_accounts:
+                    logger.warning(
+                        "ignoring exclude account's tweet: %s",
+                        tw.tweet_id,
+                    )
                 else:
                     tweets.append(tw)
                     id_cache.add(tw.tweet_id)
@@ -141,7 +144,7 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
 
         obj.upload_fileobj(bio)
 
-    def readall(self) -> List[twitter.TweetCopy]:
+    def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
         tweets: List[twitter.TweetCopy] = []
         id_cache: Set[int] = set()
 
@@ -155,8 +158,12 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
             for tw in _tweets:
                 if tw.tweet_id in id_cache:
                     logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
-                elif tw.screen_name in settings.ExcludeAccounts:
-                    logger.warning("ignoring exclude account's tweet: %s", tw.tweet_id)
+                elif tw.screen_name in exclude_accounts:
+                    logger.warning(
+                        "ignoring exclude account's tweet: %s",
+                        tw.tweet_id,
+                    )
+
                 else:
                     tweets.append(tw)
                     id_cache.add(tw.tweet_id)

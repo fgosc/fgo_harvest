@@ -39,6 +39,11 @@ def main(args):
         os.makedirs(storage_dir)
     tweet_storage = recording.FilesystemTweetStorage(output_dir=storage_dir)
 
+    censored_accounts = twitter.CensoredAccounts(
+        fileStorage=storage.FilesystemStorage(),
+        filepath=settings.CensoredAccountsFile,
+    )
+
     if not args.rebuild:
         since_id = None
         if os.path.exists(settings.LatestTweetIDFile):
@@ -47,9 +52,9 @@ def main(args):
 
         logger.info(f'since_id: {since_id}')
         tweets = agent.collect(
-            since_id=since_id,
             max_repeat=args.max_repeat,
-            exclude_accounts=settings.ExcludeAccounts,
+            since_id=since_id,
+            censored=censored_accounts,
         )
 
         if len(tweets) == 0:
@@ -59,7 +64,7 @@ def main(args):
         tweet_storage.put(key, tweets)
 
     else:
-        tweets = tweet_storage.readall()
+        tweets = tweet_storage.readall(set(censored_accounts.list()))
 
     recorders = []
 
@@ -174,6 +179,8 @@ def main(args):
     latestDatePageBuilder.build()
 
     if not args.rebuild:
+        censored_accounts.save()
+
         if len(tweets) == 0:
             return
         latest_tweet = tweets[0]
