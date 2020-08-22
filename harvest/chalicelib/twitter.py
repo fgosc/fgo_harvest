@@ -1,20 +1,52 @@
 from __future__ import annotations
 
+import copy
+import json
 import re
 import unicodedata
 from datetime import datetime
 from logging import getLogger
 from typing import (
-    cast, Any, Dict, List,
-    Optional, Sequence, Union,
+    cast, Any, Dict, List, Optional, Union,
 )
 
 import pytz
 import tweepy  # type: ignore
 
-from . import freequest, timezone
+from . import freequest, settings, storage, timezone
 
 logger = getLogger(__name__)
+
+
+class CensoredAccounts:
+    def __init__(
+        self,
+        fileStorage: storage.SupportStorage,
+        filepath: str,
+    ):
+        self.fileStorage = fileStorage
+        self.filepath = filepath
+        self.accounts: List[str] = []
+        text = fileStorage.get_as_text(filepath)
+        if text:
+            self.accounts = cast(List[str], json.loads(text))
+
+    def save(self) -> None:
+        stream = self.fileStorage.get_output_stream(self.filepath)
+        js = json.dumps(self.accounts, indent=2)
+        stream.write(js.encode('utf-8'))
+        self.fileStorage.close_output_stream(stream)
+
+    def exists(self, account: str) -> bool:
+        return account in self.accounts
+
+    def add(self, account: str) -> None:
+        if self.exists(account):
+            return
+        self.accounts.append(account)
+
+    def list(self) -> List[str]:
+        return copy.deepcopy(self.accounts)
 
 
 class TweetCopy:
@@ -158,12 +190,17 @@ class Agent:
         auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth)
 
+    def appropriate_tweet(self, tw: tweepy.Status) -> bool:
+        return not any([
+            True for word in settings.NGWords if word in tw.user.name
+        ])
+
     def collect(
         self,
         fetch_count: int = 100,
         max_repeat: int = 10,
         since_id: Optional[int] = None,
-        exclude_accounts: Sequence[str] = (),
+        censored: Optional[CensoredAccounts] = None,
     ) -> List[TweetCopy]:
 
         max_id: Optional[int] = None
@@ -176,8 +213,6 @@ class Agent:
         # 取得できるのは高々5件程度だろう。
         for i in range(max_repeat):
             q = '#FGO周回カウンタ -filter:retweets'
-            for account in exclude_accounts:
-                q += f' -from:{account}'
             kwargs = {
                 'q': q,
                 'count': fetch_count,
@@ -192,10 +227,33 @@ class Agent:
             tweets = self.api.search(**kwargs)
             logger.info('>>> fetched %s tweets', len(tweets))
 
-            if tweets:
-                wrapped = [TweetCopy(tw) for tw in tweets]
-                objects.extend(wrapped)
+            wrapped = []
+            for tw in tweets:
+                screen_name = tw.user.screen_name
+                if censored and censored.exists(screen_name):
+                    logger.warning(
+                        "censored account's tweet: %s",
+                        tw.id,
+                    )
+                    continue
 
+                if not self.appropriate_tweet(tw):
+                    logger.warning('inappropriate tweet: %s', tw.id)
+                    if not censored:
+                        continue
+
+                    censored.add(screen_name)
+                    logger.warning(
+                        'account %s is added the censored list',
+                        screen_name,
+                    )
+                    continue
+
+                wrapped.append(TweetCopy(tw))
+            objects.extend(wrapped)
+
+            # 取得数が取得可能件数より少ないので、もうフェッチ可能な
+            # データはないと判断できる。
             if len(tweets) < fetch_count:
                 return objects
 
@@ -220,6 +278,10 @@ class Agent:
         logger.info('>>> fetched %s tweets', len(tweets))
         if len(tweets) == 0:
             return None
+        tw = tweets[0]
+        if not self.appropriate_tweet(tw):
+            logger.info('inappropriate tweet: %s', tw.id)
+            return None
         return TweetCopy(tweets[0])
 
     def get_multi(self, tweet_id_list: List[int]) -> Dict[int, TweetCopy]:
@@ -237,8 +299,12 @@ class Agent:
             include_entities=False,
             tweet_mode='extended',
         )
+        logger.debug(tweets)
         logger.info('>>> fetched %s tweets', len(tweets))
-        return {tw.id: TweetCopy(tw) for tw in tweets}
+        return {
+            tw.id: TweetCopy(tw) for tw in tweets
+            if self.appropriate_tweet(tw)
+        }
 
 
 class RunReport:
