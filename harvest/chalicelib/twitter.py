@@ -10,7 +10,6 @@ from typing import (
     cast, Any, Dict, List, Optional, Union,
 )
 
-import pytz
 import tweepy  # type: ignore
 
 from . import freequest, settings, storage, timezone
@@ -94,7 +93,8 @@ class TweetCopy:
     @property
     def timestamp(self):
         # tweepy で取得した時刻は UTC かつタイムゾーン情報が付加されていない。
-        return pytz.UTC.localize(self.created_at).astimezone(timezone.Local)
+        return self.created_at.replace(tzinfo=timezone.UTC)\
+            .astimezone(timezone.Local)
 
     @staticmethod
     def retrieve(data: Dict[str, Union[int, str]]) -> TweetCopy:
@@ -156,7 +156,8 @@ class ParseErrorTweet:
     @property
     def timestamp(self):
         # tweepy で取得した時刻にはタイムゾーン情報が付加されていない。
-        return pytz.UTC.localize(self.created_at).astimezone(timezone.Local)
+        return self.created_at.replace(tzinfo=timezone.UTC)\
+            .astimezone(timezone.Local)
 
     @property
     def short_text(self):

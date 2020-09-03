@@ -1,8 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
 
-import pytz
-
+from . import timezone
 from . import twitter
 
 MockTweet = namedtuple('MockTweet', ['id', 'user', 'full_text', 'created_at'])
@@ -35,8 +34,8 @@ QP(+194千)50-QP(+195千)58
     assert parsed.reporter == 'testuser'
     assert parsed.chapter == 'シャーロット'
     assert parsed.place == 'ゴールドラッシュ'
-    tz = pytz.timezone('Asia/Tokyo')
-    assert parsed.timestamp == tz.localize(datetime(2020, 1, 2, 12, 4, 5))
+    tz = timezone.Local
+    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
     assert parsed.items == {
         '塵': '643',
         '証': '487',
