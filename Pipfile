@@ -7,13 +7,11 @@ verify_ssl = true
 pytest = "*"
 rope = "*"
 flake8 = "*"
-pyflakes = "*"
 
 [packages]
 tweepy = "*"
 boto3 = "*"
 jinja2 = "*"
-pytz = "*"
 chalice = "*"
 mypy = "*"
 
