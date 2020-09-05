@@ -134,7 +134,7 @@ def render_contents(app, tweets, ignore_original=False):
     app.log.info('done')
 
 
-@app.schedule(Rate(15, unit=Rate.MINUTES))
+@app.schedule(Rate(30, unit=Rate.MINUTES))
 def collect_tweets(event):
     agent = setup_twitter_agent()
 
