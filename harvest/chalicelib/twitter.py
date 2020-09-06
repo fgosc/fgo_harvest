@@ -97,7 +97,16 @@ class TweetCopy:
             .astimezone(timezone.Local)
 
     @staticmethod
-    def retrieve(data: Dict[str, Union[int, str]]) -> TweetCopy:
+    def retrieve(data: Dict[str, Union[int, str]]) -> Optional[TweetCopy]:
+        # 復元時にも censored tweets の簡易チェックをする。
+        full_text = cast(str, data['full_text'])
+        hashtags = [
+            token for token in full_text.split() if token.startswith('#')
+        ]
+        if len(hashtags) > 2:
+            logger.warning('cannot retrieve inappropriate tweet: %s', data)
+            return None
+
         tw = TweetCopy(None)
         tw.tweet_id = data['id']
         tw.screen_name = data['screen_name']
@@ -167,7 +176,19 @@ class ParseErrorTweet:
         return s
 
     @staticmethod
-    def retrieve(data: Dict[str, Union[int, str]]) -> ParseErrorTweet:
+    def retrieve(
+        data: Dict[str, Union[int, str]],
+    ) -> Optional[ParseErrorTweet]:
+
+        # 復元時にも censored tweets の簡易チェックをする。
+        full_text = cast(str, data['full_text'])
+        hashtags = [
+            token for token in full_text.split() if token.startswith('#')
+        ]
+        if len(hashtags) > 2:
+            logger.warning('cannot retrieve inappropriate tweet: %s', data)
+            return None
+
         tw = ParseErrorTweet(tweet=None, error_message=None)
         tw.tweet_id = data['id']
         tw.screen_name = data['screen_name']
@@ -196,11 +217,9 @@ class Agent:
         access_token: str,
         access_token_secret: str,
     ):
-
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth)
-
 
     def collect(
         self,

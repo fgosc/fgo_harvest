@@ -112,16 +112,20 @@ class FilesystemTweetStorage(AbstractTweetStorage):
             _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
             logger.info(f'{len(_tweets)} tweets retrieved')
             for tw in _tweets:
+                if tw is None:
+                    continue
                 if tw.tweet_id in id_cache:
                     logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
+                    continue
                 elif tw.screen_name in exclude_accounts:
                     logger.warning(
                         "ignoring exclude account's tweet: %s",
                         tw.tweet_id,
                     )
-                else:
-                    tweets.append(tw)
-                    id_cache.add(tw.tweet_id)
+                    continue
+
+                tweets.append(tw)
+                id_cache.add(tw.tweet_id)
 
         # 新しい順
         tweets.sort(key=lambda e: e.tweet_id)
@@ -156,17 +160,20 @@ class AmazonS3TweetStorage(AbstractTweetStorage):
             _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
             logger.info(f'{len(_tweets)} tweets retrieved')
             for tw in _tweets:
+                if tw is None:
+                    continue
                 if tw.tweet_id in id_cache:
                     logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
+                    continue
                 elif tw.screen_name in exclude_accounts:
                     logger.warning(
                         "ignoring exclude account's tweet: %s",
                         tw.tweet_id,
                     )
+                    continue
 
-                else:
-                    tweets.append(tw)
-                    id_cache.add(tw.tweet_id)
+                tweets.append(tw)
+                id_cache.add(tw.tweet_id)
 
         # 新しい順
         tweets.sort(key=lambda e: e.tweet_id)
@@ -780,9 +787,11 @@ class ErrorPageRecorder:
 
         for outputFormat in self.formats:
             processor = create_errorpage_processor(outputFormat)
-            original_tweets = [
+            _original_tweets = [
                 twitter.ParseErrorTweet.retrieve(d) for d in original
             ]
+            original_tweets: List[twitter.ParseErrorTweet] = [
+                tw for tw in _original_tweets if tw is not None]
             merger = ErrorMerger()
             merged_errors = merger.merge(self.errors, original_tweets)
             if not force and merged_errors == original_tweets:
