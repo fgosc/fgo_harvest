@@ -178,6 +178,16 @@ class ParseErrorTweet:
         return tw
 
 
+def appropriate_tweet(tw: tweepy.Status) -> bool:
+    # 宣伝目的のツイートは hashtag が 3 つ以上あることが普通。
+    if len(tw.entities.get('hashtags', 0)) > 2:
+        return False
+
+    return not any([
+        True for word in settings.NGWords if word in tw.user.name
+    ])
+
+
 class Agent:
     def __init__(
         self,
@@ -191,10 +201,6 @@ class Agent:
         auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth)
 
-    def appropriate_tweet(self, tw: tweepy.Status) -> bool:
-        return not any([
-            True for word in settings.NGWords if word in tw.user.name
-        ])
 
     def collect(
         self,
@@ -238,7 +244,7 @@ class Agent:
                     )
                     continue
 
-                if not self.appropriate_tweet(tw):
+                if not appropriate_tweet(tw):
                     logger.warning('inappropriate tweet: %s', tw.id)
                     if not censored:
                         continue
@@ -280,7 +286,7 @@ class Agent:
         if len(tweets) == 0:
             return None
         tw = tweets[0]
-        if not self.appropriate_tweet(tw):
+        if not appropriate_tweet(tw):
             logger.info('inappropriate tweet: %s', tw.id)
             return None
         return TweetCopy(tweets[0])
@@ -303,8 +309,7 @@ class Agent:
         logger.debug(tweets)
         logger.info('>>> fetched %s tweets', len(tweets))
         return {
-            tw.id: TweetCopy(tw) for tw in tweets
-            if self.appropriate_tweet(tw)
+            tw.id: TweetCopy(tw) for tw in tweets if appropriate_tweet(tw)
         }
 
 

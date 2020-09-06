@@ -108,7 +108,7 @@ def render_contents(app, tweets, ignore_original=False):
     for tweet in tweets:
         try:
             report = twitter.parse_tweet(tweet)
-            for recorder in recorders:
+            for recorder, _ in recorders:
                 recorder.add(report)
 
         except twitter.TweetParseError as e:
