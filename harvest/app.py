@@ -2,6 +2,7 @@ import io
 import os
 from datetime import datetime
 from logging import getLogger
+from typing import List, Tuple
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
@@ -25,7 +26,7 @@ def setup_twitter_agent():
 
 
 def render_contents(app, tweets, ignore_original=False):
-    recorders = []
+    recorders: List[Tuple[recording.Recorder, bool]] = []
 
     outdir_bydate = f'{settings.ProcessorOutputDir}/date'
     recorder_bydate = recording.Recorder(
@@ -37,7 +38,7 @@ def render_contents(app, tweets, ignore_original=False):
             recording.OutputFormat.DATEHTML,
         ),
     )
-    recorders.append(recorder_bydate)
+    recorders.append((recorder_bydate, False))
 
     outdir_byuser = f'{settings.ProcessorOutputDir}/user'
     recorder_byuser = recording.Recorder(
@@ -49,7 +50,7 @@ def render_contents(app, tweets, ignore_original=False):
             recording.OutputFormat.USERHTML,
         ),
     )
-    recorders.append(recorder_byuser)
+    recorders.append((recorder_byuser, False))
 
     outdir_byquest = f'{settings.ProcessorOutputDir}/quest'
     recorder_byquest = recording.Recorder(
@@ -61,7 +62,7 @@ def render_contents(app, tweets, ignore_original=False):
             recording.OutputFormat.QUESTHTML,
         ),
     )
-    recorders.append(recorder_byquest)
+    recorders.append((recorder_byquest, False))
 
     # 出力先は outdir_byuser
     recorder_byuserlist = recording.Recorder(
@@ -73,7 +74,7 @@ def render_contents(app, tweets, ignore_original=False):
             recording.OutputFormat.USERLISTHTML,
         )
     )
-    recorders.append(recorder_byuserlist)
+    recorders.append((recorder_byuserlist, False))
 
     # outdir_byquest
     recorder_byquestlist = recording.Recorder(
@@ -88,7 +89,9 @@ def render_contents(app, tweets, ignore_original=False):
             recording.OutputFormat.QUESTLISTHTML,
         )
     )
-    recorders.append(recorder_byquestlist)
+    # quest list だけはリストの増減がない場合でも数値の countup を
+    # 再描画する必要があるので強制上書きが必要
+    recorders.append((recorder_byquestlist, True))
 
     outdir_error = f'{settings.ProcessorOutputDir}/errors'
     error_recorder = recording.ErrorPageRecorder(
@@ -118,8 +121,9 @@ def render_contents(app, tweets, ignore_original=False):
             error_recorder.add_error(etw)
 
     app.log.info('starting to render pages...')
-    for recorder in recorders:
-        recorder.save(ignore_original=ignore_original)
+    for recorder, force_save in recorders:
+        if recorder.count():
+            recorder.save(force=force_save, ignore_original=ignore_original)
 
     error_recorder.save(ignore_original=ignore_original)
 

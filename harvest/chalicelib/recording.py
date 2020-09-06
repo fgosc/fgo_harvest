@@ -441,6 +441,7 @@ class Recorder:
         self.fileStorage = fileStorage
         self.basedir = basedir
         self.formats = formats
+        self.counter: int = 0
         self.basepath = fileStorage.path_object(self.basedir)
         # for SupportStatefulPartitioningRule
         if hasattr(self.partitioningRule, 'setup'):
@@ -452,6 +453,10 @@ class Recorder:
 
     def add(self, report: twitter.RunReport) -> None:
         self.partitioningRule.dispatch(self.partitions, report)
+        self.counter += 1
+
+    def count(self) -> int:
+        return self.counter
 
     @staticmethod
     def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
@@ -485,7 +490,9 @@ class Recorder:
                 processor = create_processor(outputFormat)
                 merger = ReportMerger()
                 merged_reports = merger.merge(reports, original)
-                if not force and merged_reports == original:
+                if force:
+                    logger.info('force option is enabled')
+                elif merged_reports == original:
                     logger.info(f'no new reports to write {targetfile}, skip')
                     continue
                 path = str(self.basepath / targetfile)
