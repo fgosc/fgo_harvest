@@ -9,12 +9,27 @@ import logging
 import os
 from datetime import datetime
 
-from chalicelib import settings, storage, twitter, recording
+from chalicelib import settings
+from chalicelib import static
+from chalicelib import storage
+from chalicelib import twitter
+from chalicelib import recording
 
 logger = logging.getLogger(__name__)
 
 
 def main(args):
+    if args.static:
+        static_dir = os.path.join(args.output_dir, 'contents', 'static')
+        if not os.path.exists(static_dir):
+            os.makedirs(static_dir)
+        renderer = static.StaticPagesRenderer(
+            fileStorage=storage.FilesystemStorage(),
+            basedir=static_dir,
+        )
+        renderer.render_all()
+        return
+
     agent = twitter.Agent(
         consumer_key=settings.TwitterConsumerKey,
         consumer_secret=settings.TwitterConsumerSecret,
@@ -205,8 +220,14 @@ def parse_args():
         '--tweet-id',
         nargs='+',
     )
-    parser.add_argument(
+    # TODO サブコマンド化したほうがいい
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         '--rebuild',
+        action='store_true',
+    )
+    group.add_argument(
+        '--static',
         action='store_true',
     )
     parser.add_argument(
