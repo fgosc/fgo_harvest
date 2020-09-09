@@ -8,7 +8,12 @@ import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
 from chalice import Chalice, Rate  # type: ignore
 
-from chalicelib import settings, storage, twitter, recording
+from chalicelib import settings
+from chalicelib import static
+from chalicelib import storage
+from chalicelib import twitter
+from chalicelib import recording
+
 
 logger = getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -213,3 +218,13 @@ def rebuild_outputs(event, context):
 
     render_contents(app, tweets, ignore_original=True)
     app.log.info('finished rebuilding outputs')
+
+
+@app.lambda_function()
+def build_static_contents(event, context):
+    renderer = static.StaticPagesRenderer(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=f'{settings.ProcessorOutputDir}/static',
+    )
+    renderer.render_all()
+    app.log.info('finished building static contents')
