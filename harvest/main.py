@@ -207,7 +207,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--loglevel',
+        '-l', '--loglevel',
         choices=('debug', 'info', 'warning'),
         default='info',
     )
@@ -217,7 +217,7 @@ def parse_args():
         default=10,
     )
     parser.add_argument(
-        '--tweet-id',
+        '-t', '--tweet-id',
         nargs='+',
     )
     # TODO サブコマンド化したほうがいい
@@ -239,6 +239,9 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    log_format = '%(asctime)s [%(levelname)s] %(message)s'
+    log_format = (
+        '%(asctime)s [%(levelname)s] '
+        '<%(module)s-L%(lineno)s> %(message)s'
+    )
     logging.basicConfig(level=args.loglevel.upper(), format=log_format)
     main(args)
