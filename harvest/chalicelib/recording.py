@@ -8,10 +8,9 @@ from enum import Enum
 from logging import getLogger
 from operator import itemgetter
 from typing import (
-    cast, Any, BinaryIO, Dict, List,
+    cast, Any, BinaryIO, Dict, List, Protocol,
     Sequence, Set, Union,
 )
-from typing_extensions import Protocol
 
 import boto3  # type: ignore
 from jinja2 import (

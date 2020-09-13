@@ -3,8 +3,7 @@ import os
 import pathlib
 import shutil
 from logging import getLogger
-from typing import BinaryIO, Dict
-from typing_extensions import Protocol
+from typing import BinaryIO, Dict, Protocol
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
