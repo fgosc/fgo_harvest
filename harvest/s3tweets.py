@@ -87,6 +87,13 @@ def exec_merge(args):
             json.dump(merged, fp, ensure_ascii=False)
 
 
+def checksum(filepath):
+    import hashlib
+    with open(filepath, 'rb') as fp:
+        data = fp.read()
+    return hashlib.sha1(data).hexdigest()
+
+
 def exec_push(args):
     """
         JSON ファイルを S3 にアップロードする。
@@ -95,12 +102,19 @@ def exec_push(args):
     files = target_dir.glob('*.json')
     basepath = pathlib.PurePosixPath(settings.TweetStorageDir)
 
+    test_dir = pathlib.Path(args.test_dir)
+
     for filepath in files:
+        testfile = test_dir / filepath.name
+        if testfile.exists() and checksum(filepath) == checksum(testfile):
+            logger.info('skip uploading %s (probably already exists on S3)', filepath)
+            continue
+
         key = str(basepath / filepath.name)
         src = str(filepath)
         logger.info(f'{src} -> s3: {key}')
         if args.dry_run:
-            logger.info('skip uploading')
+            logger.info('skip uploading (--dry-run)')
             continue
         s3bucket.upload_file(
             src,
@@ -111,19 +125,46 @@ def exec_push(args):
 
 def exec_clean(args):
     """
-        target_dir にある JSON ファイルと同名のファイルを
-        S3 から削除する。
+        target_dir にある JSON ファイルと同名のファイルを S3 から削除する。
+        
+        以下の場合は削除しない:
+        - yyyyMMdd.json
+        - yyyyMMdd.json が存在しないときの yyyyMMdd_HHMMSS.json
+          (つまりサマリされていない場合はサマリ元は消さない)
     """
     object_summary_iterator = s3bucket.objects.filter(
         Prefix=settings.TweetStorageDir,
     )
     output_dir = pathlib.Path(args.target_dir)
 
+    summary_files = set()
+    target_object_summaries = []
+
+    # 最初にサマリファイルだけを探索する
     for object_summary in object_summary_iterator:
+        key = object_summary.key
+
+        name = key.replace(settings.TweetStorageDir + '/', '')
+        summary_name = pathlib.Path(name).stem
+        if len(summary_name) == 8:
+            logger.debug('s3: %s', key)
+            logger.info('skip deleting a summary file: %s', name)
+            summary_files.add(summary_name)
+            continue
+        target_object_summaries.append(object_summary)
+
+    # サマリファイル以外を処理する
+    for object_summary in target_object_summaries:
         key = object_summary.key
         logger.debug('s3: %s', key)
 
         name = key.replace(settings.TweetStorageDir + '/', '')
+        stem = pathlib.Path(name).stem
+        ymd, _ = stem.split('_')
+        if ymd not in summary_files:
+            logger.info('skip deleting a non-summarized file: %s', name)
+            continue
+
         output = output_dir / name
         logger.debug('local: %s, exists: %s', output, output.exists())
 
@@ -135,7 +176,7 @@ def exec_clean(args):
                 logger.debug(resp)
                 logger.info('deleted: %s', key)
         else:
-            logger.info('skip deleting: %s', key)
+            logger.info('skip deleting (should not be deleted): %s', key)
 
 
 def build_parser():
@@ -143,6 +184,7 @@ def build_parser():
 
     def add_common_arguments(subparser):
         subparser.add_argument(
+            '-l',
             '--loglevel',
             choices=('debug', 'info', 'warning'),
             default='info',
@@ -171,12 +213,19 @@ def build_parser():
         '--target-dir',
         default='output/mergedtweets',
     )
+    push_parser.add_argument(
+        '--test-dir',
+        default='output/s3tweets',
+    )
     push_parser.add_argument('--dry-run', action='store_true')
     add_common_arguments(push_parser)
     push_parser.set_defaults(func=exec_push)
 
     clean_parser = subparsers.add_parser('clean')
-    clean_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
+    clean_parser.add_argument('-d',
+        '--target-dir',
+        default='output/s3tweets',
+    )
     clean_parser.add_argument('--dry-run', action='store_true')
     add_common_arguments(clean_parser)
     clean_parser.set_defaults(func=exec_clean)

@@ -387,6 +387,16 @@ class RunReport:
         """
         return self.tweet_id
 
+    def equals(self, obj: Any) -> bool:
+        """
+            for reporting.SupportDictConversible
+        """
+        if isinstance(obj, dict):
+            return self.as_dict() == obj
+        if isinstance(obj, RunReport):
+            return self.as_dict() == obj.as_dict()
+        return False
+
     @property
     def is_freequest(self) -> bool:
         return freequest.defaultDetector.is_freequest(self.chapter, self.place)

@@ -8,10 +8,9 @@ from enum import Enum
 from logging import getLogger
 from operator import itemgetter
 from typing import (
-    cast, Any, BinaryIO, Dict, List,
+    cast, Any, BinaryIO, Dict, List, Protocol,
     Sequence, Set, Union,
 )
-from typing_extensions import Protocol
 
 import boto3  # type: ignore
 from jinja2 import (
@@ -190,6 +189,9 @@ class SupportDictConversible(Protocol):
     def get_id(self) -> Any:
         ...
 
+    def equals(self, obj: Any) -> bool:
+        ...
+
 
 class SupportPartitioningRule(Protocol):
     def dispatch(
@@ -274,6 +276,16 @@ class UserListElement:
         """
         return self.uid
 
+    def equals(self, obj: Any) -> bool:
+        """
+            for SupportDictConversible
+        """
+        if isinstance(obj, dict):
+            return self.uid == obj.get('id')
+        if isinstance(obj, UserListElement):
+            return self.uid == cast(UserListElement, obj).uid
+        return False
+
 
 class PartitioningRuleByUserList:
     """
@@ -334,7 +346,7 @@ class QuestListElement:
             'chapter': self.chapter,
             'place': self.place,
             'since': self.since.isoformat(),
-            'latest': self.latest,
+            'latest': self.latest.isoformat(),
             'count': self.count,
         }
 
@@ -349,6 +361,16 @@ class QuestListElement:
 
     def __repr__(self) -> str:
         return f'<QuestListElement: {self.as_dict()}>'
+
+    def equals(self, obj: Any) -> bool:
+        """
+            for SupportDictConversible
+        """
+        if isinstance(obj, dict):
+            return self.as_dict() == obj
+        if isinstance(obj, QuestListElement):
+            return self.as_dict() == obj.as_dict()
+        return False
 
 
 class PartitioningRuleByQuestList:
@@ -527,30 +549,55 @@ class ReportMerger:
         additional_items の id と一致する型であることが
         暗黙的に要求される。
     """
-    def _make_index(self, original: List[Dict[str, Any]]):
-        s = set()
+    def _make_index(
+        self,
+        original: List[Dict[str, Any]],
+        deepcopy: bool = False,
+    ) -> Dict[Any, Dict[str, Any]]:
+
+        d: Dict[Any, Dict[str, Any]] = {}
         for r in original:
-            s.add(r['id'])
-        return s
+            if deepcopy:
+                d[r['id']] = copy.deepcopy(r)
+            else:
+                d[r['id']] = r
+        return d
 
     def merge(
         self,
         additional_items: List[SupportDictConversible],
         original: List[Dict[str, Any]],
-    ):
-        logger.info('original reports: %d', len(original))
-        merged = copy.deepcopy(original)
-        index = self._make_index(merged)
+    ) -> List[Dict[str, Any]]:
 
-        c = 0
+        logger.info('original reports: %d', len(original))
+        merged_dict = self._make_index(original, deepcopy=True)
+        index = self._make_index(original, deepcopy=False)
+
+        additional_count = 0
+        overriden_count = 0
+
         for item in additional_items:
             if item.get_id() not in index:
-                merged.append(item.as_dict())
-                c += 1
-        merged.sort(key=lambda e: e['id'])
-        merged.reverse()
-        logger.info('additional reports: %d', c)
-        return merged
+                merged_dict[item.get_id()] = item.as_dict()
+                additional_count += 1
+                continue
+
+            origin = index[item.get_id()]
+            if not item.equals(origin):
+                logger.debug(
+                    'item is not equal to origin\n  orig: %s, \n  item: %s',
+                    origin,
+                    item.as_dict(),
+                )
+                merged_dict[item.get_id()] = item.as_dict()
+                overriden_count += 1
+
+        merged_list = list(merged_dict.values())
+        merged_list.sort(key=lambda e: e['id'])
+        merged_list.reverse()
+        logger.info('additional reports: %d', additional_count)
+        logger.info('overriden reports: %d', overriden_count)
+        return merged_list
 
 
 class JSONPageProcessor:
