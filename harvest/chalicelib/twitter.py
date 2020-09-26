@@ -16,6 +16,10 @@ from . import freequest, settings, storage, timezone
 
 logger = getLogger(__name__)
 
+RE_INDEPENDENT_RUNCOUNT = re.compile(r'[1-9０-９][0-9０-９]*周')
+RE_RUNCOUNT = re.compile(r'[0-9０-９]+$')
+RE_ITEMCOUNT = re.compile(r'^(?P<item>[^0-9０-９]+)(?P<count>[0-9０-９]+).*')
+
 
 class CensoredAccounts:
     def __init__(
@@ -435,10 +439,6 @@ class DuplicatedItemsError(TweetParseError):
     message = '報告されている素材に重複があります。'
 
 
-class ItemCountNotFoundError(TweetParseError):
-    message = '個数が取得できない素材があります。'
-
-
 class RunCountZeroError(TweetParseError):
     message = '周回数が 0 です。'
 
@@ -461,7 +461,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         if '#FGO周回カウンタ' in line:
             # タグを検出したら終了
             break
-        if line.startswith('【'):
+        if line.find('【') > -1:
             header = line
             header_found = True
             header_linenum = i
@@ -483,7 +483,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         # のように2行に割れているヘッダーを拾う
         if header_found \
             and i == header_linenum + 1 \
-                and re.match('[1-9][0-9]*周', line):
+                and RE_INDEPENDENT_RUNCOUNT.match(line):
             header += line
 
     if not header_found:
@@ -491,15 +491,16 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
 
     logger.debug('header: %s', header)
 
-    index0 = header.find('】')
-    if index0 == -1:
+    loc_start_pos = header.find('【')
+    loc_end_pos = header.find('】')
+    if loc_end_pos == -1:
         raise HeaderEndBracketNotFoundError(
             f'symbol "】" not found in header: {header}'
         )
-    location = header[1:index0].strip()
+    location = header[loc_start_pos + 1:loc_end_pos].strip()
     logger.debug('location: %s', location)
 
-    # 全角スペースにや全角カッコなどはここで正規化されて半角になる
+    # 全角スペースや全角カッコなどはここで正規化されて半角になる
     normalized_location = unicodedata.normalize('NFKC', location)
     logger.debug('normalized location: %s', normalized_location)
 
@@ -531,21 +532,19 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         chapter = ' '.join(location_tokens[:-1])
         place = location_tokens[-1]
 
-    index1 = header.rfind('周')
-    if index1 == -1:
+    runcount_pos = header.rfind('周')
+    if runcount_pos == -1:
         raise RunCountNotFoundError(f'symbol "周" not found: {header}')
-    if index0 + 1 >= index1:
+    if loc_end_pos + 1 >= runcount_pos:
         raise RunCountNotFoundError(f'could not extract runcount: {header}')
 
-    # 【下総国 里】もう100周
-    # のように "】" の直後が数値でないケースで int() を通すと
-    # ValueError が発生する。捕捉して TweetParseError に置き換える。
-    try:
-        runcount = int(header[index0+1:index1])
-
-    except ValueError:
+    # 【下総国 里】追加100周
+    # のように "】" の直後が数値でないケースも考慮する。
+    mo = RE_RUNCOUNT.search(header[loc_end_pos+1:runcount_pos])
+    if not mo:
         raise RunCountNotFoundError(f'could not extract runcount: {header}')
 
+    runcount = int(mo.group())
     if runcount == 0:
         raise RunCountZeroError()
 
@@ -562,27 +561,21 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     item_dict: Dict[str, str] = {}
 
     for token in items_with_counts:
+        if token == '':
+            continue
+
         if token.endswith('NaN'):
             item = token[:-3]
             item_dict[item] = 'NaN'
             logger.debug(f'{item}: NaN')
             continue
 
-        for i in reversed(range(len(token))):
-            if not token[i].isdigit():
-                item = token[:i+1]
-                count = token[i+1:]
-                if item in item_dict:
-                    raise DuplicatedItemsError(
-                        f'item {item} has already been registered'
-                    )
-                if count == '':
-                    raise ItemCountNotFoundError(
-                        f'could not parse collectly: {token}'
-                    )
-                item_dict[item] = count
-                logger.debug(f'{item}: {count}')
-                break
+        mo = RE_ITEMCOUNT.match(token)
+        if not mo:
+            # 個数が取得できない場合、報告情報ではないとみなして無視する
+            continue
+        d = mo.groupdict()
+        item_dict[d['item']] = d['count']
 
     logger.debug('item_dict: %s', item_dict)
 
