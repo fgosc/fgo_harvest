@@ -478,8 +478,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
             lines.append(line)
         # 数値の後に (x4) のような付帯情報がつくことがある。これを無視する
         _line = RE_ITEMTRAIL.sub('', line)
-        logger.debug('%s -> %s', line, _line)
-        if _line[-1].isdigit():
+        if _line and _line[-1].isdigit():
             lines.append(line)
 
         # 【周回場所】
