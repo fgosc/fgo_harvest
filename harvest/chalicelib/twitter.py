@@ -18,7 +18,8 @@ logger = getLogger(__name__)
 
 RE_INDEPENDENT_RUNCOUNT = re.compile(r'[1-9０-９][0-9０-９]*周')
 RE_RUNCOUNT = re.compile(r'[0-9０-９]+$')
-RE_ITEMCOUNT = re.compile(r'^(?P<item>[^0-9０-９]+)(?P<count>[0-9０-９]+).*')
+RE_ITEMTRAIL = re.compile(r'([(（][^(（)）]+[)）])$')
+RE_ITEMCOUNT = re.compile(r'^(?P<item>.*[^0-9０-９]+)(?P<count>[0-9０-９]+)$')
 
 
 class CensoredAccounts:
@@ -473,9 +474,11 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
             continue
 
         # 数値または NaN で終わる行はアイテム行とみなす
-        if line[-1].isdigit():
-            lines.append(line)
         if len(line) > 3 and line[-3:] == 'NaN':
+            lines.append(line)
+        # 数値の後に (x4) のような付帯情報がつくことがある。これを無視する
+        _line = RE_ITEMTRAIL.sub('', line)
+        if _line and _line[-1].isdigit():
             lines.append(line)
 
         # 【周回場所】
@@ -570,9 +573,13 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
             logger.debug(f'{item}: NaN')
             continue
 
-        mo = RE_ITEMCOUNT.match(token)
+        # 末尾の () 表記はカットし、なかったものとして扱う。
+        # たとえば "カード12(+4)" は {"カード": 12} と解釈する。
+        _token = RE_ITEMTRAIL.sub('', token)
+        mo = RE_ITEMCOUNT.match(_token)
         if not mo:
             # 個数が取得できない場合、報告情報ではないとみなして無視する
+            logger.debug('token %s is not an item', token)
             continue
         d = mo.groupdict()
         item_dict[d['item']] = d['count']
