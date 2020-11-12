@@ -6,7 +6,7 @@ import json
 import logging
 from typing import List
 
-import boto3
+import boto3  # type: ignore
 
 from chalicelib import settings
 
@@ -24,7 +24,11 @@ def getdata(key: str) -> List[str]:
 
 def putdata(key: str, data: List[str]) -> None:
     bio = io.BytesIO(json.dumps(data).encode('utf-8'))
-    s3bucket.upload_fileobj(bio, key, ExtraArgs={'ContentType': 'application/json'})
+    s3bucket.upload_fileobj(
+        bio,
+        key,
+        ExtraArgs={'ContentType': 'application/json'},
+    )
     logger.info('finished to upload a file')
 
 
@@ -50,7 +54,11 @@ def main(args: argparse.Namespace):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', '--loglevel', choices=('debug', 'info'), default='info')
+    parser.add_argument(
+        '-l', '--loglevel',
+        choices=('debug', 'info'),
+        default='info',
+    )
     parser.add_argument('--accounts-file', type=argparse.FileType('r'))
     return parser.parse_args()
 

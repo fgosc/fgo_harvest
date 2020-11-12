@@ -107,7 +107,10 @@ def exec_push(args):
     for filepath in files:
         testfile = test_dir / filepath.name
         if testfile.exists() and checksum(filepath) == checksum(testfile):
-            logger.info('skip uploading %s (probably already exists on S3)', filepath)
+            logger.info(
+                'skip uploading %s (probably already exists on S3)',
+                filepath,
+            )
             continue
 
         key = str(basepath / filepath.name)
@@ -126,7 +129,7 @@ def exec_push(args):
 def exec_clean(args):
     """
         target_dir にある JSON ファイルと同名のファイルを S3 から削除する。
-        
+
         以下の場合は削除しない:
         - yyyyMMdd.json
         - yyyyMMdd.json が存在しないときの yyyyMMdd_HHMMSS.json
@@ -222,7 +225,8 @@ def build_parser():
     push_parser.set_defaults(func=exec_push)
 
     clean_parser = subparsers.add_parser('clean')
-    clean_parser.add_argument('-d',
+    clean_parser.add_argument(
+        '-d',
         '--target-dir',
         default='output/s3tweets',
     )
