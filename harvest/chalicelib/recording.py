@@ -333,7 +333,8 @@ class QuestListElement:
 
     def countup(self, timestamp: datetime) -> None:
         self.count += 1
-        self.latest = timestamp
+        if timestamp > self.latest:
+            self.latest = timestamp
 
     def as_dict(self) -> Dict[str, Any]:
         """
@@ -431,7 +432,7 @@ class PartitioningRuleByQuestList:
         else:
             existing_e = self.quest_dict[e.quest_id]
             # より古いデータが見つかった場合は、その値で since を上書き
-            if existing_e.since < e.since:
+            if e.since < existing_e.since:
                 existing_e.since = e.since
 
             existing_e.countup(e.latest)
