@@ -5,7 +5,6 @@
     <tr>
       <th>投稿日時</th>
       <th>投稿者</th>
-      <th style="min-width: 12rem">場所</th>
       <th style="min-width: 5rem">周回数</th>
       <th>ドロップ</ht>
     </tr>
@@ -24,7 +23,6 @@
       {{ r.reporter }}
     </a>
   </td>
-  <td>{{ r.chapter }}<br>{{ r.place }}</td>
   <td>{{ r.runcount }}</td>
   <td>{% for k, v in r['items'].items() %}{{ k }}: {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
 </tr>{% endfor %}
