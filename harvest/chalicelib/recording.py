@@ -686,6 +686,7 @@ class QuestHTMLPageProcessor:
         html = template.render(
             reports=merged_reports,
             quest=freequest.defaultDetector.get_quest_name(kwargs['key']),
+            questid=kwargs['key'],
         )
         stream.write(html.encode('UTF-8'))
 
