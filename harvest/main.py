@@ -19,11 +19,14 @@ from chalicelib import recording
 logger = logging.getLogger(__name__)
 
 
-def setup_storage(output_dir: str) -> recording.FilesystemTweetStorage:
+def setup_tweet_repository(output_dir: str) -> recording.TweetRepository:
     storage_dir = os.path.join(output_dir, 'tweets')
     if not os.path.exists(storage_dir):
         os.makedirs(storage_dir)
-    tweet_storage = recording.FilesystemTweetStorage(output_dir=storage_dir)
+    tweet_storage = recording.TweetRepository(
+        fileStorage=storage.FilesystemStorage(),
+        basedir=storage_dir,
+    )
     return tweet_storage
 
 
@@ -164,9 +167,9 @@ def command_static(args: argparse.Namespace) -> None:
 
 
 def command_rebuild(args: argparse.Namespace) -> None:
-    tweet_storage = setup_storage(args.output_dir)
+    tweet_repository = setup_tweet_repository(args.output_dir)
     censored_accounts = setup_censored_accounts()
-    tweets = tweet_storage.readall(set(censored_accounts.list()))
+    tweets = tweet_repository.readall(set(censored_accounts.list()))
     render_all(tweets, args.output_dir, rebuild=True)
 
 
@@ -190,7 +193,7 @@ def command_build(args: argparse.Namespace) -> None:
                 logger.error(e)
         return
 
-    tweet_storage = setup_storage(args.output_dir)
+    tweet_repository = setup_tweet_repository(args.output_dir)
     censored_accounts = setup_censored_accounts()
 
     since_id = None
@@ -209,7 +212,7 @@ def command_build(args: argparse.Namespace) -> None:
         return
 
     key = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-    tweet_storage.put(key, tweets)
+    tweet_repository.put(key, tweets)
 
     render_all(tweets, args.output_dir, rebuild=False)
 

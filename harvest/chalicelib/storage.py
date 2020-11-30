@@ -3,7 +3,7 @@ import os
 import pathlib
 import shutil
 from logging import getLogger
-from typing import BinaryIO, Dict, Protocol
+from typing import BinaryIO, Iterator, Dict, Protocol
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
@@ -30,6 +30,9 @@ class SupportStorage(Protocol):
     def copy(self, src: str, dest: str) -> None:
         ...
 
+    def streams(self, basedir: str, suffix: str) -> Iterator[BinaryIO]:
+        ...
+
 
 class FilesystemStorage:
     def exists(self, path: str) -> bool:
@@ -52,6 +55,14 @@ class FilesystemStorage:
 
     def copy(self, src: str, dest: str) -> None:
         shutil.copyfile(src, dest)
+
+    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
+        entries = pathlib.Path(basedir).glob('*' + suffix)
+        for entry in entries:
+            if entry.is_file():
+                logger.info('read %s', entry.name)
+                with open(entry, 'rb') as fp:
+                    yield fp
 
 
 class AmazonS3Storage:
@@ -126,3 +137,12 @@ class AmazonS3Storage:
     def copy(self, src: str, dest: str) -> None:
         source = {'Bucket': self.bucket.name, 'Key': src}
         self.bucket.copy(source, dest)
+
+    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
+        object_summaries = self.bucket.objects.filter(Prefix=basedir)
+
+        for entry in object_summaries:
+            if entry.key.endswith(suffix):
+                logger.info(f'get s3://{self.bucket.name}/{entry.key}')
+                resp = entry.get()
+                yield resp['Body']

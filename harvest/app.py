@@ -147,9 +147,9 @@ def render_contents(app, tweets, ignore_original=False):
 def collect_tweets(event):
     agent = setup_twitter_agent()
 
-    tweet_storage = recording.AmazonS3TweetStorage(
-        bucket=settings.S3Bucket,
-        output_dir=settings.TweetStorageDir,
+    tweet_repository = recording.TweetRepository(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.TweetStorageDir,
     )
 
     s3 = boto3.resource('s3')
@@ -188,7 +188,7 @@ def collect_tweets(event):
 
     tweet_log_file = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
     app.log.info('tweet_log: %s', tweet_log_file)
-    tweet_storage.put(tweet_log_file, tweets)
+    tweet_repository.put(tweet_log_file, tweets)
 
     render_contents(app, tweets)
 
@@ -203,9 +203,9 @@ def collect_tweets(event):
 
 @app.lambda_function()
 def rebuild_outputs(event, context):
-    tweet_storage = recording.AmazonS3TweetStorage(
-        bucket=settings.S3Bucket,
-        output_dir=settings.TweetStorageDir,
+    tweet_repository = recording.TweetRepository(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.TweetStorageDir,
     )
 
     censored_accounts = twitter.CensoredAccounts(
@@ -213,7 +213,7 @@ def rebuild_outputs(event, context):
         filepath=f'{settings.SettingsDir}/{settings.CensoredAccountsFile}',
     )
 
-    tweets = tweet_storage.readall(set(censored_accounts.list()))
+    tweets = tweet_repository.readall(set(censored_accounts.list()))
     app.log.info('retrieved %s tweets', len(tweets))
 
     render_contents(app, tweets, ignore_original=True)
