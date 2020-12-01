@@ -1,7 +1,5 @@
 import copy
 import json
-import io
-import os
 import pathlib
 from datetime import date, datetime, timedelta
 from enum import Enum
@@ -12,7 +10,6 @@ from typing import (
     Sequence, Set, Union,
 )
 
-import boto3  # type: ignore
 from jinja2 import (
     Environment,
     PackageLoader,
@@ -51,111 +48,33 @@ class ErrorOutputFormat(Enum):
     HTML = ('html', 'html')
 
 
-class AbstractTweetStorage:
-    """
-        TODO できればストレージ固有の処理は storage モジュールに統合したい。
-        そうすると、このクラスの役割は
-        - List[twitter.TweetCopy] の永続化
-        - readall() による List[twitter.TweetCopy] の復元
-        だけになる。
-        ただし優先度は低い。
-        また、簡単に統合できるかどうかはわからない。ざっと現実装を見た感じでは
-        - 書き込み処理
-        - パスを指定すると、その下にあるファイルをなめて
-          次々に stream を返すようなイテレータを返す処理
-        が提供されればよさそう。
-    """
+class TweetRepository:
+    def __init__(
+        self,
+        fileStorage: storage.SupportStorage,
+        basedir: str,
+    ):
+        self.fileStorage = fileStorage
+        self.basedir = basedir
+
     def put(self, key: str, tweets: List[twitter.TweetCopy]) -> None:
         s = json.dumps(
             [tw.as_dict() for tw in tweets],
             ensure_ascii=False,
             default=json_serialize_helper,
         )
-        self._put_json(key, s)
-
-    def _put_json(self, key: str, sjson: str) -> None:
-        raise NotImplementedError
-
-    def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
-        raise NotImplementedError
-
-    @staticmethod
-    def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
-        if 'created_at' in d:
-            v = d['created_at']
-            d['created_at'] = datetime.fromisoformat(v)
-        return d
-
-
-class FilesystemTweetStorage(AbstractTweetStorage):
-    def __init__(self, output_dir: str):
-        self.output_dir = output_dir
-
-    def _put_json(self, key: str, sjson: str) -> None:
-        filepath = os.path.join(self.output_dir, key)
-        with open(filepath, 'w') as fp:
-            fp.write(sjson)
+        basepath = self.fileStorage.path_object(self.basedir)
+        keypath = str(basepath / key)
+        stream = self.fileStorage.get_output_stream(keypath)
+        stream.write(s.encode('UTF-8'))
+        self.fileStorage.close_output_stream(stream)
 
     def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
         tweets: List[twitter.TweetCopy] = []
         id_cache: Set[int] = set()
 
-        entries = os.listdir(self.output_dir)
-        for entry in entries:
-            if os.path.splitext(entry)[1] != '.json':
-                continue
-            entrypath = os.path.join(self.output_dir, entry)
-            logger.info(f'loading {entrypath}')
-            with open(entrypath) as fp:
-                loaded = json.load(fp)
-            _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
-            logger.info(f'{len(_tweets)} tweets retrieved')
-            for tw in _tweets:
-                if tw is None:
-                    continue
-                if tw.tweet_id in id_cache:
-                    logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
-                    continue
-                elif tw.screen_name in exclude_accounts:
-                    logger.warning(
-                        "ignoring exclude account's tweet: %s",
-                        tw.tweet_id,
-                    )
-                    continue
-
-                tweets.append(tw)
-                id_cache.add(tw.tweet_id)
-
-        # 新しい順
-        tweets.sort(key=lambda e: e.tweet_id)
-        tweets.reverse()
-
-        logger.info(f'total: {len(tweets)} tweets')
-        return tweets
-
-
-class AmazonS3TweetStorage(AbstractTweetStorage):
-    def __init__(self, bucket: str, output_dir: str):
-        self.s3 = boto3.resource('s3')
-        self.bucket = self.s3.Bucket(bucket)
-        self.output_dir = output_dir
-
-    def _put_json(self, key: str, sjson: str) -> None:
-        s3key = f'{self.output_dir}/{key}'
-        obj = self.bucket.Object(s3key)
-        bio = io.BytesIO(sjson.encode('UTF-8'))
-
-        obj.upload_fileobj(bio)
-
-    def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
-        tweets: List[twitter.TweetCopy] = []
-        id_cache: Set[int] = set()
-
-        object_summaries = self.bucket.objects.filter(Prefix=self.output_dir)
-
-        for entry in object_summaries:
-            resp = entry.get()
-            loaded = json.load(resp['Body'])
+        for stream in self.fileStorage.streams(self.basedir, '.json'):
+            loaded = json.load(stream)
             _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
             logger.info(f'{len(_tweets)} tweets retrieved')
             for tw in _tweets:
