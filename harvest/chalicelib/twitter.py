@@ -303,7 +303,7 @@ class Agent:
         logger.info('>>> get) statuses_lookup: %s', tweet_id)
         tweets = self.api.statuses_lookup(
             [tweet_id],
-            include_entities=False,
+            include_entities=True,
             tweet_mode='extended',
         )
         logger.info('>>> fetched %s tweets', len(tweets))
@@ -327,7 +327,7 @@ class Agent:
         logger.info('>>> get_multi) statuses_lookup: %s', tweet_id_list)
         tweets = self.api.statuses_lookup(
             tweet_id_list,
-            include_entities=False,
+            include_entities=True,
             tweet_mode='extended',
         )
         logger.debug(tweets)

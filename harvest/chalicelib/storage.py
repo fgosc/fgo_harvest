@@ -30,7 +30,12 @@ class SupportStorage(Protocol):
     def copy(self, src: str, dest: str) -> None:
         ...
 
-    def streams(self, basedir: str, suffix: str) -> Iterator[BinaryIO]:
+    def streams(
+        self,
+        basedir: str,
+        prefix: str,
+        suffix: str,
+    ) -> Iterator[BinaryIO]:
         ...
 
 
@@ -56,8 +61,13 @@ class FilesystemStorage:
     def copy(self, src: str, dest: str) -> None:
         shutil.copyfile(src, dest)
 
-    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
-        entries = pathlib.Path(basedir).glob('*' + suffix)
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+        entries = pathlib.Path(basedir).glob(prefix + '*' + suffix)
         for entry in entries:
             if entry.is_file():
                 logger.info('read %s', entry.name)
@@ -138,8 +148,15 @@ class AmazonS3Storage:
         source = {'Bucket': self.bucket.name, 'Key': src}
         self.bucket.copy(source, dest)
 
-    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
-        object_summaries = self.bucket.objects.filter(Prefix=basedir)
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+        s3prefix = f'{basedir}/{prefix}'
+        logger.info(f'list s3://{self.bucket.name}/{s3prefix}')
+        object_summaries = self.bucket.objects.filter(Prefix=s3prefix)
 
         for entry in object_summaries:
             if entry.key.endswith(suffix):

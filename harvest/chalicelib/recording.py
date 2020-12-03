@@ -70,10 +70,18 @@ class TweetRepository:
         self.fileStorage.close_output_stream(stream)
 
     def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
+        return self.read_matched('', exclude_accounts)
+
+    def read_matched(
+        self,
+        prefix: str,
+        exclude_accounts: Set[str],
+    ) -> List[twitter.TweetCopy]:
+
         tweets: List[twitter.TweetCopy] = []
         id_cache: Set[int] = set()
 
-        for stream in self.fileStorage.streams(self.basedir, '.json'):
+        for stream in self.fileStorage.streams(self.basedir, prefix, '.json'):
             loaded = json.load(stream)
             _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
             logger.info(f'{len(_tweets)} tweets retrieved')

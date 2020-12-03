@@ -227,8 +227,37 @@ def command_build(args: argparse.Namespace) -> None:
 
 
 def command_delete(args: argparse.Namespace) -> None:
-    # TODO 実装
-    pass
+    tweet_repository = setup_tweet_repository(args.output_dir)
+    censored_accounts = setup_censored_accounts()
+    saved_tweets = tweet_repository.read_matched(args.date, set(censored_accounts.list()))
+    logger.info(f'retrieved total: {len(saved_tweets)} tweets')
+    saved_tweet_ids = [tw.tweet_id for tw in saved_tweets]
+
+    agent = twitter.Agent(
+        consumer_key=settings.TwitterConsumerKey,
+        consumer_secret=settings.TwitterConsumerSecret,
+        access_token=settings.TwitterAccessToken,
+        access_token_secret=settings.TwitterAccessTokenSecret,
+    )
+
+    active_tweet_ids = []
+    i = 0
+
+    while i < len(saved_tweets):
+        # get_multi で指定可能な件数の最大が 100 件であるため
+        # 100 件単位に分割する。
+        candidates_dict = agent.get_multi(saved_tweet_ids[i:i+100])
+        active_tweet_ids.extend([twid for twid in candidates_dict])
+        i += 100
+
+    saved_tweet_id_set = set(saved_tweet_ids)
+    active_tweet_id_set = set(active_tweet_ids)
+    # 常に saved ⊇ active
+    sub = saved_tweet_id_set - active_tweet_id_set
+    logger.info(f'subtract: {sub}')
+
+    # 存在しないものがあれば json を修正
+    #   dry run オプションも有効
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -270,6 +299,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     delete_parser = subparsers.add_parser('delete')
     add_common_arguments(delete_parser)
+    delete_parser.add_argument(
+        '--date',
+        default=datetime.now().date().strftime('%Y%m%d'),
+    )
     delete_parser.set_defaults(func=command_delete)
 
     return parser
