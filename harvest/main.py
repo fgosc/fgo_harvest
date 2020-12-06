@@ -232,6 +232,7 @@ def command_delete(args: argparse.Namespace) -> None:
     saved_tweets = tweet_repository.read_matched(args.date, set(censored_accounts.list()))
     logger.info(f'retrieved total: {len(saved_tweets)} tweets')
     saved_tweet_ids = [tw.tweet_id for tw in saved_tweets]
+    id_user_dict = {tw.tweet_id: tw.screen_name for tw in saved_tweets}
 
     agent = twitter.Agent(
         consumer_key=settings.TwitterConsumerKey,
