@@ -16,12 +16,25 @@ testdata_is_freequest = [
     ('オルレアン', 'ティエール(刃物の町)', True),
     ('セプテム', 'ゲルマニア(黒い森)', True),
     ('新宿二丁目', 'レインボータウン', True),
+    ('西七条', '', True),  # クエスト名だけのケース
 ]
 
 
 @pytest.mark.parametrize('chapter,place,expected', testdata_is_freequest)
 def test_get_freequest(chapter, place, expected):
     assert freequest.defaultDetector.is_freequest(chapter, place) == expected
+
+
+testdata_find_freequest = [
+    ('シャーロットゴールドラッシュ', ('シャーロット', 'ゴールドラッシュ')),
+    ('新宿二丁目レインボータウン', ('新宿', '新宿二丁目')),
+    ('西七条', ('平安京', '七条二坊')),
+]
+
+
+@pytest.mark.parametrize('candidate,expected', testdata_find_freequest)
+def test_find_freequest(candidate, expected):
+    assert freequest.defaultDetector.find_freequest(candidate) == expected
 
 
 testdata_get_quest_id = [

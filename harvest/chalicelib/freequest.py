@@ -2,19 +2,24 @@ import json
 import os
 from base64 import urlsafe_b64encode
 from hashlib import md5
-from typing import Dict, List, Set
+from logging import getLogger
+from typing import Dict, Iterable, List, Optional, Set, Tuple
+
+logger = getLogger(__name__)
 
 
 class Detector:
     def __init__(self, freequests: List[Dict[str, str]]):
         self.freequest_db: Dict[str, str] = _build_db(freequests)
         self.freequest_chapter_db: Set[str] = _build_chapter_db(freequests)
+        self.freequest_place_quest_index: Dict[str, str] = \
+            _build_place_quest_index(freequests)
         self.eventquest_cache: Dict[str, str] = {}
         self.quest_reverse_index: Dict[str, str] = \
             _build_reverse_index(freequests)
 
     def is_freequest(self, chapter: str, place: str) -> bool:
-        key_for_freequest = f'{chapter}\t{place}'
+        key_for_freequest = f'{chapter}\t{place}'.strip()
         return key_for_freequest in self.freequest_db
 
     def get_quest_id(self, chapter: str, place: str, year: int) -> str:
@@ -37,17 +42,25 @@ class Detector:
     def get_quest_name(self, qid: str) -> str:
         return self.quest_reverse_index[qid]
 
-    def match_freequest_chapter(self, expr) -> str:
-        """
-            与えられた文字列がフリークエストの章名で始まるかどうかを調べる。
-            もし何らかの章名で始まっている場合は、その章名を返す。
-            ただし北米のみ例外的に地名でもマッチする。
-            いずれの章ともマッチしなければ、空文字列 '' を返す。
-        """
-        for chapter in self.freequest_chapter_db:
-            if expr.startswith(chapter):
-                return chapter
-        return ''
+    def find_freequest(self, expr: str) -> Optional[Tuple[str, str]]:
+        candidates = [
+            pq for pq in self.freequest_place_quest_index
+            if expr.startswith(pq)
+        ]
+        if len(candidates) == 1:
+            qid = self.freequest_place_quest_index[candidates[0]]
+            chapter_place_quest = self.quest_reverse_index[qid]
+            chapter, place, quest = chapter_place_quest.split()
+            if chapter == '北米':
+                return (place, quest)
+            else:
+                return (chapter, place)
+        elif len(candidates) > 1:
+            # 複数マッチはバグ以外では考えにくい
+            msg = f'matched multiple places or quests {candidates}: {expr}'
+            raise ValueError(msg)
+        else:
+            return None
 
 
 def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
@@ -87,6 +100,10 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
             )
         d[f'{chapter}\t{place}'] = qid
 
+        # まれにクエスト名だけの投稿があるのでクエスト名だけでも
+        # 引けるようにする
+        d[f'{quest}'] = qid
+
     # 周回カウンタに登録されているクエスト名が特殊
     d['オルレアン\tティエール(刃物の町)'] = d['オルレアン\tティエール']
     d['セプテム\tゲルマニア(黒い森)'] = d['セプテム\tゲルマニア']
@@ -94,8 +111,10 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
     return d
 
 
-def _build_reverse_index(freequests: List[Dict[str, str]]) -> Dict[str, str]:
-    d = {}
+def _build_reverse_index(
+    freequests: Iterable[Dict[str, str]]
+) -> Dict[str, str]:
+    d: Dict[str, str] = {}
 
     for fq in freequests:
         qid = fq['id']
@@ -108,7 +127,7 @@ def _build_reverse_index(freequests: List[Dict[str, str]]) -> Dict[str, str]:
     return d
 
 
-def _build_chapter_db(freequests: List[Dict[str, str]]) -> Set[str]:
+def _build_chapter_db(freequests: Iterable[Dict[str, str]]) -> Set[str]:
     s = set()
 
     for fq in freequests:
@@ -122,6 +141,27 @@ def _build_chapter_db(freequests: List[Dict[str, str]]) -> Set[str]:
             s.add(fq['place'])
 
     return s
+
+
+def _build_place_quest_index(
+    freequests: Iterable[Dict[str, str]]
+) -> Dict[str, str]:
+    d: Dict[str, str] = {}
+
+    for fq in freequests:
+        qid = fq['id']
+        place = fq['place']
+        quest = fq['quest']
+
+        # 群島、裏山のような複数クエストある場所の場合は最初だけを採用
+        if place and place not in d:
+            d[place] = qid
+
+        # 修練場のようにクエスト名がない場合を考慮
+        if quest:
+            d[fq['quest']] = qid
+
+    return d
 
 
 with open(os.path.join(os.path.dirname(__file__), 'freequest.json')) as fp:

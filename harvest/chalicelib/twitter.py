@@ -7,7 +7,7 @@ import unicodedata
 from datetime import datetime
 from logging import getLogger
 from typing import (
-    cast, Any, Dict, List, Optional, Union,
+    cast, Any, Dict, List, Optional, Sequence, Union,
 )
 
 import tweepy  # type: ignore
@@ -508,17 +508,19 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
     logger.debug('normalized location: %s', normalized_location)
 
     if ' ' in normalized_location:
-        location_tokens = normalized_location.split(' ')
+        location_tokens: Sequence[str] = normalized_location.split(' ')
     else:
         # chapter と place の間にスペースなし
-        # 恒常フリクエは chapter のリストと照合することで救済可能
-        # そうでない場合は place が空文字列の location として扱う
-        chapter = freequest.defaultDetector.match_freequest_chapter(
+        # フリクエの場所やクエスト名だけで投稿している可能性があるため、
+        # その可能性を探る。
+        candidate = freequest.defaultDetector.find_freequest(
             normalized_location)
-        if chapter:
-            place = normalized_location[len(chapter):]
-            location_tokens = [chapter, place]
+
+        if candidate:
+            location_tokens = candidate
         else:
+            # 該当するフリクエが見つからなかった。
+            # place が空文字列の location として扱う。
             location_tokens = [normalized_location, '']
 
     if len(location_tokens) == 2:
