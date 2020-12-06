@@ -1,1370 +1,1689 @@
 [
   {
     "id": "00a01",
+    "internal_id": "94006801",
     "chapter": "剣の修練場",
     "place": "初級",
     "quest": ""
   },
   {
     "id": "00a02",
+    "internal_id": "94006802",
     "chapter": "剣の修練場",
     "place": "中級",
     "quest": ""
   },
   {
     "id": "00a03",
+    "internal_id": "94006803",
     "chapter": "剣の修練場",
     "place": "上級",
     "quest": ""
   },
   {
     "id": "00a04",
+    "internal_id": "94006804",
     "chapter": "剣の修練場",
     "place": "超級",
     "quest": ""
   },
   {
     "id": "00b01",
+    "internal_id": "94006805",
     "chapter": "弓の修練場",
     "place": "初級",
     "quest": ""
   },
   {
     "id": "00b02",
+    "internal_id": "94006806",
     "chapter": "弓の修練場",
     "place": "中級",
     "quest": ""
   },
   {
     "id": "00b03",
+    "internal_id": "94006807",
     "chapter": "弓の修練場",
     "place": "上級",
     "quest": ""
   },
   {
     "id": "00b04",
+    "internal_id": "94006808",
     "chapter": "弓の修練場",
     "place": "超級",
     "quest": ""
   },
   {
     "id": "00c01",
+    "internal_id": "94006809",
     "chapter": "槍の修練場",
     "place": "初級",
     "quest": ""
   },
   {
     "id": "00c02",
+    "internal_id": "94006810",
     "chapter": "槍の修練場",
     "place": "中級",
     "quest": ""
   },
   {
     "id": "00c03",
+    "internal_id": "94006811",
     "chapter": "槍の修練場",
     "place": "上級",
     "quest": ""
   },
   {
     "id": "00c04",
+    "internal_id": "94006812",
     "chapter": "槍の修練場",
     "place": "超級",
     "quest": ""
   },
   {
     "id": "00d01",
+    "internal_id": "94006817",
     "chapter": "騎の修練場",
     "place": "初級",
     "quest": ""
   },
   {
     "id": "00d02",
+    "internal_id": "94006818",
     "chapter": "騎の修練場",
     "place": "中級",
     "quest": ""
   },
   {
     "id": "00d03",
+    "internal_id": "94006819",
     "chapter": "騎の修練場",
     "place": "上級",
     "quest": ""
   },
   {
     "id": "00d04",
+    "internal_id": "94006820",
     "chapter": "騎の修練場",
     "place": "超級",
     "quest": ""
   },
   {
-    "id": "00f01",
+    "id": "00e01",
+    "internal_id": "94006821",
     "chapter": "術の修練場",
+    "place": "初級",
+    "quest": ""
+  },
+  {
+    "id": "00e02",
+    "internal_id": "94006822",
+    "chapter": "術の修練場",
+    "place": "中級",
+    "quest": ""
+  },
+  {
+    "id": "00e03",
+    "internal_id": "94006823",
+    "chapter": "術の修練場",
+    "place": "上級",
+    "quest": ""
+  },
+  {
+    "id": "00e04",
+    "internal_id": "94006824",
+    "chapter": "術の修練場",
+    "place": "超級",
+    "quest": ""
+  },
+  {
+    "id": "00f01",
+    "internal_id": "94006825",
+    "chapter": "殺の修練場",
     "place": "初級",
     "quest": ""
   },
   {
     "id": "00f02",
-    "chapter": "術の修練場",
+    "internal_id": "94006826",
+    "chapter": "殺の修練場",
     "place": "中級",
     "quest": ""
   },
   {
     "id": "00f03",
-    "chapter": "術の修練場",
+    "internal_id": "94006827",
+    "chapter": "殺の修練場",
     "place": "上級",
     "quest": ""
   },
   {
     "id": "00f04",
-    "chapter": "術の修練場",
+    "internal_id": "94006828",
+    "chapter": "殺の修練場",
     "place": "超級",
     "quest": ""
   },
   {
     "id": "00g01",
-    "chapter": "殺の修練場",
+    "internal_id": "94006813",
+    "chapter": "狂の修練場",
     "place": "初級",
     "quest": ""
   },
   {
     "id": "00g02",
-    "chapter": "殺の修練場",
+    "internal_id": "94006814",
+    "chapter": "狂の修練場",
     "place": "中級",
     "quest": ""
   },
   {
     "id": "00g03",
-    "chapter": "殺の修練場",
+    "internal_id": "94006815",
+    "chapter": "狂の修練場",
     "place": "上級",
     "quest": ""
   },
   {
     "id": "00g04",
-    "chapter": "殺の修練場",
-    "place": "超級",
-    "quest": ""
-  },
-  {
-    "id": "00h01",
-    "chapter": "狂の修練場",
-    "place": "初級",
-    "quest": ""
-  },
-  {
-    "id": "00h02",
-    "chapter": "狂の修練場",
-    "place": "中級",
-    "quest": ""
-  },
-  {
-    "id": "00h03",
-    "chapter": "狂の修練場",
-    "place": "上級",
-    "quest": ""
-  },
-  {
-    "id": "00h04",
+    "internal_id": "94006816",
     "chapter": "狂の修練場",
     "place": "超級",
     "quest": ""
   },
   {
     "id": "10a01",
+    "internal_id": "93000001",
     "chapter": "冬木",
     "place": "未確認座標X-A",
     "quest": "屋敷跡"
   },
   {
     "id": "10a02",
+    "internal_id": "93000002",
     "chapter": "冬木",
     "place": "未確認座標X-B",
     "quest": "爆心地"
   },
   {
     "id": "10a03",
+    "internal_id": "93000003",
     "chapter": "冬木",
     "place": "未確認座標X-C",
     "quest": "大橋"
   },
   {
     "id": "10a04",
+    "internal_id": "93000004",
     "chapter": "冬木",
     "place": "未確認座標X-D",
     "quest": "紅く染まった港"
   },
   {
     "id": "10a05",
+    "internal_id": "93000005",
     "chapter": "冬木",
     "place": "未確認座標X-E",
     "quest": "骸彷徨う教会"
   },
   {
     "id": "10a06",
+    "internal_id": "93000006",
     "chapter": "冬木",
     "place": "未確認座標X-F",
     "quest": "焼け崩れた校舎"
   },
   {
     "id": "10a07",
+    "internal_id": "93000007",
     "chapter": "冬木",
     "place": "未確認座標X-G",
     "quest": "燃え盛る森"
   },
   {
     "id": "10a08",
+    "internal_id": "93000008",
     "chapter": "冬木",
     "place": "変動座標点0号",
     "quest": "大空洞"
   },
   {
     "id": "10b01",
+    "internal_id": "93000101",
     "chapter": "オルレアン",
     "place": "ドンレミ",
     "quest": "ジャンヌ生誕の地"
   },
   {
     "id": "10b02",
+    "internal_id": "93000102",
     "chapter": "オルレアン",
     "place": "ヴォークルール",
     "quest": "始まりの砦"
   },
   {
     "id": "10b03",
+    "internal_id": "93000103",
     "chapter": "オルレアン",
     "place": "ラ・シャリテ",
     "quest": "ロワールの畔"
   },
   {
     "id": "10b04",
+    "internal_id": "93000104",
     "chapter": "オルレアン",
     "place": "ジュラ",
     "quest": "太古の森"
   },
   {
     "id": "10b05",
+    "internal_id": "93000105",
     "chapter": "オルレアン",
     "place": "リヨン",
     "quest": "死者の街"
   },
   {
     "id": "10b06",
+    "internal_id": "93000109",
     "chapter": "オルレアン",
     "place": "マルセイユ",
     "quest": "地中海を臨む"
   },
   {
     "id": "10b07",
+    "internal_id": "93000106",
     "chapter": "オルレアン",
     "place": "ティエール",
     "quest": "刃物の町"
   },
   {
     "id": "10b08",
+    "internal_id": "93000110",
     "chapter": "オルレアン",
     "place": "ボルドー",
     "quest": "ワインで乾杯"
   },
   {
     "id": "10b09",
+    "internal_id": "93000107",
     "chapter": "オルレアン",
     "place": "オルレアン",
     "quest": "運命の砦"
   },
   {
     "id": "10b10",
+    "internal_id": "93000108",
     "chapter": "オルレアン",
     "place": "パリ",
     "quest": "芸術の都"
   },
   {
     "id": "10c01",
+    "internal_id": "93000201",
     "chapter": "セプテム",
     "place": "アッピア街道",
     "quest": "街道の女王"
   },
   {
     "id": "10c02",
+    "internal_id": "93000202",
     "chapter": "セプテム",
     "place": "ローマ",
     "quest": "ローマは一日にして成らず"
   },
   {
     "id": "10c03",
+    "internal_id": "93000209",
     "chapter": "セプテム",
     "place": "エトナ火山",
     "quest": "沸き立つ大地"
   },
   {
     "id": "10c04",
+    "internal_id": "93000203",
     "chapter": "セプテム",
     "place": "フロレンティア",
     "quest": "花の都"
   },
   {
     "id": "10c05",
+    "internal_id": "93000204",
     "chapter": "セプテム",
     "place": "メディオラヌム",
     "quest": "平原の真中"
   },
   {
     "id": "10c06",
+    "internal_id": "93000211",
     "chapter": "セプテム",
     "place": "ゲルマニア",
     "quest": "黒い森"
   },
   {
     "id": "10c07",
+    "internal_id": "93000205",
     "chapter": "セプテム",
     "place": "マッシリア",
     "quest": "いにしえの港"
   },
   {
     "id": "10c08",
+    "internal_id": "93000206",
     "chapter": "セプテム",
     "place": "ガリア",
     "quest": "燻る戦火"
   },
   {
     "id": "10c09",
+    "internal_id": "93000210",
     "chapter": "セプテム",
     "place": "ブリタニア",
     "quest": "霧深き森"
   },
   {
     "id": "10c10",
+    "internal_id": "93000207",
     "chapter": "セプテム",
     "place": "形ある島",
     "quest": "女神の洞窟"
   },
   {
     "id": "10c11",
+    "internal_id": "93000208",
     "chapter": "セプテム",
     "place": "連合首都",
     "quest": "ローマの地平"
   },
   {
     "id": "10d01",
+    "internal_id": "93000301",
     "chapter": "オケアノス",
     "place": "海賊船",
     "quest": "私掠船団"
   },
   {
     "id": "10d02",
+    "internal_id": "93000302",
     "chapter": "オケアノス",
     "place": "海賊島",
     "quest": "海賊のアジト"
   },
   {
     "id": "10d03",
+    "internal_id": "93000303",
     "chapter": "オケアノス",
     "place": "王の住まう島",
     "quest": "呪われし海賊たち"
   },
   {
     "id": "10d04",
+    "internal_id": "93000304",
     "chapter": "オケアノス",
     "place": "地図に記された島",
     "quest": "牡牛の迷宮"
   },
   {
     "id": "10d05",
+    "internal_id": "93000309",
     "chapter": "オケアノス",
     "place": "暗礁海域",
     "quest": "船の墓場"
   },
   {
     "id": "10d06",
+    "internal_id": "93000305",
     "chapter": "オケアノス",
     "place": "潮目の海",
     "quest": "自由の海原"
   },
   {
     "id": "10d07",
+    "internal_id": "93000306",
     "chapter": "オケアノス",
     "place": "翼竜の島",
     "quest": "竜たちの楽園"
   },
   {
     "id": "10d08",
+    "internal_id": "93000310",
     "chapter": "オケアノス",
     "place": "カルデラの島",
     "quest": "人跡未踏の島"
   },
   {
     "id": "10d09",
+    "internal_id": "93000307",
     "chapter": "オケアノス",
     "place": "嵐の海域",
     "quest": "さまよえる幽霊船"
   },
   {
     "id": "10d10",
+    "internal_id": "93000308",
     "chapter": "オケアノス",
     "place": "群島",
     "quest": "静かな入り江"
   },
   {
     "id": "10d11",
+    "internal_id": "93000312",
     "chapter": "オケアノス",
     "place": "群島",
     "quest": "隠された島"
   },
   {
     "id": "10d12",
+    "internal_id": "93000311",
     "chapter": "オケアノス",
     "place": "豊かな海",
     "quest": "秘密航路"
   },
   {
     "id": "10e01",
+    "internal_id": "93000401",
     "chapter": "ロンドン",
     "place": "オールドストリート",
     "quest": "霧と馬車とガス灯"
   },
   {
     "id": "10e02",
+    "internal_id": "93000402",
     "chapter": "ロンドン",
     "place": "ホワイトチャペル",
     "quest": "貧民窟"
   },
   {
     "id": "10e03",
+    "internal_id": "93000403",
     "chapter": "ロンドン",
     "place": "シティ・オブ・ロンドン",
     "quest": "スクエアマイル"
   },
   {
     "id": "10e04",
+    "internal_id": "93000404",
     "chapter": "ロンドン",
     "place": "ソーホー",
     "quest": "魅惑の繁華街"
   },
   {
     "id": "10e05",
+    "internal_id": "93000405",
     "chapter": "ロンドン",
     "place": "ウェストミンスター",
     "quest": "スコットランドヤード"
   },
   {
     "id": "10e06",
+    "internal_id": "93000406",
     "chapter": "ロンドン",
     "place": "リージェントパーク",
     "quest": "王室の狩場"
   },
   {
     "id": "10e07",
+    "internal_id": "93000407",
     "chapter": "ロンドン",
     "place": "クラーケンウェル",
     "quest": "癒しの井戸"
   },
   {
     "id": "10e08",
+    "internal_id": "93000408",
     "chapter": "ロンドン",
     "place": "サザーク",
     "quest": "バラマーケット"
   },
   {
     "id": "10e09",
+    "internal_id": "93000409",
     "chapter": "ロンドン",
     "place": "ハイドパーク",
     "quest": "水晶宮の残影"
   },
   {
     "id": "10f01",
+    "internal_id": "93000501",
     "chapter": "北米",
     "place": "ブラックヒルズ",
     "quest": "聖なる山"
   },
   {
     "id": "10f02",
+    "internal_id": "93000502",
     "chapter": "北米",
     "place": "リバートン",
     "quest": "大きな河床"
   },
   {
     "id": "10f03",
+    "internal_id": "93000503",
     "chapter": "北米",
     "place": "デンバー",
     "quest": "マイル・ハイ・シティ"
   },
   {
     "id": "10f04",
+    "internal_id": "93000504",
     "chapter": "北米",
     "place": "デミング",
     "quest": "ニューシカゴ"
   },
   {
     "id": "10f05",
+    "internal_id": "93000506",
     "chapter": "北米",
     "place": "ダラス",
     "quest": "カウタウン・コロシアム"
   },
   {
     "id": "10f06",
+    "internal_id": "93000508",
     "chapter": "北米",
     "place": "アルカトラズ",
     "quest": "監獄島"
   },
   {
     "id": "10f07",
+    "internal_id": "93000509",
     "chapter": "北米",
     "place": "デモイン",
     "quest": "監視砦"
   },
   {
     "id": "10f08",
+    "internal_id": "93000511",
     "chapter": "北米",
     "place": "モントゴメリー",
     "quest": "ハート・オブ・ディクシー"
   },
   {
     "id": "10f09",
+    "internal_id": "93000505",
     "chapter": "北米",
     "place": "ラボック",
     "quest": "テキサス・レンジャー"
   },
   {
     "id": "10f10",
+    "internal_id": "93000507",
     "chapter": "北米",
     "place": "アレクサンドリア",
     "quest": "ウィークス・アイランド"
   },
   {
     "id": "10f11",
+    "internal_id": "93000510",
     "chapter": "北米",
     "place": "カーニー",
     "quest": "グレートプレーンズ"
   },
   {
     "id": "10f12",
+    "internal_id": "93000512",
     "chapter": "北米",
     "place": "シャーロット",
     "quest": "ゴールドラッシュ"
   },
   {
     "id": "10f13",
+    "internal_id": "93000513",
     "chapter": "北米",
     "place": "ワシントン",
     "quest": "特別行政区"
   },
   {
     "id": "10f14",
+    "internal_id": "93000514",
     "chapter": "北米",
     "place": "シカゴ",
     "quest": "ウィンディ・シティ"
   },
   {
     "id": "10g01",
+    "internal_id": "93000601",
     "chapter": "キャメロット",
     "place": "砂嵐の砂漠",
     "quest": "神獣の庭"
   },
   {
     "id": "10g02",
+    "internal_id": "93000602",
     "chapter": "キャメロット",
     "place": "明けの砂丘",
     "quest": "灼熱の頂"
   },
   {
     "id": "10g03",
+    "internal_id": "93000603",
     "chapter": "キャメロット",
     "place": "死の荒野",
     "quest": "血沸き肉躍る狂宴"
   },
   {
     "id": "10g04",
+    "internal_id": "93000604",
     "chapter": "キャメロット",
     "place": "東の村",
     "quest": "枯れ果てた山稜"
   },
   {
     "id": "10g05",
+    "internal_id": "93000605",
     "chapter": "キャメロット",
     "place": "円卓の砦",
     "quest": "遊撃騎士隊"
   },
   {
     "id": "10g06",
+    "internal_id": "93000606",
     "chapter": "キャメロット",
     "place": "晩鐘廟",
     "quest": "死を告げる天使"
   },
   {
     "id": "10g07",
+    "internal_id": "93000607",
     "chapter": "キャメロット",
     "place": "西の村跡",
     "quest": "無情の残影"
   },
   {
     "id": "10g08",
+    "internal_id": "93000608",
     "chapter": "キャメロット",
     "place": "アトラス院",
     "quest": "巨人の穴倉"
   },
   {
     "id": "10g09",
+    "internal_id": "93000611",
     "chapter": "キャメロット",
     "place": "聖都正門",
     "quest": "聖別の門"
   },
   {
     "id": "10g10",
+    "internal_id": "93000612",
     "chapter": "キャメロット",
     "place": "聖都市街",
     "quest": "理想都市"
   },
   {
     "id": "10g11",
+    "internal_id": "93000609",
     "chapter": "キャメロット",
     "place": "隠れ村",
     "quest": "夢幻の蜃気楼"
   },
   {
     "id": "10g12",
+    "internal_id": "93000613",
     "chapter": "キャメロット",
     "place": "王城",
     "quest": "千年王国"
   },
   {
     "id": "10g13",
+    "internal_id": "93000614",
     "chapter": "キャメロット",
     "place": "無の大地",
     "quest": "荒涼たる世界"
   },
   {
     "id": "10g14",
+    "internal_id": "93000610",
     "chapter": "キャメロット",
     "place": "大神殿",
     "quest": "太陽王の居城"
   },
   {
     "id": "10h01",
+    "internal_id": "93000701",
     "chapter": "バビロニア",
     "place": "廃都バビロン",
     "quest": "失われた都"
   },
   {
     "id": "10h02",
+    "internal_id": "93000702",
     "chapter": "バビロニア",
     "place": "北の高台",
     "quest": "戦禍の眺望"
   },
   {
     "id": "10h03",
+    "internal_id": "93000703",
     "chapter": "バビロニア",
     "place": "黒い杉の森",
     "quest": "魔獣の住処"
   },
   {
     "id": "10h04",
+    "internal_id": "93000704",
     "chapter": "バビロニア",
     "place": "高原",
     "quest": "旅人の抜け道"
   },
   {
     "id": "10h05",
+    "internal_id": "93000705",
     "chapter": "バビロニア",
     "place": "湿原",
     "quest": "川間の大地"
   },
   {
     "id": "10h06",
+    "internal_id": "93000706",
     "chapter": "バビロニア",
     "place": "ウル",
     "quest": "ジャガー・パーク"
   },
   {
     "id": "10h07",
+    "internal_id": "93000707",
     "chapter": "バビロニア",
     "place": "エリドゥ",
     "quest": "王権の地"
   },
   {
     "id": "10h08",
+    "internal_id": "93000708",
     "chapter": "バビロニア",
     "place": "観測所",
     "quest": "母なる海"
   },
   {
     "id": "10h09",
+    "internal_id": "93000709",
     "chapter": "バビロニア",
     "place": "葦の原",
     "quest": "豊穣祈願"
   },
   {
     "id": "10h10",
+    "internal_id": "93000710",
     "chapter": "バビロニア",
     "place": "クタ",
     "quest": "冥界のとば口"
   },
   {
     "id": "10h11",
+    "internal_id": "93000711",
     "chapter": "バビロニア",
     "place": "北壁",
     "quest": "魔獣戦線跡地"
   },
   {
     "id": "10h12",
+    "internal_id": "93000712",
     "chapter": "バビロニア",
     "place": "ニップル",
     "quest": "天と地の結び目"
   },
   {
     "id": "10h13",
+    "internal_id": "93000713",
     "chapter": "バビロニア",
     "place": "エビフ山",
     "quest": "震える霊峰"
   },
   {
     "id": "10h14",
+    "internal_id": "93000714",
     "chapter": "バビロニア",
     "place": "鮮血神殿",
     "quest": "胎動せし山"
   },
   {
     "id": "15a01",
+    "internal_id": "93020101",
     "chapter": "新宿",
     "place": "代々木二丁目",
     "quest": "雑居ビル街"
   },
   {
     "id": "15a02",
+    "internal_id": "93020102",
     "chapter": "新宿",
     "place": "国道20号",
     "quest": "テリトリー"
   },
   {
     "id": "15a03",
+    "internal_id": "93020103",
     "chapter": "新宿",
     "place": "新宿駅",
     "quest": "コンクリートダンジョン"
   },
   {
     "id": "15a04",
+    "internal_id": "93020104",
     "chapter": "新宿",
     "place": "新宿四丁目",
     "quest": "ホテル街"
   },
   {
     "id": "15a05",
+    "internal_id": "93020105",
     "chapter": "新宿",
     "place": "歌舞伎町",
     "quest": "不夜城"
   },
   {
     "id": "15a06",
+    "internal_id": "93020106",
     "chapter": "新宿",
     "place": "バレルタワー",
     "quest": "ライフリングホール"
   },
   {
     "id": "15a07",
+    "internal_id": "93020107",
     "chapter": "新宿",
     "place": "パーティー会場",
     "quest": "キリングパーティー"
   },
   {
     "id": "15a08",
+    "internal_id": "93020108",
     "chapter": "新宿",
     "place": "タワー最上階",
     "quest": "ブリーチローダー"
   },
   {
     "id": "15a09",
+    "internal_id": "93020109",
     "chapter": "新宿",
     "place": "新宿御苑",
     "quest": "デモンズガーデン"
   },
   {
     "id": "15a10",
+    "internal_id": "93020110",
     "chapter": "新宿",
     "place": "新宿二丁目",
     "quest": "レインボータウン"
   },
   {
     "id": "15b01",
+    "internal_id": "93020201",
     "chapter": "アガルタ",
     "place": "地底平原",
     "quest": "苔照らす野原"
   },
   {
     "id": "15b02",
+    "internal_id": "93020202",
     "chapter": "アガルタ",
     "place": "野営地",
     "quest": "戦士の狩り場"
   },
   {
     "id": "15b03",
+    "internal_id": "93020203",
     "chapter": "アガルタ",
     "place": "川辺の町",
     "quest": "アマゾネスの宴"
   },
   {
     "id": "15b04",
+    "internal_id": "93020204",
     "chapter": "アガルタ",
     "place": "桃源郷",
     "quest": "夢想の里"
   },
   {
     "id": "15b05",
+    "internal_id": "93020205",
     "chapter": "アガルタ",
     "place": "イース",
     "quest": "背徳の都"
   },
   {
     "id": "15b06",
+    "internal_id": "93020206",
     "chapter": "アガルタ",
     "place": "北の断崖",
     "quest": "罪人捨て場"
   },
   {
     "id": "15b07",
+    "internal_id": "93020207",
     "chapter": "アガルタ",
     "place": "不夜城",
     "quest": "眠らぬ街"
   },
   {
     "id": "15b08",
+    "internal_id": "93020208",
     "chapter": "アガルタ",
     "place": "山裾の密林",
     "quest": "ジャングルハイキング"
   },
   {
     "id": "15b09",
+    "internal_id": "93020210",
     "chapter": "アガルタ",
     "place": "竜宮城",
     "quest": "湖中楼閣"
   },
   {
     "id": "15b10",
+    "internal_id": "93020209",
     "chapter": "アガルタ",
     "place": "地底大河",
     "quest": "ジャングルクルーズ"
   },
   {
     "id": "15b11",
+    "internal_id": "93020211",
     "chapter": "アガルタ",
     "place": "エルドラド",
     "quest": "黄金郷"
   },
   {
     "id": "15b12",
+    "internal_id": "93020212",
     "chapter": "アガルタ",
     "place": "大地の裂け目",
     "quest": "ダイヤモンドの谷"
   },
   {
     "id": "15c01",
+    "internal_id": "93020301",
     "chapter": "下総国",
     "place": "田んぼ",
     "quest": "田園風景"
   },
   {
     "id": "15c02",
+    "internal_id": "93020302",
     "chapter": "下総国",
     "place": "里",
     "quest": "寂寂たる集落"
   },
   {
     "id": "15c03",
+    "internal_id": "93020303",
     "chapter": "下総国",
     "place": "庵",
     "quest": "千手千眼"
   },
   {
     "id": "15c04",
+    "internal_id": "93020304",
     "chapter": "下総国",
     "place": "城下町",
     "quest": "栄枯盛衰"
   },
   {
     "id": "15c05",
+    "internal_id": "93020305",
     "chapter": "下総国",
     "place": "合戦場",
     "quest": "兵どもが夢の跡"
   },
   {
     "id": "15c06",
+    "internal_id": "93020306",
     "chapter": "下総国",
     "place": "土気城",
     "quest": "貴船の城"
   },
   {
     "id": "15c07",
+    "internal_id": "93020307",
     "chapter": "下総国",
     "place": "裏山",
     "quest": "名もなき霊峰"
   },
   {
     "id": "15c08",
+    "internal_id": "93020308",
     "chapter": "下総国",
     "place": "荒川の原",
     "quest": "古戦場"
   },
   {
     "id": "15c09",
+    "internal_id": "93020309",
     "chapter": "下総国",
     "place": "裏山",
     "quest": "戦戦恐恐"
   },
   {
     "id": "15d01",
+    "internal_id": "93020401",
     "chapter": "セイレム",
     "place": "静寂な森",
     "quest": "ループステリトリー"
   },
   {
     "id": "15d02",
+    "internal_id": "93020402",
     "chapter": "セイレム",
     "place": "カーター家",
     "quest": "クロウズネスト"
   },
   {
     "id": "15d03",
+    "internal_id": "93020403",
     "chapter": "セイレム",
     "place": "公会堂",
     "quest": "コートルーム"
   },
   {
     "id": "15d04",
+    "internal_id": "93020404",
     "chapter": "セイレム",
     "place": "波止場",
     "quest": "ダービーワーフ"
   },
   {
     "id": "15d05",
+    "internal_id": "93020406",
     "chapter": "セイレム",
     "place": "ウェイトリー家",
     "quest": "アルケミックフィールド"
   },
   {
     "id": "15d06",
+    "internal_id": "93020405",
     "chapter": "セイレム",
     "place": "郊外の屋敷",
     "quest": "セブンゲイブルズ"
   },
   {
     "id": "15d07",
+    "internal_id": "93020408",
     "chapter": "セイレム",
     "place": "ガローの丘",
     "quest": "エクスキューションサイト"
   },
   {
     "id": "15d08",
+    "internal_id": "93020407",
     "chapter": "セイレム",
     "place": "牧草地",
     "quest": "コモンズビュー"
   },
   {
     "id": "15d09",
+    "internal_id": "93020410",
     "chapter": "セイレム",
     "place": "空き家",
     "quest": "ピューリティドメイン"
   },
   {
     "id": "15d10",
+    "internal_id": "93020409",
     "chapter": "セイレム",
     "place": "隠れ家",
     "quest": "セーフハウス"
   },
   {
     "id": "15d11",
+    "internal_id": "93020411",
     "chapter": "セイレム",
     "place": "留置所",
     "quest": "ウィッチダンジョン"
   },
   {
     "id": "20a01",
+    "internal_id": "93030201",
     "chapter": "アナスタシア",
     "place": "アンカーポイント",
     "quest": "ルーシ高地"
   },
   {
     "id": "20a02",
+    "internal_id": "93030202",
     "chapter": "アナスタシア",
     "place": "ヤガ・スモレンスク",
     "quest": "獣の街"
   },
   {
     "id": "20a03",
+    "internal_id": "93030203",
     "chapter": "アナスタシア",
     "place": "風穴氷窟",
     "quest": "地下冷凍庫"
   },
   {
     "id": "20a04",
+    "internal_id": "93030204",
     "chapter": "アナスタシア",
     "place": "叛逆軍の砦",
     "quest": "崖上の城塞"
   },
   {
     "id": "20a05",
+    "internal_id": "93030205",
     "chapter": "アナスタシア",
     "place": "ヤガ・スィチョーフカ",
     "quest": "梟の村"
   },
   {
     "id": "20a06",
+    "internal_id": "93030206",
     "chapter": "アナスタシア",
     "place": "焼き払われた村",
     "quest": "雪に沈む焼け跡"
   },
   {
     "id": "20a07",
+    "internal_id": "93030207",
     "chapter": "アナスタシア",
     "place": "ヤガ・ヴャジマ",
     "quest": "見捨てられた村"
   },
   {
     "id": "20a08",
+    "internal_id": "93030208",
     "chapter": "アナスタシア",
     "place": "ヤガ・ジェメンスク",
     "quest": "辺境の村"
   },
   {
     "id": "20a09",
+    "internal_id": "93030209",
     "chapter": "アナスタシア",
     "place": "ヤガ・トゥーラ",
     "quest": "悴む教会"
   },
   {
     "id": "20a10",
+    "internal_id": "93030210",
     "chapter": "アナスタシア",
     "place": "潰れた村",
     "quest": "巨象の足跡"
   },
   {
     "id": "20a11",
+    "internal_id": "93030212",
     "chapter": "アナスタシア",
     "place": "ヤガ・モスクワ",
     "quest": "眠れる都"
   },
   {
     "id": "20a12",
+    "internal_id": "93030211",
     "chapter": "アナスタシア",
     "place": "大渓谷の砦",
     "quest": "雪渓の城塞"
   },
   {
     "id": "20a13",
+    "internal_id": "93030213",
     "chapter": "アナスタシア",
     "place": "大樹の根元",
     "quest": "裂けた凍土"
   },
   {
     "id": "20a14",
+    "internal_id": "93030214",
     "chapter": "アナスタシア",
     "place": "ヤガ・リャザン",
     "quest": "牢獄跡"
   },
   {
     "id": "20b01",
+    "internal_id": "93030301",
     "chapter": "ゲッテルデメルング",
     "place": "ランディングポイント",
     "quest": "穏やかな雪原"
   },
   {
     "id": "20b02",
+    "internal_id": "93030302",
     "chapter": "ゲッテルデメルング",
     "place": "薄氷の丘",
     "quest": "銀世界"
   },
   {
     "id": "20b03",
+    "internal_id": "93030303",
     "chapter": "ゲッテルデメルング",
     "place": "巨人の花園",
     "quest": "炎と氷の狭間"
   },
   {
     "id": "20b04",
+    "internal_id": "93030304",
     "chapter": "ゲッテルデメルング",
     "place": "第23集落",
     "quest": "クローズドシェルター"
   },
   {
     "id": "20b05",
+    "internal_id": "93030305",
     "chapter": "ゲッテルデメルング",
     "place": "英雄の穴倉",
     "quest": "皇帝の寝床"
   },
   {
     "id": "20b06",
+    "internal_id": "93030306",
     "chapter": "ゲッテルデメルング",
     "place": "雪と氷の城",
     "quest": "氷の架け橋"
   },
   {
     "id": "20b07",
+    "internal_id": "93030307",
     "chapter": "ゲッテルデメルング",
     "place": "果てへと至る道",
     "quest": "絶佳峡谷"
   },
   {
     "id": "20b08",
+    "internal_id": "93030308",
     "chapter": "ゲッテルデメルング",
     "place": "炎の館",
     "quest": "霜息吹く山脈"
   },
   {
     "id": "20b09",
+    "internal_id": "93030309",
     "chapter": "ゲッテルデメルング",
     "place": "第67集落",
     "quest": "クローンシェルター"
   },
   {
     "id": "20b10",
+    "internal_id": "93030310",
     "chapter": "ゲッテルデメルング",
     "place": "北の境界",
     "quest": "限界領域"
   },
   {
     "id": "20b11",
+    "internal_id": "93030311",
     "chapter": "ゲッテルデメルング",
     "place": "忘れられた神殿",
     "quest": "死せる戦士たちの武器庫"
   },
   {
     "id": "20c01",
+    "internal_id": "93030401",
     "chapter": "シン",
     "place": "シーディングポイント",
     "quest": "収穫日和"
   },
   {
     "id": "20c02",
+    "internal_id": "93030402",
     "chapter": "シン",
     "place": "隣村",
     "quest": "凄凄切切"
   },
   {
     "id": "20c03",
+    "internal_id": "93030403",
     "chapter": "シン",
     "place": "氷冷窟",
     "quest": "虎穴虎子"
   },
   {
     "id": "20c04",
+    "internal_id": "93030404",
     "chapter": "シン",
     "place": "芥の陣幕",
     "quest": "ヒナゲシの園"
   },
   {
     "id": "20c05",
+    "internal_id": "93030405",
     "chapter": "シン",
     "place": "景陽原",
     "quest": "仰天不愧"
   },
   {
     "id": "20c06",
+    "internal_id": "93030406",
     "chapter": "シン",
     "place": "山陽丘",
     "quest": "有朋遠来"
   },
   {
     "id": "20c07",
+    "internal_id": "93030407",
     "chapter": "シン",
     "place": "収容所",
-    "quest": "青点白日"
+    "quest": "青天白日"
   },
   {
     "id": "20c08",
+    "internal_id": "93030408",
     "chapter": "シン",
     "place": "石泉峡",
     "quest": "水紫山明"
   },
   {
     "id": "20c09",
+    "internal_id": "93030409",
     "chapter": "シン",
     "place": "大坪峪",
     "quest": "白黒分明"
   },
   {
     "id": "20c10",
+    "internal_id": "93030410",
     "chapter": "シン",
     "place": "咸陽",
     "quest": "鳳鳴朝陽"
   },
   {
     "id": "20c11",
+    "internal_id": "93030411",
     "chapter": "シン",
     "place": "八門洞",
     "quest": "地下鍛練場"
   },
   {
     "id": "20d01",
+    "internal_id": "93030501",
     "chapter": "ユガ・クシェートラ",
     "place": "イニシエートポイント",
     "quest": "修行の旅路"
   },
   {
     "id": "20d02",
+    "internal_id": "93030502",
     "chapter": "ユガ・クシェートラ",
     "place": "ビーチュ",
     "quest": "信心深き町"
   },
   {
     "id": "20d03",
+    "internal_id": "93030503",
     "chapter": "ユガ・クシェートラ",
     "place": "隠遁窟",
     "quest": "瞑想の岩屋"
   },
   {
     "id": "20d04",
+    "internal_id": "93030504",
     "chapter": "ユガ・クシェートラ",
     "place": "北の霊峰",
     "quest": "悟りの頂"
   },
   {
     "id": "20d05",
+    "internal_id": "93030505",
     "chapter": "ユガ・クシェートラ",
     "place": "西の断層",
     "quest": "祈りの広場"
   },
   {
     "id": "20d06",
+    "internal_id": "93030506",
     "chapter": "ユガ・クシェートラ",
     "place": "ディーヴァール",
     "quest": "壁の村"
   },
   {
     "id": "20d07",
+    "internal_id": "93030507",
     "chapter": "ユガ・クシェートラ",
     "place": "神の空岩跡",
     "quest": "悪魔の縄張り"
   },
   {
     "id": "20d08",
+    "internal_id": "93030508",
     "chapter": "ユガ・クシェートラ",
     "place": "南の町",
     "quest": "癒されし町"
   },
   {
     "id": "20d09",
+    "internal_id": "93030509",
     "chapter": "ユガ・クシェートラ",
     "place": "無窮の地",
     "quest": "大龍の寝床"
   },
   {
     "id": "20d10",
+    "internal_id": "93030510",
     "chapter": "ユガ・クシェートラ",
     "place": "東の花園",
     "quest": "デーヴァローカ"
   },
   {
     "id": "20e01",
+    "internal_id": "93030601",
     "chapter": "アトランティス",
     "place": "セーリングポイント",
     "quest": "幻の海洋"
   },
   {
     "id": "20e02",
+    "internal_id": "93030602",
     "chapter": "アトランティス",
     "place": "ヘスティア島",
     "quest": "焚火の海辺"
   },
   {
     "id": "20e03",
+    "internal_id": "93030603",
     "chapter": "アトランティス",
     "place": "ヘカテ島",
     "quest": "三叉の野原"
   },
   {
     "id": "20e04",
+    "internal_id": "93030604",
     "chapter": "アトランティス",
     "place": "デイモス島",
     "quest": "恐怖の荒野"
   },
   {
     "id": "20e05",
+    "internal_id": "93030605",
     "chapter": "アトランティス",
     "place": "アストライア島",
     "quest": "正義の神殿"
   },
   {
     "id": "20e06",
+    "internal_id": "93030606",
     "chapter": "アトランティス",
     "place": "テティス島",
     "quest": "母なる砂浜"
   },
   {
     "id": "20e07",
+    "internal_id": "93030607",
     "chapter": "アトランティス",
     "place": "エリス島",
     "quest": "争いの平原"
   },
   {
     "id": "20e08",
+    "internal_id": "93030608",
     "chapter": "アトランティス",
     "place": "ネメシス島",
     "quest": "神罰の荒海"
   },
   {
     "id": "20e09",
+    "internal_id": "93030609",
     "chapter": "アトランティス",
     "place": "タナトス島",
     "quest": "死の祭壇"
   },
   {
     "id": "20f01",
+    "internal_id": "93030701",
     "chapter": "オリュンポス",
     "place": "グライディングポイント",
     "quest": "人知れぬ辺境"
   },
   {
     "id": "20f02",
+    "internal_id": "93030702",
     "chapter": "オリュンポス",
     "place": "星間都市西部",
     "quest": "大神殿を望む都"
   },
   {
     "id": "20f03",
+    "internal_id": "93030703",
     "chapter": "オリュンポス",
     "place": "星間都市南部",
     "quest": "大地と豊穣の都"
   },
   {
     "id": "20f04",
+    "internal_id": "93030704",
     "chapter": "オリュンポス",
     "place": "星間都市東部",
     "quest": "美と愛の都"
   },
   {
     "id": "20f05",
+    "internal_id": "93030706",
     "chapter": "オリュンポス",
     "place": "大工房",
     "quest": "黎明の鍛冶場"
   },
   {
     "id": "20f06",
+    "internal_id": "93030705",
     "chapter": "オリュンポス",
     "place": "破神同盟基地",
     "quest": "アンダー・フロント"
   },
   {
     "id": "20f07",
+    "internal_id": "93030707",
     "chapter": "オリュンポス",
     "place": "祭壇街",
     "quest": "神の膝元"
   },
   {
     "id": "20f08",
+    "internal_id": "93030708",
     "chapter": "オリュンポス",
     "place": "空中庭園",
     "quest": "神々の庭"
   },
   {
     "id": "20f09",
+    "internal_id": "93030709",
     "chapter": "オリュンポス",
-    "place": "機神回廊", 
+    "place": "機神回廊",
     "quest": "巨神の通り道"
   },
   {
     "id": "20f10",
+    "internal_id": "93030710",
     "chapter": "オリュンポス",
     "place": "大祭壇",
     "quest": "神託の祭壇"
   },
   {
     "id": "20f11",
+    "internal_id": "93030711",
     "chapter": "オリュンポス",
     "place": "地下機構帯・外周部",
     "quest": "シークレット・ハンガー"
+  },
+  {
+    "id": "20g01",
+    "internal_id": "93030801",
+    "chapter": "平安京",
+    "place": "七条四坊",
+    "quest": "侍従池領"
+  },
+  {
+    "id": "20g02",
+    "internal_id": "93030802",
+    "chapter": "平安京",
+    "place": "七条二坊",
+    "quest": "西七条"
+  },
+  {
+    "id": "20g03",
+    "internal_id": "93030803",
+    "chapter": "平安京",
+    "place": "六条大路",
+    "quest": "引き回しの刑"
+  },
+  {
+    "id": "20g04",
+    "internal_id": "93030804",
+    "chapter": "平安京",
+    "place": "貴族邸",
+    "quest": "中川のわたり"
+  },
+  {
+    "id": "20g05",
+    "internal_id": "93030805",
+    "chapter": "平安京",
+    "place": "朱雀門",
+    "quest": "天子南面"
+  },
+  {
+    "id": "20g06",
+    "internal_id": "93030806",
+    "chapter": "平安京",
+    "place": "平安宮",
+    "quest": "宴の松原"
+  },
+  {
+    "id": "20g07",
+    "internal_id": "93030807",
+    "chapter": "平安京",
+    "place": "朱雀大路",
+    "quest": "千本通"
+  },
+  {
+    "id": "20g08",
+    "internal_id": "93030808",
+    "chapter": "平安京",
+    "place": "稲荷神社",
+    "quest": "狐のほら穴"
+  },
+  {
+    "id": "20g09",
+    "internal_id": "93030809",
+    "chapter": "平安京",
+    "place": "大宮大路",
+    "quest": "百鬼夜行"
+  },
+  {
+    "id": "20g10",
+    "internal_id": "93030810",
+    "chapter": "平安京",
+    "place": "頼光の屋敷",
+    "quest": "一条邸"
+  },
+  {
+    "id": "20g11",
+    "internal_id": "93030811",
+    "chapter": "平安京",
+    "place": "五条の橋",
+    "quest": "出会い橋"
+  },
+  {
+    "id": "20g12",
+    "internal_id": "93030812",
+    "chapter": "平安京",
+    "place": "大江山",
+    "quest": "鬼の棲み処"
+  },
+  {
+    "id": "20g13",
+    "internal_id": "93030813",
+    "chapter": "平安京",
+    "place": "三条三坊",
+    "quest": "鬼の遊び場"
   }
 ]
