@@ -58,14 +58,14 @@
   </span>
 </h1>
 
-<p class="subtitle">イベント</p>
+<p class="subtitle">イベント{% if event_reports %} ({{ event_reports | length }}){% endif %}</p>
 {% if event_reports %}
 {{ table(event_reports) }}
 {% else %}
 <p style="margin-bottom: 2rem">なし</p>
 {% endif %}
 
-<p class="subtitle">恒常フリークエスト</p>
+<p class="subtitle">恒常フリークエスト{% if freequest_reports %} ({{ freequest_reports | length }}){% endif %}</p>
 {% if freequest_reports %}
 {{ table(freequest_reports) }}
 {% else %}
