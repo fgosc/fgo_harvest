@@ -1,6 +1,8 @@
 from collections import namedtuple
 from datetime import datetime
 
+import pytest
+
 from . import timezone
 from . import twitter
 
@@ -54,3 +56,56 @@ QP(+194千)50-QP(+195千)58
         'QP(+194千)': '50',
         'QP(+195千)': '58',
     }
+
+
+runreport0 = """【大江山 鬼の住み処】100周
+鬼灯11-狂骨38-狂の秘石3-狂の輝石33-叡智の猛火4
+#FGO周回カウンタ http://aoshirobo.net/fatego/rc/
+"""
+
+runreport1 = """【地獄界曼荼羅　平安京　三条三坊　鬼の遊び場】340周
+鬼炎鬼灯42-糸玉75
+#FGO周回カウンタ http://aoshirobo.net/fatego/rc/
+"""
+
+runreport2 = """【ドレッドノート級】50周
+礼装2
+ランプ11-塵18-証19
+術魔5-狂魔5-術輝7
+術モ15
+鋭歯1305-ヒレ1340-ウニ2751
+#FGO周回カウンタ https://aoshirobo.net/fatego/rc/
+"""
+
+testdata_runreport = [
+    (runreport0, '大江山', '鬼の住み処', True, '20g12'),
+    (runreport1, '地獄界曼荼羅 平安京 三条三坊', '鬼の遊び場', True, '20g13'),
+    (runreport2, 'ドレッドノート級', '', False, 'M0IrmeBMeC6A'),
+]
+
+
+@pytest.mark.parametrize(
+    'text,chapter,place,is_freequest,qid',
+    testdata_runreport,
+)
+def test_runreport(
+    text: str,
+    chapter: str,
+    place: str,
+    is_freequest: bool,
+    qid: str,
+):
+    user = MockUser('testuser')
+    original_tweet = MockTweet(
+        1234567890,
+        user,
+        text,
+        datetime(2020, 1, 2, 3, 4, 5),
+    )
+
+    tw = twitter.TweetCopy(original_tweet)
+    parsed = twitter.parse_tweet(tw)
+    assert parsed.chapter == chapter
+    assert parsed.place == place
+    assert parsed.is_freequest == is_freequest
+    assert parsed.quest_id == qid

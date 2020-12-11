@@ -71,3 +71,18 @@ testdata_get_quest_id = [
 def test_get_quest_id(chapter, place, expected):
     assert freequest.defaultDetector.get_quest_id(
         chapter, place, 2020) == expected
+
+
+testdata_search_bestmatch_freequest = [
+    ('大江山 鬼の住み処', '20g12'),
+    ('地獄界曼荼羅 平安京 三条三坊 鬼の遊び場', '20g13'),
+]
+
+
+@pytest.mark.parametrize(
+    'candidate,expected',
+    testdata_search_bestmatch_freequest,
+)
+def test_search_bestmatch_freequest(candidate, expected):
+    assert freequest.defaultDetector.\
+        search_bestmatch_freequest(candidate) == expected
