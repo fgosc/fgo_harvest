@@ -404,10 +404,28 @@ class RunReport:
 
     @property
     def is_freequest(self) -> bool:
-        return freequest.defaultDetector.is_freequest(self.chapter, self.place)
+        isfq = freequest.defaultDetector.is_freequest(self.chapter, self.place)
+        if isfq:
+            return True
+        bestmatch = freequest.defaultDetector.search_bestmatch_freequest(
+            f'{self.chapter} {self.place}'.strip(),
+        )
+        if bestmatch:
+            return True
+        return False
 
     @property
     def quest_id(self) -> str:
+        if not freequest.defaultDetector.is_freequest(
+            self.chapter,
+            self.place,
+        ):
+            bestmatch = freequest.defaultDetector.search_bestmatch_freequest(
+                f'{self.chapter} {self.place}'.strip(),
+            )
+            if bestmatch:
+                return bestmatch
+
         return freequest.defaultDetector.get_quest_id(
             self.chapter, self.place, self.timestamp.year,
         )
@@ -518,6 +536,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
 
         if candidate:
             location_tokens = candidate
+
         else:
             # 該当するフリクエが見つからなかった。
             # place が空文字列の location として扱う。

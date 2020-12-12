@@ -169,9 +169,7 @@ class PartitioningRuleByQuest:
         report: twitter.RunReport,
     ) -> None:
 
-        detector = freequest.defaultDetector
-        year = report.timestamp.year
-        qid = detector.get_quest_id(report.chapter, report.place, year)
+        qid = report.quest_id
         if qid not in partitions:
             partitions[qid] = []
         partitions[qid].append(report)
@@ -235,20 +233,30 @@ class PartitioningRuleByUserList:
 class QuestListElement:
     def __init__(
         self,
+        quest_id: str,
         chapter: str,
         place: str,
         timestamp: datetime,
+        is_freequest: bool,
         count: int = 1,
     ):
-        detector = freequest.defaultDetector
-        self.quest_id = detector.get_quest_id(chapter, place, timestamp.year)
-        self.is_freequest = detector.is_freequest(chapter, place)
-        self.quest_name = detector.get_quest_name(self.quest_id)
+        self.quest_id = quest_id
         self.chapter = chapter
         self.place = place
         self.since = timestamp
         self.latest = timestamp
+        self.is_freequest = is_freequest
         self.count = count
+        detector = freequest.defaultDetector
+        try:
+            self.quest_name = detector.get_quest_name(quest_id)
+        except KeyError:
+            _qid = detector.get_quest_id(chapter, place, timestamp.year)
+            if quest_id != _qid:
+                raise ValueError(
+                    f'qid mismatch: {quest_id} != {_qid} ({chapter} {place})'
+                )
+            self.quest_name = detector.get_quest_name(quest_id)
 
     def countup(self, timestamp: datetime) -> None:
         self.count += 1
@@ -328,7 +336,13 @@ class PartitioningRuleByQuestList:
 
         quest_list = json.loads(text, object_hook=_load_hook)
         for q in quest_list:
-            e = QuestListElement(q['chapter'], q['place'], q['since'])
+            e = QuestListElement(
+                q['id'],
+                q['chapter'],
+                q['place'],
+                q['since'],
+                q['is_freequest'],
+            )
             if e.quest_id != q['id']:
                 logger.error(f'json: {q}')
                 raise ValueError('incorrect data: {}'.format(q['id']))
@@ -343,7 +357,13 @@ class PartitioningRuleByQuestList:
         report: twitter.RunReport,
     ) -> None:
 
-        e = QuestListElement(report.chapter, report.place, report.timestamp)
+        e = QuestListElement(
+            report.quest_id,
+            report.chapter,
+            report.place,
+            report.timestamp,
+            report.is_freequest,
+        )
 
         if e.quest_id not in self.quest_dict:
             self.quest_dict[e.quest_id] = e

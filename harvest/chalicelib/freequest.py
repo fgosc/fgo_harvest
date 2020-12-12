@@ -3,7 +3,9 @@ import os
 from base64 import urlsafe_b64encode
 from hashlib import md5
 from logging import getLogger
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple, cast
+
+import Levenshtein  # type: ignore
 
 logger = getLogger(__name__)
 
@@ -63,6 +65,39 @@ class Detector:
 
     def get_quest_name(self, qid: str) -> str:
         return self.quest_reverse_index[qid]
+
+    def search_bestmatch_freequest(self, expr: str) -> Optional[str]:
+        min_distance = 10
+        min_candidate = None
+
+        for candidate in self.freequest_db:
+            title = candidate.replace('\t', ' ')
+            # 投稿場所は正しいが前後に余計な情報がついているケースを
+            # これでカバーできる。
+            if title in expr:
+                logger.debug(
+                    'candidate: %s, title: %s, expr: %s',
+                    candidate, title, expr,
+                )
+                return self.freequest_db[candidate]
+
+            distance = Levenshtein.distance(expr, candidate)
+            if distance < min_distance:
+                min_distance = distance
+                min_candidate = candidate
+
+        logger.debug(
+            'best match: %s, disatnce: %s',
+            min_candidate,
+            min_distance,
+        )
+
+        if min_distance < 3:
+            logger.debug('use bestmatch freequest')
+            return self.freequest_db[cast(str, min_candidate)]
+
+        logger.debug('ignore bestmatch freequest: score is not enough')
+        return None
 
     def find_freequest(self, expr: str) -> Optional[Tuple[str, str]]:
         """
@@ -154,6 +189,11 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
                 if alt_quest:
                     d[(f'{alt_place}\t{alt_quest}')] = qid
 
+            # クエスト名だけの投稿
+            d[f'{quest}\t'] = qid
+            if alt_quest:
+                d[f'{alt_quest}\t'] = qid
+
         if (chapter, place, quest) not in quests_in_same_place \
                 or quest in prior_in_same_place:
 
@@ -169,11 +209,6 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
             d[f'{place}\t'] = qid
             if alt_place:
                 d[f'{alt_place}\t'] = qid
-
-        # クエスト名だけの投稿
-        d[f'{quest}\t'] = qid
-        if alt_quest:
-            d[f'{alt_quest}\t'] = qid
 
     # 周回カウンタに登録されているクエスト名が特殊
     d['オルレアン\tティエール(刃物の町)'] = d['オルレアン\tティエール']
