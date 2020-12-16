@@ -36,6 +36,7 @@ QP(+194千)50-QP(+195千)58
     assert parsed.reporter == 'testuser'
     assert parsed.chapter == 'シャーロット'
     assert parsed.place == 'ゴールドラッシュ'
+    assert parsed.is_freequest is True
     tz = timezone.Local
     assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
     assert parsed.items == {
@@ -85,7 +86,7 @@ def test_parse_tweet2():
     assert parsed.reporter == 'testuser'
     assert parsed.chapter == '上級'
     assert parsed.place == ''
-    assert parsed.is_freequest == False
+    assert parsed.is_freequest is False
     tz = timezone.Local
     assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
     assert parsed.items == {

@@ -84,6 +84,11 @@ class Detector:
         return self.quest_reverse_index[qid]
 
     def search_bestmatch_freequest(self, expr: str) -> Optional[str]:
+        # 入力が短すぎると距離の測定結果がどうやっても小さくなるのでダメ
+        if len(expr) < 3:
+            logger.debug('input is too short to guess')
+            return None
+
         min_distance = 10
         min_candidate = None
 
@@ -109,7 +114,7 @@ class Detector:
             min_distance,
         )
 
-        if min_distance < 3:
+        if min_distance < 2:
             logger.debug('use bestmatch freequest')
             return self.freequest_db[cast(str, min_candidate)]
 
