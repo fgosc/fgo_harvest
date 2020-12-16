@@ -10,7 +10,7 @@ MockTweet = namedtuple('MockTweet', ['id', 'user', 'full_text', 'created_at'])
 MockUser = namedtuple('MockUser', ['screen_name'])
 
 
-def test_parse_tweet():
+def test_parse_tweet1():
     text = """【シャーロット ゴールドラッシュ】1000周
 塵643-証487
 弓輝106-槍輝105-術輝68
@@ -36,6 +36,7 @@ QP(+194千)50-QP(+195千)58
     assert parsed.reporter == 'testuser'
     assert parsed.chapter == 'シャーロット'
     assert parsed.place == 'ゴールドラッシュ'
+    assert parsed.is_freequest is True
     tz = timezone.Local
     assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
     assert parsed.items == {
@@ -55,6 +56,49 @@ QP(+194千)50-QP(+195千)58
         'カード': '78',
         'QP(+194千)': '50',
         'QP(+195千)': '58',
+    }
+
+
+def test_parse_tweet2():
+    text = """【上級】100周
+礼装0
+結氷16-蛇玉13
+弓魔9-弓輝12
+弓ピ18
+バンテージ2470-バナナ1737-ガム753
+#FGO周回カウンタ https://aoshirobo.net/fatego/rc/
+ https://fgosccalc.appspot.com
+増加礼装なし。
+なんの成果もありませんでした！"""
+
+    user = MockUser('testuser')
+    original_tweet = MockTweet(
+        1234567890,
+        user,
+        text,
+        datetime(2020, 1, 2, 3, 4, 5),
+    )
+
+    tw = twitter.TweetCopy(original_tweet)
+
+    parsed = twitter.parse_tweet(tw)
+    assert parsed.tweet_id == 1234567890
+    assert parsed.reporter == 'testuser'
+    assert parsed.chapter == '上級'
+    assert parsed.place == ''
+    assert parsed.is_freequest is False
+    tz = timezone.Local
+    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
+    assert parsed.items == {
+        '礼装': '0',
+        '結氷': '16',
+        '蛇玉': '13',
+        '弓魔': '9',
+        '弓輝': '12',
+        '弓ピ': '18',
+        'バンテージ': '2470',
+        'バナナ': '1737',
+        'ガム': '753',
     }
 
 

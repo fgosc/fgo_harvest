@@ -25,6 +25,23 @@ posterior_in_same_place = (
     '隠された島',
     '戦戦恐恐',
 )
+ambigious_place = (
+    '剣の修練場',
+    '弓の修練場',
+    '槍の修練場',
+    '騎の修練場',
+    '術の修練場',
+    '殺の修練場',
+    '狂の修練場',
+    '初級',
+    '中級',
+    '上級',
+    '超級',
+    '不夜城',
+)
+ambigious_quest = (
+    '不夜城',
+)
 
 
 class Detector:
@@ -67,6 +84,11 @@ class Detector:
         return self.quest_reverse_index[qid]
 
     def search_bestmatch_freequest(self, expr: str) -> Optional[str]:
+        # 入力が短すぎると距離の測定結果がどうやっても小さくなるのでダメ
+        if len(expr) < 3:
+            logger.debug('input is too short to guess')
+            return None
+
         min_distance = 10
         min_candidate = None
 
@@ -92,7 +114,7 @@ class Detector:
             min_distance,
         )
 
-        if min_distance < 3:
+        if min_distance < 2:
             logger.debug('use bestmatch freequest')
             return self.freequest_db[cast(str, min_candidate)]
 
@@ -115,6 +137,11 @@ class Detector:
             そもそも is_freequest() で True と判定されるため、
             このメソッドでフリークエストかどうかを調べる必要がない。
         """
+        # あいまいな名前は正しい推測ができないことが確実なので、
+        # 最初に除外する。
+        if expr in ambigious_place or expr in ambigious_quest:
+            return None
+
         chapter_candidates = [
             ch for ch in self.freequest_chapter_db
             if expr.startswith(ch)
@@ -190,25 +217,33 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
                     d[(f'{alt_place}\t{alt_quest}')] = qid
 
             # クエスト名だけの投稿
-            d[f'{quest}\t'] = qid
-            if alt_quest:
-                d[f'{alt_quest}\t'] = qid
+            # あいまいなクエスト（クエストだけで一意に決まらない）は登録しない
+            if quest not in ambigious_quest:
+                d[f'{quest}\t'] = qid
+                if alt_quest:
+                    d[f'{alt_quest}\t'] = qid
 
         if (chapter, place, quest) not in quests_in_same_place \
                 or quest in prior_in_same_place:
 
             if f'{chapter}\t{place}' in d:
                 raise KeyError(
-                    f'key "{chapter} {place}" has already been registered'
+                    f'key "{chapter}<tab>{place}" has already been registered'
                 )
             d[f'{chapter}\t{place}'] = qid
             if alt_place:
                 d[f'{chapter}\t{alt_place}'] = qid
 
             # 場所だけの投稿
-            d[f'{place}\t'] = qid
-            if alt_place:
-                d[f'{alt_place}\t'] = qid
+            # あいまいな場所（場所だけで一意に決まらない）は登録しない
+            if place not in ambigious_place:
+                if f'{place}\t' in d:
+                    raise KeyError(
+                        f'key "{place}<tab>" has already been registered'
+                    )
+                d[f'{place}\t'] = qid
+                if alt_place:
+                    d[f'{alt_place}\t'] = qid
 
     # 周回カウンタに登録されているクエスト名が特殊
     d['オルレアン\tティエール(刃物の町)'] = d['オルレアン\tティエール']
