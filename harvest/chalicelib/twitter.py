@@ -336,6 +336,27 @@ class Agent:
             tw.id: TweetCopy(tw) for tw in tweets if appropriate_tweet(tw)
         }
 
+    def get_users_status(
+        self,
+        screen_names: Sequence[str],
+    ) -> Dict[str, Dict[str, bool]]:
+
+        logger.info('>>> lookup_users: %s', screen_names)
+        users = self.api.lookup_users(
+            screen_names=screen_names,
+            include_entities=False,
+        )
+        logger.debug(users)
+        users_dict = {user.screen_name: user.protected for user in users}
+        resp_dict = {}
+        for u in screen_names:
+            if u not in users_dict:
+                resp_dict[u] = {'exist': False, 'protected': False}
+            else:
+                protected = users_dict[u]
+                resp_dict[u] = {'exist': True, 'protected': protected}
+        return resp_dict
+
 
 class RunReport:
     """

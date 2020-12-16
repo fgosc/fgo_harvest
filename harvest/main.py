@@ -256,9 +256,20 @@ def command_delete(args: argparse.Namespace) -> None:
     # 常に saved ⊇ active
     sub = saved_tweet_id_set - active_tweet_id_set
     logger.info(f'subtract: {sub}')
+    users_set = set()
+    for tweet_id in sub:
+        user = id_user_dict[tweet_id]
+        logger.info(f' {tweet_id}: {user}')
+        users_set.add(user)
+
+    result = agent.get_users_status(users_set)
+    logger.info(result)
 
     # 存在しないものがあれば json を修正
     #   dry run オプションも有効
+    # ユーザーが存在しない
+    # ユーザーが存在して protected ... ツイートが非表示
+    # ユーザーが存在する ... ツイートが削除された
 
 
 def build_parser() -> argparse.ArgumentParser:
