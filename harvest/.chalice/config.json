@@ -6,7 +6,7 @@
       "api_gateway_stage": "api",
       "lambda_functions": {
         "rebuild_outputs": {
-          "lambda_timeout": 600,
+          "lambda_timeout": 300,
           "lambda_memory_size": 256
         }
       }
