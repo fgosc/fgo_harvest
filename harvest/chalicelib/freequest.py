@@ -3,9 +3,7 @@ import os
 from base64 import urlsafe_b64encode
 from hashlib import md5
 from logging import getLogger
-from typing import Dict, Iterable, List, Optional, Set, Tuple, cast
-
-import Levenshtein  # type: ignore
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 logger = getLogger(__name__)
 
@@ -54,6 +52,12 @@ class Detector:
         self.quest_reverse_index: Dict[str, str] = \
             _build_reverse_index(freequests)
 
+        # search_bestmatch_freequest() 内で毎回 replace() するコストを
+        # 下げるため、事前に変換しておく。
+        self.freequest_db_byspace: Dict[str, str] = {}
+        for k, v in self.freequest_db.items():
+            self.freequest_db_byspace[k.replace('\t', ' ')] = v
+
     def is_freequest(self, chapter: str, place: str) -> bool:
         """
             渡された chapter, place がフリークエストかどうかを判定する。
@@ -84,41 +88,14 @@ class Detector:
         return self.quest_reverse_index[qid]
 
     def search_bestmatch_freequest(self, expr: str) -> Optional[str]:
-        # 入力が短すぎると距離の測定結果がどうやっても小さくなるのでダメ
-        if len(expr) < 3:
-            logger.debug('input is too short to guess')
-            return None
-
-        min_distance = 10
-        min_candidate = None
-
-        for candidate in self.freequest_db:
-            title = candidate.replace('\t', ' ')
+        for title in self.freequest_db_byspace:
             # 投稿場所は正しいが前後に余計な情報がついているケースを
             # これでカバーできる。
             if title in expr:
-                logger.debug(
-                    'candidate: %s, title: %s, expr: %s',
-                    candidate, title, expr,
-                )
-                return self.freequest_db[candidate]
+                logger.debug('title: %s, expr: %s', title, expr)
+                return self.freequest_db_byspace[title]
 
-            distance = Levenshtein.distance(expr, candidate)
-            if distance < min_distance:
-                min_distance = distance
-                min_candidate = candidate
-
-        logger.debug(
-            'best match: %s, disatnce: %s',
-            min_candidate,
-            min_distance,
-        )
-
-        if min_distance < 2:
-            logger.debug('use bestmatch freequest')
-            return self.freequest_db[cast(str, min_candidate)]
-
-        logger.debug('ignore bestmatch freequest: score is not enough')
+        logger.debug('cannot find a candidate')
         return None
 
     def find_freequest(self, expr: str) -> Optional[Tuple[str, str]]:

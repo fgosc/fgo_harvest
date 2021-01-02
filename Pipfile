@@ -14,7 +14,6 @@ boto3 = "*"
 jinja2 = "*"
 chalice = "*"
 mypy = "*"
-python-levenshtein = "*"
 
 [requires]
 python_version = "3.8"
