@@ -106,7 +106,8 @@
     const chart = new google.visualization.Calendar(document.getElementById('calender_chart'));
     const years = new Set(jsondata.map(e => new Date(e.timestamp).getFullYear()))
     console.log('years', years)
-    const chartHeight = 50 + years.length * 150
+    const chartHeight = 50 + years.size * 150
+    console.log('chart height', chartHeight)
 
     const boxWidth = document.getElementById('chartbox').clientWidth
     console.log('chartbox width', boxWidth)
