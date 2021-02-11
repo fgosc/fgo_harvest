@@ -240,22 +240,25 @@ def generate_caller_reference():
     return f'harvest-{t}-{r}'
 
 
-@app.on_s3_event(
-    bucket=settings.S3Bucket,
-    events=['s3:ObjectCreated:*'],
-    prefix='harvest/contents/',
-)
-def invalidate_cloudfront_cache(event):
-    item = '/' + event.key
-    app.log.warning('cache invalidation: %s', item)
+# @app.s3_event() を使うと複数のトリガーを設定できない。
+# @app.lambda_function() で Lambda を定義して S3 トリガーは手動で設定する。
+@app.lambda_function()
+def invalidate_cloudfront_cache(event, context):
+    logger.info(event)
+    item = '/' + event['Records'][0]['s3']['object']['key']
+    items = []
+    items.append(item)
+    if item.endswith('/index.html'):
+        items.append(item[:item.rfind('/')+1])
+
+    logger.info('cache invalidation: %s', items)
+
     cloudfront.create_invalidation(
         DistributionId=settings.CloudfrontDistributionId,
         InvalidationBatch={
             'Paths': {
-                'Quantity': 1,
-                'Items': [
-                    item,
-                ],
+                'Quantity': len(items),
+                'Items': items,
             },
             'CallerReference': generate_caller_reference(),
         }
