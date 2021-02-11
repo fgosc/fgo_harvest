@@ -249,7 +249,7 @@ def invalidate_cloudfront_cache(event):
     item = '/' + event.key
     app.log.warning('cache invalidation: %s', item)
     cloudfront.create_invalidation(
-        DistributionId='',
+        DistributionId=settings.CloudfrontDistributionId,
         InvalidationBatch={
             'Paths': {
                 'Quantity': 1,
