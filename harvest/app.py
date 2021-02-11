@@ -1,8 +1,10 @@
 import io
+import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import getLogger
-from typing import List, Tuple
+from operator import itemgetter
+from typing import Any, BinaryIO, Dict, Iterator, List, Tuple
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
@@ -228,3 +230,61 @@ def build_static_contents(event, context):
     )
     renderer.render_all()
     app.log.info('finished building static contents')
+
+
+def _merge(streams: Iterator[BinaryIO]) -> Iterator[Dict[str, Any]]:
+    merged_tweets = []
+    for stream in streams:
+        tweets = json.load(stream)
+        if len(tweets) == 0:
+            continue
+        merged_tweets.extend(tweets)
+    logger.info('merged tweets: %s', len(merged_tweets))
+    tweet_set = set([json.dumps(tw) for tw in merged_tweets])
+    distinct_tweets = [json.loads(tw) for tw in tweet_set]
+    logger.info('distinct tweets: %s', len(distinct_tweets))
+    return sorted(distinct_tweets, key=itemgetter('id'))
+
+
+def merge_to_day_tweets():
+    # 実行時点の前日を対象にする
+    target_date = datetime.now().strftime('%Y%m%d')
+    logger.info('target date: %s', target_date)
+    fileStorage = storage.AmazonS3Storage(settings.S3Bucket)
+    basedir = settings.TweetStorageDir
+    streams = fileStorage.streams(
+        basedir=basedir,
+        prefix=target_date + '_',
+        suffix='.json',
+    )
+    merged = _merge(streams)
+    outpath = f'{basedir}/{target_date}.json'
+    outstream = fileStorage.get_output_stream(outpath)
+    outstream.write(json.dumps(merged))
+    fileStorage.close_output_stream(outstream)
+    
+    # 後始末
+    # TODO
+
+
+def merge_to_month_tweets():
+    # 実行時点の前月を対象にする
+    today = datetime.now()
+    current_month = datetime(today.year, today.month, 1)
+    target_month = (current_month - timedelta(days=1)).strftime('%Y%m')
+    logger.info('target month: %s', target_month)
+    fileStorage = storage.AmazonS3Storage(settings.S3Bucket)
+    basedir = settings.TweetStorageDir
+    streams = fileStorage.streams(
+        basedir=basedir,
+        prefix=target_month,
+        suffix='.json',
+    )
+    merged = _merge(streams)
+    outpath = f'{basedir}/{target_month}.json'
+    outstream = fileStorage.get_output_stream(outpath)
+    outstream.write(json.dumps(merged))
+    fileStorage.close_output_stream(outstream)
+    
+    # 後始末
+    # TODO

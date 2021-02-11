@@ -30,7 +30,23 @@ class SupportStorage(Protocol):
     def copy(self, src: str, dest: str) -> None:
         ...
 
-    def streams(self, basedir: str, suffix: str) -> Iterator[BinaryIO]:
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+        ...
+
+    def delete(self, path: str):
+        ...
+
+    def delete_multi(
+        self,
+        basedir,
+        prefix: str = '',
+        suffix: str = '',
+    ):
         ...
 
 
@@ -56,13 +72,30 @@ class FilesystemStorage:
     def copy(self, src: str, dest: str) -> None:
         shutil.copyfile(src, dest)
 
-    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
-        entries = pathlib.Path(basedir).glob('*' + suffix)
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+
+        entries = pathlib.Path(basedir).glob(prefix + '*' + suffix)
         for entry in entries:
             if entry.is_file():
                 logger.info('read %s', entry.name)
                 with open(entry, 'rb') as fp:
                     yield fp
+
+    def delete(self, path: str):
+        ...
+
+    def delete_multi(
+        self,
+        basedir,
+        prefix: str = '',
+        suffix: str = '',
+    ):
+        ...
 
 
 class AmazonS3Storage:
@@ -138,11 +171,33 @@ class AmazonS3Storage:
         source = {'Bucket': self.bucket.name, 'Key': src}
         self.bucket.copy(source, dest)
 
-    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
-        object_summaries = self.bucket.objects.filter(Prefix=basedir)
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+
+        if prefix:
+            _prefix = f'{basedir}/{prefix}'
+        else:
+            _prefix = basedir
+
+        object_summaries = self.bucket.objects.filter(Prefix=_prefix)
 
         for entry in object_summaries:
             if entry.key.endswith(suffix):
                 logger.info(f'get s3://{self.bucket.name}/{entry.key}')
                 resp = entry.get()
                 yield resp['Body']
+
+    def delete(self, path: str):
+        ...
+
+    def delete_multi(
+        self,
+        basedir,
+        prefix: str = '',
+        suffix: str = '',
+    ):
+        ...
