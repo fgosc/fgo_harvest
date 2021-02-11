@@ -248,6 +248,8 @@ def invalidate_cloudfront_cache(event, context):
     item = '/' + event['Records'][0]['s3']['object']['key']
     items = []
     items.append(item)
+    # .../index.html を invalidate するとき、
+    # .../ も明示的に invalidate しないとダメ。
     if item.endswith('/index.html'):
         items.append(item[:item.rfind('/')+1])
 
