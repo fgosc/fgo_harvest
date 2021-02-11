@@ -1,5 +1,7 @@
 import io
 import os
+import random
+import time
 from datetime import datetime
 from logging import getLogger
 from typing import List, Tuple
@@ -19,6 +21,7 @@ logger = getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 app = Chalice(app_name='harvest')
+cloudfront = boto3.client('cloudfront')
 
 
 def setup_twitter_agent():
@@ -228,3 +231,37 @@ def build_static_contents(event, context):
     )
     renderer.render_all()
     app.log.info('finished building static contents')
+
+
+def generate_caller_reference():
+    # unique であればよい
+    t = time.time()
+    r = random.randint(0, 1048576)
+    return f'harvest-{t}-{r}'
+
+
+# @app.s3_event() を使うと複数のトリガーを設定できない。
+# @app.lambda_function() で Lambda を定義して S3 トリガーは手動で設定する。
+@app.lambda_function()
+def invalidate_cloudfront_cache(event, context):
+    logger.info(event)
+    item = '/' + event['Records'][0]['s3']['object']['key']
+    items = []
+    items.append(item)
+    # .../index.html を invalidate するとき、
+    # .../ も明示的に invalidate しないとダメ。
+    if item.endswith('/index.html'):
+        items.append(item[:item.rfind('/')+1])
+
+    logger.info('cache invalidation: %s', items)
+
+    cloudfront.create_invalidation(
+        DistributionId=settings.CloudfrontDistributionId,
+        InvalidationBatch={
+            'Paths': {
+                'Quantity': len(items),
+                'Items': items,
+            },
+            'CallerReference': generate_caller_reference(),
+        }
+    )
