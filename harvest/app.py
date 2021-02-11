@@ -1,5 +1,7 @@
 import io
 import os
+import random
+import time
 from datetime import datetime
 from logging import getLogger
 from typing import List, Tuple
@@ -19,6 +21,7 @@ logger = getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 app = Chalice(app_name='harvest')
+cloudfront = boto3.client('cloudfront')
 
 
 def setup_twitter_agent():
@@ -228,3 +231,32 @@ def build_static_contents(event, context):
     )
     renderer.render_all()
     app.log.info('finished building static contents')
+
+
+def generate_caller_reference():
+    # unique であればよい
+    t = time.time()
+    r = random.randint(0, 1048576)
+    return f'harvest-{t}-{r}'
+
+
+@app.on_s3_event(
+    bucket=settings.S3Bucket,
+    events=['s3:ObjectCreated:*'],
+    prefix='harvest/contents/',
+)
+def invalidate_cloudfront_cache(event):
+    item = '/' + event.key
+    app.log.warning('cache invalidation: %s', item)
+    cloudfront.create_invalidation(
+        DistributionId='',
+        InvalidationBatch={
+            'Paths': {
+                'Quantity': 1,
+                'Items': [
+                    item,
+                ],
+            },
+            'CallerReference': generate_caller_reference(),
+        }
+    )
