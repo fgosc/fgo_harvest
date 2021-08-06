@@ -200,6 +200,13 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
                 if alt_quest:
                     d[f'{alt_quest}\t'] = qid
 
+        # クエスト名と場所が一致する場合、以降のキー登録は不要。
+        # 登録しようとしてもキー重複とみなされ KeyError になる。
+        # クエスト名と場所が一致するクエスト: アヴァロン ドーバーハウス
+        if place == quest:
+            logger.debug(f"skip: place {place} matches quest {quest}")
+            continue
+
         if (chapter, place, quest) not in quests_in_same_place \
                 or quest in prior_in_same_place:
 

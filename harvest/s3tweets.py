@@ -8,6 +8,7 @@ import argparse
 import json
 import logging
 import pathlib
+from datetime import datetime, timedelta
 from operator import itemgetter
 from typing import Any, Dict, List
 
@@ -27,6 +28,12 @@ def exec_pull(args):
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
 
+    if args.days:
+        threshold = (datetime.today() - timedelta(args.days)).strftime('%Y%m%d')
+        logger.info(f'try to get files that are created after %s', threshold)
+    else:
+        threshold = None
+
     object_summary_iterator = s3bucket.objects.filter(
         Prefix=settings.TweetStorageDir,
     )
@@ -36,6 +43,11 @@ def exec_pull(args):
         logger.info('s3: %s', key)
 
         name = key.replace(settings.TweetStorageDir + '/', '')
+
+        if threshold and name < threshold:
+            logger.info('  skip downloading')
+            continue
+
         output = output_dir / name
         logger.info(' --> %s', output)
 
@@ -61,17 +73,29 @@ def merge(files: List[pathlib.Path]) -> List[Dict[str, Any]]:
 
 def exec_merge(args):
     """
-        JSON ファイルを日付単位でマージする。
+        JSON ファイルを日付または月単位でマージする。
     """
     target_dir = pathlib.Path(args.target_dir)
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
+    today = datetime.today().strftime('%Y%m%d')
+    this_month = datetime.today().strftime('%Y%m')
 
     files = target_dir.glob('*.json')
     partition: Dict[str, List[pathlib.Path]] = {}
 
     for filepath in files:
+        month = filepath.name[:6]
+        # 当月は月単位マージの対象外
+        if month < this_month:
+            if month not in partition:
+                partition[month] = []
+            partition[month].append(filepath)
+            continue
+
         date = filepath.name[:8]
+        if date >= today:
+            logger.info('skip merging: %s equals or later than %s', filepath.name, today)
         logger.info('%s %s', filepath.name, date)
         if date not in partition:
             partition[date] = []
@@ -134,11 +158,22 @@ def exec_clean(args):
         - yyyyMMdd.json
         - yyyyMMdd.json が存在しないときの yyyyMMdd_HHMMSS.json
           (つまりサマリされていない場合はサマリ元は消さない)
+
+        --month が指定された場合は削除しない対象を以下に変更:
+        - yyyyMM.json
+        - yyyyMM.json が存在しないときの yyyyMMdd.json, yyyyMMdd_HHMMSS.json
     """
     object_summary_iterator = s3bucket.objects.filter(
         Prefix=settings.TweetStorageDir,
     )
     output_dir = pathlib.Path(args.target_dir)
+
+    logger.info('target directory: %s', output_dir)
+
+    if args.month:
+        mask_length = 6
+    else:
+        mask_length = 8
 
     summary_files = set()
     target_object_summaries = []
@@ -149,12 +184,14 @@ def exec_clean(args):
 
         name = key.replace(settings.TweetStorageDir + '/', '')
         summary_name = pathlib.Path(name).stem
-        if len(summary_name) == 8:
+        if len(summary_name) == mask_length:
             logger.debug('s3: %s', key)
             logger.info('skip deleting a summary file: %s', name)
             summary_files.add(summary_name)
             continue
         target_object_summaries.append(object_summary)
+
+    logger.info('summary files: %s', summary_files)
 
     # サマリファイル以外を処理する
     for object_summary in target_object_summaries:
@@ -162,9 +199,9 @@ def exec_clean(args):
         logger.debug('s3: %s', key)
 
         name = key.replace(settings.TweetStorageDir + '/', '')
-        stem = pathlib.Path(name).stem
-        ymd, _ = stem.split('_')
-        if ymd not in summary_files:
+        stem = pathlib.Path(name).stem[:mask_length]
+
+        if stem not in summary_files:
             logger.info('skip deleting a non-summarized file: %s', name)
             continue
 
@@ -197,19 +234,19 @@ def build_parser():
 
     pull_parser = subparsers.add_parser('pull')
     pull_parser.add_argument('-o', '--output-dir', default='output/s3tweets')
+    pull_parser.add_argument('--days', type=int)
     add_common_arguments(pull_parser)
     pull_parser.set_defaults(func=exec_pull)
 
-    marge_parser = subparsers.add_parser('merge')
-    marge_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
-    marge_parser.add_argument(
+    merge_parser = subparsers.add_parser('merge')
+    merge_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
+    merge_parser.add_argument(
         '-o',
         '--output-dir',
         default='output/mergedtweets',
     )
-    add_common_arguments(marge_parser)
-    marge_parser.set_defaults(func=exec_merge)
-
+    add_common_arguments(merge_parser)
+    merge_parser.set_defaults(func=exec_merge)
     push_parser = subparsers.add_parser('push')
     push_parser.add_argument(
         '-d',
@@ -231,6 +268,9 @@ def build_parser():
         default='output/s3tweets',
     )
     clean_parser.add_argument('--dry-run', action='store_true')
+    g = clean_parser.add_mutually_exclusive_group()
+    g.add_argument('--month', action='store_true')
+    g.add_argument('--day', action='store_true')
     add_common_arguments(clean_parser)
     clean_parser.set_defaults(func=exec_clean)
     return parser
