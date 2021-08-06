@@ -200,16 +200,16 @@ def build_parser():
     add_common_arguments(pull_parser)
     pull_parser.set_defaults(func=exec_pull)
 
-    marge_parser = subparsers.add_parser('merge')
-    marge_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
-    marge_parser.add_argument(
+    merge_parser = subparsers.add_parser('merge')
+    merge_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
+    merge_parser.add_argument(
         '-o',
         '--output-dir',
         default='output/mergedtweets',
     )
-    add_common_arguments(marge_parser)
-    marge_parser.set_defaults(func=exec_merge)
 
+    add_common_arguments(merge_parser)
+    merge_parser.set_defaults(func=exec_merge)
     push_parser = subparsers.add_parser('push')
     push_parser.add_argument(
         '-d',
