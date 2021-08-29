@@ -103,19 +103,19 @@ class TweetCopy:
 
     @staticmethod
     def retrieve(data: Dict[str, Union[int, str]]) -> Optional[TweetCopy]:
-        # 復元時にも censored tweets の簡易チェックをする。
         full_text = cast(str, data['full_text'])
-        hashtags = [
-            token for token in full_text.split() if token.startswith('#')
-        ]
-        if len(hashtags) > 2:
+
+        # 復元時にも censored tweets の簡易チェックをする。
+        # display name は保全していないので、簡易チェックでは見ない。
+        hashtags = [e for e in full_text.split() if e.startswith("#")]
+        if not appropriate_tweet('', hashtags):
             logger.warning('cannot retrieve inappropriate tweet: %s', data)
             return None
 
         tw = TweetCopy(None)
         tw.tweet_id = data['id']
         tw.screen_name = data['screen_name']
-        tw.full_text = data['full_text']
+        tw.full_text = full_text
         created_at = cast(str, data['created_at'])
         tw.created_at = datetime.fromisoformat(created_at)
         return tw
@@ -185,33 +185,37 @@ class ParseErrorTweet:
         data: Dict[str, Union[int, str]],
     ) -> Optional[ParseErrorTweet]:
 
-        # 復元時にも censored tweets の簡易チェックをする。
         full_text = cast(str, data['full_text'])
-        hashtags = [
-            token for token in full_text.split() if token.startswith('#')
-        ]
-        if len(hashtags) > 2:
+
+        # 復元時にも censored tweets の簡易チェックをする。
+        # display name は保全していないので、簡易チェックでは見ない。
+        hashtags = [e for e in full_text.split() if e.startswith("#")]
+        if not appropriate_tweet('', hashtags):
             logger.warning('cannot retrieve inappropriate tweet: %s', data)
             return None
 
         tw = ParseErrorTweet(tweet=None, error_message=None)
         tw.tweet_id = data['id']
         tw.screen_name = data['screen_name']
-        tw.full_text = data['full_text']
+        tw.full_text = full_text
         tw.error_message = cast(str, data['error_message'])
         created_at = cast(str, data['created_at'])
         tw.created_at = datetime.fromisoformat(created_at)
         return tw
 
 
-def appropriate_tweet(tw: tweepy.Status) -> bool:
-    # 宣伝目的のツイートは hashtag が 3 つ以上あることが普通。
-    if len(tw.entities.get('hashtags', 0)) > 2:
+def appropriate_tweet(username: str, hashtags: Sequence[str]) -> bool:
+    # 特定の NG タグを含むツイートは宣伝目的のツイートとみなし、除外する。
+    if len(hashtags) > 1 and any(
+        [True for tag in hashtags if tag in settings.NGTags]
+    ):
         return False
 
-    return not any([
-        True for word in settings.NGWords if word in tw.user.name
-    ])
+    # display name が NG ワードを含む場合は宣伝目的アカウントとみなし、除外する。
+    if any([True for word in settings.NGWords if word in username]):
+        return False
+
+    return True
 
 
 class Agent:
@@ -268,14 +272,17 @@ class Agent:
                     )
                     continue
 
-                if not appropriate_tweet(tw):
+                display_name = tw.user.name
+                hashtags = tw.entities.get('hashtags', '')
+
+                if not appropriate_tweet(display_name, hashtags):
                     logger.warning('inappropriate tweet: %s', tw.id)
                     if not censored:
                         continue
 
                     censored.add(screen_name)
                     logger.warning(
-                        'account %s is added the censored list',
+                        'account %s has been added the censored list',
                         screen_name,
                     )
                     continue
@@ -309,8 +316,12 @@ class Agent:
         logger.info('>>> fetched %s tweets', len(tweets))
         if len(tweets) == 0:
             return None
+
         tw = tweets[0]
-        if not appropriate_tweet(tw):
+        display_name = tw.user.name
+        hashtags = tw.entities.get('hashtags', '')
+
+        if not appropriate_tweet(display_name, hashtags):
             logger.info('inappropriate tweet: %s', tw.id)
             return None
         return TweetCopy(tweets[0])
@@ -333,7 +344,10 @@ class Agent:
         logger.debug(tweets)
         logger.info('>>> fetched %s tweets', len(tweets))
         return {
-            tw.id: TweetCopy(tw) for tw in tweets if appropriate_tweet(tw)
+            tw.id: TweetCopy(tw) for tw in tweets if appropriate_tweet(
+                tw.user.name,
+                tw.entities.get('hashtags', ''),
+            )
         }
 
 

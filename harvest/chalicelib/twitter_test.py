@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import datetime
+from unittest import mock
 
 import pytest
 
@@ -153,3 +154,23 @@ def test_runreport(
     assert parsed.place == place
     assert parsed.is_freequest == is_freequest
     assert parsed.quest_id == qid
+
+
+testdata_appropriate = [
+    ('', ('#OKTagA', "#FGO周回カウンタ"), True),
+    ('', ('#NGTagA', '#FGO周回カウンタ'), False),
+    ('', ('#NGTagB', '#FGO周回カウンタ'), False),
+    ('NGWordA', ('#OKTagA', "#FGO周回カウンタ"), False),
+    ('NGWordB', ('#OKTagA', '#FGO周回カウンタ'), False),
+    ('NGWordA', ('#NGTagB', '#FGO周回カウンタ'), False),
+]
+
+
+@pytest.mark.parametrize(
+    'username,hashtags,expected',
+    testdata_appropriate,
+)
+@mock.patch('chalicelib.settings.NGWords', new=('NGWordA', 'NGWordB'))
+@mock.patch('chalicelib.settings.NGTags', new=('#NGTagA', '#NGTagB'))
+def test_appropriate_tweet(username, hashtags, expected):
+    assert twitter.appropriate_tweet(username, hashtags) == expected
