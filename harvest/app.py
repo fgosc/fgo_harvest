@@ -246,12 +246,15 @@ def generate_caller_reference():
 def invalidate_cloudfront_cache(event, context):
     logger.info(event)
     item = '/' + event['Records'][0]['s3']['object']['key']
+
+    if not item.endswith('/index.html'):
+        logger.info('ignore: %s', item)
+        return
+
     items = []
-    items.append(item)
-    # .../index.html を invalidate するとき、
-    # .../ も明示的に invalidate しないとダメ。
-    if item.endswith('/index.html'):
-        items.append(item[:item.rfind('/')+1])
+    # .../index.html を invalidate する代わりに
+    # .../ を invalidate する。
+    items.append(item[:item.rfind('/')+1])
 
     logger.info('cache invalidation: %s', items)
 
