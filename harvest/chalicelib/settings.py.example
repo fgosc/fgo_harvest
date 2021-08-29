@@ -3,8 +3,8 @@ TwitterConsumerSecret = ''
 TwitterAccessToken = ''
 TwitterAccessTokenSecret = ''
 
-NGWords = (
-)
+NGWords = []
+NGTags = []
 
 LatestTweetIDFile = 'latest_tweet.txt'
 CensoredAccountsFile = 'censored_accounts.json'
