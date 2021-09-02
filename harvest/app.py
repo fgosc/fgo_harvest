@@ -245,10 +245,17 @@ def generate_caller_reference():
 @app.lambda_function()
 def invalidate_cloudfront_cache(event, context):
     logger.info(event)
+
+    object_size = event['Records'][0]['s3']['object']['size']
     item = '/' + event['Records'][0]['s3']['object']['key']
 
     if not item.endswith('/index.html'):
         logger.info('ignore: %s', item)
+        return
+
+    # ad hoc な方法ではあるが、現状これ以上良い解が見つかっていない
+    if object_size < 800:
+        logger.info('ignore cache invalidation: probably blank html (size: %s)', object_size)
         return
 
     items = []
