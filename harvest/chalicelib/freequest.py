@@ -35,6 +35,7 @@ ambigious_place = (
     '中級',
     '上級',
     '超級',
+    '極級',
     '不夜城',
 )
 ambigious_quest = (
