@@ -28,6 +28,13 @@
     "quest": ""
   },
   {
+    "id": "00a05",
+    "internal_id": "",
+    "chapter": "剣の修練場",
+    "place": "極級",
+    "quest": ""
+  },
+  {
     "id": "00b01",
     "internal_id": "94006805",
     "chapter": "弓の修練場",
@@ -53,6 +60,13 @@
     "internal_id": "94006808",
     "chapter": "弓の修練場",
     "place": "超級",
+    "quest": ""
+  },
+  {
+    "id": "00b05",
+    "internal_id": "",
+    "chapter": "弓の修練場",
+    "place": "極級",
     "quest": ""
   },
   {
@@ -84,6 +98,13 @@
     "quest": ""
   },
   {
+    "id": "00c05",
+    "internal_id": "",
+    "chapter": "槍の修練場",
+    "place": "極級",
+    "quest": ""
+  },
+  {
     "id": "00d01",
     "internal_id": "94006817",
     "chapter": "騎の修練場",
@@ -109,6 +130,13 @@
     "internal_id": "94006820",
     "chapter": "騎の修練場",
     "place": "超級",
+    "quest": ""
+  },
+  {
+    "id": "00d05",
+    "internal_id": "",
+    "chapter": "騎の修練場",
+    "place": "極級",
     "quest": ""
   },
   {
@@ -140,6 +168,13 @@
     "quest": ""
   },
   {
+    "id": "00f05",
+    "internal_id": "",
+    "chapter": "術の修練場",
+    "place": "極級",
+    "quest": ""
+  },
+  {
     "id": "00g01",
     "internal_id": "94006825",
     "chapter": "殺の修練場",
@@ -168,6 +203,13 @@
     "quest": ""
   },
   {
+    "id": "00g05",
+    "internal_id": "",
+    "chapter": "殺の修練場",
+    "place": "極級",
+    "quest": ""
+  },
+  {
     "id": "00h01",
     "internal_id": "94006813",
     "chapter": "狂の修練場",
@@ -193,6 +235,13 @@
     "internal_id": "94006816",
     "chapter": "狂の修練場",
     "place": "超級",
+    "quest": ""
+  },
+  {
+    "id": "00h05",
+    "internal_id": "",
+    "chapter": "狂の修練場",
+    "place": "極級",
     "quest": ""
   },
   {
