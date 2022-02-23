@@ -253,9 +253,12 @@ def invalidate_cloudfront_cache(event, context):
         logger.info('ignore: %s', item)
         return
 
-    # ad hoc な方法ではあるが、現状これ以上良い解が見つかっていない
-    if object_size < 800:
-        logger.info('ignore cache invalidation: probably blank html (size: %s)', object_size)
+    logger.info("file size: %s", object_size)
+
+    # ad hoc な方法ではあるが、現状これ以上良い解が見つかっていない。
+    # blank html のサイズが 455, error page のサイズが 624 なので、その間の値にする。
+    if object_size < 600:
+        logger.info('ignore cache invalidation: probably blank html')
         return
 
     items = []
