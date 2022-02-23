@@ -259,7 +259,7 @@ class Agent:
                 kwargs['since_id'] = since_id
 
             logger.info('>>> search args: %s', kwargs)
-            tweets = self.api.search(**kwargs)
+            tweets = self.api.search_tweets(**kwargs)
             logger.info('>>> fetched %s tweets', len(tweets))
 
             wrapped = []
@@ -307,8 +307,8 @@ class Agent:
         """
             ツイートIDを指定し、そのツイートを取得する。
         """
-        logger.info('>>> get) statuses_lookup: %s', tweet_id)
-        tweets = self.api.statuses_lookup(
+        logger.info('>>> get) lookup_statuses: %s', tweet_id)
+        tweets = self.api.lookup_statuses(
             [tweet_id],
             include_entities=False,
             tweet_mode='extended',
@@ -335,8 +335,8 @@ class Agent:
         if len(tweet_id_list) > 100:
             raise ValueError('length of tweet_id_list must be lower than 100')
 
-        logger.info('>>> get_multi) statuses_lookup: %s', tweet_id_list)
-        tweets = self.api.statuses_lookup(
+        logger.info('>>> get_multi) lookup_statuses: %s', tweet_id_list)
+        tweets = self.api.lookup_statuses(
             tweet_id_list,
             include_entities=False,
             tweet_mode='extended',
