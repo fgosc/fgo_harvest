@@ -29,8 +29,9 @@ def exec_pull(args):
     output_dir.mkdir(exist_ok=True)
 
     if args.days:
-        threshold = (datetime.today() - timedelta(args.days)).strftime('%Y%m%d')
-        logger.info(f'try to get files that are created after %s', threshold)
+        threshold_date = datetime.today() - timedelta(args.days)
+        threshold = (threshold_date).strftime('%Y%m%d')
+        logger.info('try to get files that are created after %s', threshold)
     else:
         threshold = None
 
@@ -95,7 +96,11 @@ def exec_merge(args):
 
         date = filepath.name[:8]
         if date >= today:
-            logger.info('skip merging: %s equals or later than %s', filepath.name, today)
+            logger.info(
+                'skip merging: %s equals or later than %s',
+                filepath.name,
+                today,
+            )
         logger.info('%s %s', filepath.name, date)
         if date not in partition:
             partition[date] = []
