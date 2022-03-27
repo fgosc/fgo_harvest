@@ -1,0 +1,57 @@
+{% extends "base.jinja2" %}
+
+{% block title %}ツイートの再収集依頼{% endblock %}
+
+{% block body %}
+
+<div class="content">
+<h1 class="title" style="margin-bottom: 2.5rem">
+ツイートの再収集依頼
+</h1>
+
+<p>
+  指定されたツイートの再収集を依頼します。
+  再収集を依頼する対象ツイートの URL を入力してください。
+  改行で区切って複数の URL を指定できます。最大20個です。
+</p>
+
+<div>
+<textarea id="tweets" cols="80" rows="8">
+</textarea>
+</div>
+
+<button type="button" id="sendButton" onclick="sendRequest()">送信</button>
+<p id="message"></p>
+
+<script type="text/javascript">
+function sendRequest() {
+  const tweets = document.getElementById("tweets").value.split("\n").map(e => { return e.trim() }).filter(e => { return e !== "" })
+  const messageField = document.getElementById("message")
+  if (tweets.length > 20) {
+    messageField.innerHTML = '<font color="red">ツイートが20件を超えています。</font>'
+    return
+  }
+  const sendButton = document.getElementById("sendButton")
+  sendButton.disabled = true
+  setTimeout(() => { sendButton.disabled = false }, 30000)
+  messageField.innerHTML = ""
+  const url = "{{ settings.RestAPIBase }}/recollect_tweets"
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(tweets),
+  })
+  .then(resp => resp.json())
+  .then(data => {
+    console.log(data)
+    messageField.innerHTML = "送信しました。"
+  })
+  .catch(e => {
+    console.error(e)
+    messageField.innerHTML = '<font color="red">サーバーエラー</font>'
+  })
+}
+</script>
+{% endblock %}

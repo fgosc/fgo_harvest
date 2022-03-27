@@ -3,6 +3,7 @@ from pathlib import Path
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from . import settings
 from . import storage
 
 logger = getLogger(__name__)
@@ -31,7 +32,7 @@ class StaticPagesRenderer:
 
         for template_path in static_templates:
             template = self.jinja2_env.get_template(template_path)
-            html = template.render()
+            html = template.render(settings=settings)
             filename = Path(template_path).stem + '.html'
             outputpath = str(basepath / filename)
             logger.info('generating a static file "%s"', outputpath)

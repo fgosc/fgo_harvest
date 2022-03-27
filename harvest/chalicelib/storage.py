@@ -18,7 +18,10 @@ class SupportStorage(Protocol):
     def get_as_text(self, path: str) -> str:
         ...
 
-    def get_output_stream(self, path: str) -> BinaryIO:
+    def get_as_binary(self, path: str) -> bytes:
+        ...
+
+    def get_output_stream(self, path: str, append: bool = False) -> BinaryIO:
         ...
 
     def close_output_stream(self, stream: BinaryIO) -> None:
@@ -44,8 +47,17 @@ class FilesystemStorage:
         with open(path) as fp:
             return fp.read()
 
-    def get_output_stream(self, path: str) -> BinaryIO:
-        return open(path, 'wb')
+    def get_as_binary(self, path: str) -> bytes:
+        if not os.path.exists(path):
+            return b''
+        with open(path, 'rb') as fp:
+            return fp.read()
+
+    def get_output_stream(self, path: str, append: bool = False) -> BinaryIO:
+        if append:
+            return open(path, 'ab')
+        else:
+            return open(path, 'wb')
 
     def close_output_stream(self, stream: BinaryIO) -> None:
         stream.close()
@@ -89,17 +101,28 @@ class AmazonS3Storage:
             # Unexpceted Error
             raise
 
-    def get_as_text(self, path: str) -> str:
+    def _get_object(self, path: str) -> bytes:
         logger.info(f'get s3://{self.bucket.name}/{path}')
         if not self.exists(path):
-            return ''
+            return b''
 
         bio = io.BytesIO()
         self.bucket.download_fileobj(path, bio)
-        return bio.getvalue().decode('utf-8')
+        return bio.getvalue()
 
-    def get_output_stream(self, path: str) -> BinaryIO:
+    def get_as_text(self, path: str) -> str:
+        return self._get_object(path).decode('utf-8')
+
+    def get_as_binary(self, path: str) -> bytes:
+        return self._get_object(path)
+
+    def get_output_stream(self, path: str, append: bool = False) -> BinaryIO:
         bio = io.BytesIO()
+
+        if append:
+            existent_data = self.get_as_binary(path)
+            bio.write(existent_data)
+
         # この時点で key を記憶しておかないと後で stream を渡された
         # ときに対応する key を復元できなくなる。
         self.key_stream_pairs[path] = bio

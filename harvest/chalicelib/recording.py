@@ -69,6 +69,35 @@ class TweetRepository:
         stream.write(s.encode('UTF-8'))
         self.fileStorage.close_output_stream(stream)
 
+    def append_tweets(self, key: str, tweets: List[twitter.TweetCopy]) -> None:
+        basepath = self.fileStorage.path_object(self.basedir)
+        keypath = str(basepath / key)
+        stream = self.fileStorage.get_output_stream(keypath, append=True)
+        stream.seek(0)
+        try:
+            loaded = json.load(stream)
+        except json.decoder.JSONDecodeError as e:
+            logger.warning(e)
+            logger.warning("use the blank list [] as alternative")
+            loaded = []
+
+        merged_tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
+        merged_tweets.extend(tweets)
+
+        s = json.dumps(
+            [tw.as_dict() for tw in merged_tweets if tw is not None],
+            ensure_ascii=False,
+            default=json_serialize_helper,
+        )
+
+        stream.write(s.encode('UTF-8'))
+        self.fileStorage.close_output_stream(stream)
+
+    def exists(self, key: str) -> bool:
+        basepath = self.fileStorage.path_object(self.basedir)
+        keypath = str(basepath / key)
+        return self.fileStorage.exists(keypath)
+
     def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
         tweets: List[twitter.TweetCopy] = []
         id_cache: Set[int] = set()
@@ -99,6 +128,33 @@ class TweetRepository:
 
         logger.info(f'total: {len(tweets)} tweets')
         return tweets
+
+
+class UserOutputRepository:
+    def __init__(
+        self,
+        user: str,
+        fileStorage: storage.SupportStorage,
+        basedir: str,
+    ):
+        self.user = user
+        self.fileStorage = fileStorage
+        self.basedir = basedir
+
+    def load(self) -> dict[int, twitter.RunReport]:
+        basepath = self.fileStorage.path_object(self.basedir)
+        keypath = str(basepath / f'{self.user}.json')
+        logger.info('loading %s', keypath)
+        text = self.fileStorage.get_as_text(keypath)
+        loaded = json.loads(text)
+
+        report_dict: dict[int, twitter.RunReport] = {}
+        for e in loaded:
+            report = twitter.RunReport.retrieve(e)
+            if report:
+                report_dict[report.tweet_id] = report
+
+        return report_dict
 
 
 class SupportDictConversible(Protocol):
