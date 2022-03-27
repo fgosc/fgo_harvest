@@ -59,10 +59,10 @@ class TweetCopy:
     """
     def __init__(self, tweet: Optional[Any]):
         if tweet:
-            self.tweet_id = tweet.id
-            self.screen_name = tweet.user.screen_name
-            self.full_text = tweet.full_text
-            self.created_at = tweet.created_at
+            self.tweet_id: int = tweet.id
+            self.screen_name: str = tweet.user.screen_name
+            self.full_text: str = tweet.full_text
+            self.created_at: datetime = tweet.created_at
 
     def __str__(self) -> str:
         return '{} {} {}'.format(
@@ -113,8 +113,8 @@ class TweetCopy:
             return None
 
         tw = TweetCopy(None)
-        tw.tweet_id = data['id']
-        tw.screen_name = data['screen_name']
+        tw.tweet_id = int(data['id'])
+        tw.screen_name = cast(str, data['screen_name'])
         tw.full_text = full_text
         created_at = cast(str, data['created_at'])
         tw.created_at = datetime.fromisoformat(created_at)
@@ -195,8 +195,8 @@ class ParseErrorTweet:
             return None
 
         tw = ParseErrorTweet(tweet=None, error_message=None)
-        tw.tweet_id = data['id']
-        tw.screen_name = data['screen_name']
+        tw.tweet_id = int(data['id'])
+        tw.screen_name = cast(str, data['screen_name'])
         tw.full_text = full_text
         tw.error_message = cast(str, data['error_message'])
         created_at = cast(str, data['created_at'])
@@ -310,7 +310,7 @@ class Agent:
         logger.info('>>> get) lookup_statuses: %s', tweet_id)
         tweets = self.api.lookup_statuses(
             [tweet_id],
-            include_entities=False,
+            include_entities=True,
             tweet_mode='extended',
         )
         logger.info('>>> fetched %s tweets', len(tweets))
@@ -338,7 +338,7 @@ class Agent:
         logger.info('>>> get_multi) lookup_statuses: %s', tweet_id_list)
         tweets = self.api.lookup_statuses(
             tweet_id_list,
-            include_entities=False,
+            include_entities=True,
             tweet_mode='extended',
         )
         logger.debug(tweets)
@@ -443,6 +443,22 @@ class RunReport:
         return freequest.defaultDetector.get_quest_id(
             self.chapter, self.place, self.timestamp.year,
         )
+
+    @staticmethod
+    def retrieve(data: dict[str, Any]) -> RunReport:
+        return RunReport(
+            tweet_id=int(data["id"]),
+            reporter=str(data["reporter"]),
+            chapter=str(data["chapter"]),
+            place=str(data["place"]),
+            runcount=int(data["runcount"]),
+            items=cast(dict[str, str], data["items"]),
+            timestamp=datetime.fromisoformat(str(data["timestamp"])),
+        )
+
+
+class TweetURLParseError(Exception):
+    pass
 
 
 class TweetParseError(Exception):
@@ -630,3 +646,30 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
         items=item_dict,
         timestamp=tweet.timestamp,
     )
+
+
+class StatusTweetURLParser:
+    def __init__(self):
+        expr = (
+            r"^https://twitter.com/"
+            r"(?P<user>[A-Za-z0-9_]{2,15})/status/(?P<tweet_id>[0-9]+)$"
+        )
+        self.pattern = re.compile(expr)
+
+    def parse(self, url: str) -> tuple[str, int]:
+        m = self.pattern.match(url)
+        if not m:
+            raise TweetURLParseError(f"url {url} does not match the pattern")
+        return m.group("user"), int(m.group("tweet_id"))
+
+    def parse_multi(self, urls: list[str]) -> dict[str, list[int]]:
+        d: dict[str, list[int]] = {}
+
+        for url in urls:
+            user, tweet_id = self.parse(url)
+            if user not in d:
+                d[user] = [tweet_id]
+            else:
+                d[user].append(tweet_id)
+
+        return d

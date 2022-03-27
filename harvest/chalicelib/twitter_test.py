@@ -174,3 +174,83 @@ testdata_appropriate = [
 @mock.patch('chalicelib.settings.NGTags', new=('#NGTagA', '#NGTagB'))
 def test_appropriate_tweet(username, hashtags, expected):
     assert twitter.appropriate_tweet(username, hashtags) == expected
+
+
+testdata_parse_status_url = [
+    (
+        "https://twitter.com/max747_fgo/status/1507735103124180992",
+        "max747_fgo",
+        1507735103124180992,
+    ),
+    (
+        "https://twitter.com/KSHIo74sAN27o5/status/1507979082725982209",
+        "KSHIo74sAN27o5",
+        1507979082725982209,
+    ),
+    (
+        "https://twitter.com/0ys4vj44387526w/status/1483758678154964992",
+        "0ys4vj44387526w",
+        1483758678154964992,
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "url,expected_user,expected_tweetid",
+    testdata_parse_status_url,
+)
+def test_parse_status_url(url, expected_user, expected_tweetid):
+    parser = twitter.StatusTweetURLParser()
+    user, tweetid = parser.parse(url)
+    assert user == expected_user
+    assert tweetid == expected_tweetid
+
+
+testdata_parse_status_error_url = [
+    "foo",
+    "https://twitter.com/",
+    "https://twitter.com/max747_fgo",
+    "https://twitter.com/max747_fgo/status/1507735xyz124180992",
+]
+
+
+@pytest.mark.parametrize("url", testdata_parse_status_error_url)
+def test_parse_status_url_error(url):
+    parser = twitter.StatusTweetURLParser()
+    with pytest.raises(twitter.TweetURLParseError):
+        parser.parse(url)
+
+
+def test_retrieve_runreport():
+    data = {
+        "id": 1495032114890559488,
+        "timestamp": "2022-02-19T22:46:47+09:00",
+        "reporter": "_8_LotuS_8_",
+        "chapter": "町への脅威を取り除け",
+        "place": "",
+        "runcount": 100,
+        "items": {
+            "礼装": "3",
+            "胆石": "28",
+            "冠": "54",
+            "術秘": "33",
+            "術魔": "20",
+            "術モ": "34",
+            "ショコラトル(x3)": "911",
+            "パウダー(x3)": "915",
+            "カカオチップ(x3)": "927"
+        },
+        "freequest": False,
+        "quest_id": "QevNqjrdjveF"
+    }
+    report = twitter.RunReport.retrieve(data)
+
+    assert report.tweet_id == data["id"]
+    assert report.reporter == data["reporter"]
+    assert report.chapter == data["chapter"]
+    assert report.place == data["place"]
+    assert report.runcount == data["runcount"]
+    assert report.timestamp.isoformat() == data["timestamp"]
+    assert report.is_freequest == data["freequest"]
+    assert report.quest_id == data["quest_id"]
+    assert report.items == data["items"]
