@@ -196,7 +196,7 @@ def exec_clean(args):
             continue
         target_object_summaries.append(object_summary)
 
-    logger.info('summary files: %s', summary_files)
+    logger.info('summary files: %s', sorted(summary_files))
 
     # サマリファイル以外を処理する
     for object_summary in target_object_summaries:

@@ -37,28 +37,20 @@
 
 {%- endmacro -%}
 
-{% block title %}{{ today }}{% endblock %}
+{% block title %}{{ this_month }}{% endblock %}
 
 {% block body %}
 
 <nav class="pagination is-centered" role="navigation" aria-label="pagination">
-  <a class="pagination-previous" href="{{ yesterday }}.html">← 前日</a>
-  <a class="pagination-next" href="{{ tomorrow }}.html">翌日 →</a>
+  <a class="pagination-previous" href="{{ prev_month }}.html">← 前月</a>
+  <a class="pagination-next" href="{{ next_month }}.html">翌月 →</a>
 </nav>
 
 <h1 class="title" style="margin-bottom: 2.5rem">
-  {{ today }}
-
-  <span class="flatpickr" style="margin-left: 0.5rem">
-    <input type="text" id="datepicker" data-input style="display: none" value="{{ today }}">
-  
-    <a class="input-button" title="toggle" data-toggle>
-      <i class="fa-solid fa-calendar-days"></i>
-    </a>
-  </span>
+  {{ this_month }}
 
   <span style="margin-left: 0.5rem">
-    <a href="{{ today }}.csv">
+    <a href="{{ this_month }}.csv">
       <i class="fa-solid fa-file-csv"></i>
     </a>
   </span>
@@ -77,32 +69,4 @@
 {% else %}
 <p style="margin-bottom: 2rem">なし</p>
 {% endif %}
-
-<script>
-(function(){
-  var formatDate = function(dt) {
-    var year = dt.getFullYear();
-    var month = ('0' + (dt.getMonth() + 1)).slice(-2);
-    var day = ('0' + dt.getDate()).slice(-2);
-    return year + '-' + month + '-' + day;
-  }
-
-  // tz: Asia/Tokyo
-  var now = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000));
-
-  flatpickr(".flatpickr", {
-    wrap: true,
-    enable: [
-      {
-        from: "2020-07-01",
-        to: formatDate(now)
-      }
-    ]
-  });
-
-  document.querySelector("#datepicker").addEventListener('change', function(event){
-    location.href = event.target.value + ".html";
-  });
-})();
-</script>
 {% endblock %}

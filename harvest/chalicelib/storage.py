@@ -139,6 +139,8 @@ class AmazonS3Storage:
                 content_type = 'text/html'
             elif s3key.endswith('.txt'):
                 content_type = 'text/plain'
+            elif s3key.endswith('.csv'):
+                content_type = 'text/csv'
             else:
                 content_type = 'application/octet-stream'
             logger.info(

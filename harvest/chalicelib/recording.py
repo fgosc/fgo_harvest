@@ -1,4 +1,6 @@
 import copy
+import csv
+import io
 import json
 import pathlib
 from datetime import date, datetime, timedelta
@@ -10,6 +12,7 @@ from typing import (
     Sequence, Set, Union,
 )
 
+from dateutil.relativedelta import relativedelta  # type: ignore
 from jinja2 import (
     Environment,
     PackageLoader,
@@ -23,6 +26,7 @@ jinja2_env = Environment(
     loader=PackageLoader('chalicelib', 'templates'),
     autoescape=select_autoescape(['html'])
 )
+month_format = "%Y-%m"
 
 
 def json_serialize_helper(o: Any):
@@ -35,9 +39,10 @@ def json_serialize_helper(o: Any):
 
 class OutputFormat(Enum):
     JSON = ('json', 'json')
-    TEXT = ('txt', 'txt')
+    CSV = ('csv', 'csv')
     USERHTML = ('userhtml', 'html')
     DATEHTML = ('datehtml', 'html')
+    MONTHHTML = ('monthhtml', 'html')
     QUESTHTML = ('questhtml', 'html')
     USERLISTHTML = ('userlisthtml', 'html')
     QUESTLISTHTML = ('questlisthtml', 'html')
@@ -204,6 +209,19 @@ class PartitioningRuleByDate:
         if date not in partitions:
             partitions[date] = []
         partitions[date].append(report)
+
+
+class PartitioningRuleByMonth:
+    def dispatch(
+        self,
+        partitions: Dict[str, List[SupportDictConversible]],
+        report: twitter.RunReport,
+    ) -> None:
+
+        month = report.timestamp.date().strftime(month_format)
+        if month not in partitions:
+            partitions[month] = []
+        partitions[month].append(report)
 
 
 class PartitioningRuleByUser:
@@ -480,6 +498,10 @@ class Recorder:
         self.partitioningRule.dispatch(self.partitions, report)
         self.counter += 1
 
+    def add_all(self, reports: Sequence[twitter.RunReport]) -> None:
+        for report in reports:
+            self.add(report)
+
     def count(self) -> int:
         return self.counter
 
@@ -611,15 +633,41 @@ class JSONPageProcessor:
         stream.write(s.encode('UTF-8'))
 
 
-class TextPageProcessor:
+class CSVPageProcessor:
     def dump(
         self,
         merged_reports: List[Dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
-        # TODO 実装
-        raise NotImplementedError
+        sio = io.StringIO()
+        header = [
+            "報告者",
+            "章",
+            "場所",
+            "周回数",
+            "投稿時刻",
+            "フリクエ",
+            "URL",
+            "ドロップ",
+        ]
+        w = csv.writer(sio)
+        w.writerow(header)
+        for r in merged_reports:
+            row = [
+                r["reporter"],
+                r["chapter"],
+                r["place"],
+                r["runcount"],
+                r["timestamp"],
+                r["freequest"],
+                f"https://twitter.com/{r['reporter']}/status/{r['id']}",
+            ]
+            for k, v in r["items"].items():
+                row.append(k)
+                row.append(v)
+            w.writerow(row)
+        stream.write(sio.getvalue().encode('UTF-8'))
 
 
 class DateHTMLPageProcessor:
@@ -644,6 +692,32 @@ class DateHTMLPageProcessor:
             yesterday=yesterday,
             today=today,
             tomorrow=tomorrow,
+        )
+        stream.write(html.encode('UTF-8'))
+
+
+class MonthHTMLPageProcessor:
+    template_html = "report_bymonth.jinja2"
+
+    def dump(
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        freequest_reports = [r for r in merged_reports if r['freequest']]
+        event_reports = [r for r in merged_reports if not r['freequest']]
+        this_month = kwargs['key']
+        this_month_obj = datetime.strptime(this_month, month_format)
+        prev_month = (this_month_obj + relativedelta(months=-1)).strftime(month_format)
+        next_month = (this_month_obj + relativedelta(months=+1)).strftime(month_format)
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            freequest_reports=freequest_reports,
+            event_reports=event_reports,
+            prev_month=prev_month,
+            this_month=this_month,
+            next_month=next_month,
         )
         stream.write(html.encode('UTF-8'))
 
@@ -728,10 +802,12 @@ class QuestListHTMLPageProcessor:
 def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
     if fmt == OutputFormat.JSON:
         return JSONPageProcessor()
-    elif fmt == OutputFormat.TEXT:
-        return TextPageProcessor()
+    elif fmt == OutputFormat.CSV:
+        return CSVPageProcessor()
     elif fmt == OutputFormat.DATEHTML:
         return DateHTMLPageProcessor()
+    elif fmt == OutputFormat.MONTHHTML:
+        return MonthHTMLPageProcessor()
     elif fmt == OutputFormat.USERHTML:
         return UserHTMLPageProcessor()
     elif fmt == OutputFormat.QUESTHTML:
@@ -786,6 +862,48 @@ class LatestDatePageBuilder:
         self.fileStorage.copy(src, dest)
 
 
+class LatestMonthPageBuilder:
+    def __init__(
+        self,
+        fileStorage: storage.SupportStorage,
+        basedir: str,
+    ):
+        self.fileStorage = fileStorage
+        self.basedir = basedir
+        self.basepath = fileStorage.path_object(basedir)
+
+    def _find_latest_page(self, origin: datetime) -> str:
+        # 10 は適当な数値。それだけさかのぼれば何かしらの
+        # ファイルがあるだろうという期待の数値。
+        # ふつうは当月か前月のデータが見つかるだろう。
+        for i in range(10):
+            target_month = origin - relativedelta(months=i)
+            filename = '{}.html'.format(target_month.strftime(month_format))
+            keypath = str(self.basepath / filename)
+            if self.fileStorage.exists(keypath):
+                return str(keypath)
+        return ''
+
+    def _latest_path(self):
+        return str(self.basepath / 'latest.html')
+
+    def build(self):
+        """
+            プログラム実行時点の日付で yyyy-MM.html を探す。
+            なければ1か月前に戻る。これを繰り返して最新の
+            yyyy-MM.html を特定する。特定できたらこれを
+            latest.html という名前でコピーする。
+        """
+        now = timezone.now()
+        src = self._find_latest_page(now)
+        if not src:
+            logger.warning('skip building the latest page')
+            return
+        dest = self._latest_path()
+        logger.info('building the latest page from "%s"', src)
+        self.fileStorage.copy(src, dest)
+
+
 class ErrorPageRecorder:
     def __init__(
         self,
@@ -803,6 +921,10 @@ class ErrorPageRecorder:
 
     def add_error(self, tweet: twitter.ParseErrorTweet) -> None:
         self.errors.append(tweet)
+
+    def add_all(self, tweets: Sequence[twitter.ParseErrorTweet]) -> None:
+        for tw in tweets:
+            self.add_error(tw)
 
     @staticmethod
     def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:

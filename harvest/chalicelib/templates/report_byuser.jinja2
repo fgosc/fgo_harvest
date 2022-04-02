@@ -15,7 +15,7 @@
     <a href="https://twitter.com/{{ r.reporter }}/status/{{ r.id }}" target="_blank">
       {{ r.timestamp.strftime("%Y-%m-%d") }}<br>
       {{ r.timestamp.strftime("%H:%M:%S") }}
-      <span style="margin-left: 0.1rem"><small><i class="fas fa-external-link-alt"></i></small></span>
+      <span style="margin-left: 0.1rem"><small><i class="fa-solid fa-arrow-up-right-from-square"></i></small></span>
     </a>
   </td>
   <td>
@@ -37,7 +37,18 @@
 
 <h1 class="title" style="margin-bottom: 2.5rem">
   {{ reporter }}
-  <a href="https://twitter.com/{{ reporter }}" target="_blank"><small><i class="fas fa-external-link-alt"></i></small></a>
+
+  <span style="margin-left: 0.5rem">
+    <a href="https://twitter.com/{{ reporter }}" target="_blank">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+    </a>
+  </span>
+
+  <span style="margin-left: 0.5rem">
+    <a href="{{ reporter }}.csv">
+      <i class="fa-solid fa-file-csv"></i>
+    </a>
+  </span>
 </h1>
 
 <p class="subtitle">イベント</p>
