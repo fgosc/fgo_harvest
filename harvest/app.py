@@ -306,7 +306,12 @@ def collect_tweets(event):
 
     reports, errors = parse_tweets(app, tweets)
     # 定期収集において bydate の render を制限する必要はない
-    render_contents(app, reports, errors, skip_target_date=date(2020, 1, 1))
+    skip_target_date = date(2000, 1, 1)
+    render_date_contents(reports, skip_target_date)
+    render_user_contents(reports, skip_target_date)
+    render_quest_contents(reports, skip_target_date)
+
+    render_error_contents(errors)
 
     latest_tweet = tweets[0]
     app.log.info('saving the latest tweet id: %s', latest_tweet.tweet_id)
@@ -399,7 +404,12 @@ def recollect_tweets():
         # 問題になりそうなのは月をまたぐ場合。
         reports, errors = parse_tweets(app, tweets)
         # by date のレンダリングに制限は不要
-        render_contents(app, reports, errors, skip_target_date=date(2000, 1, 1))
+        skip_target_date = date(2000, 1, 1)
+        render_date_contents(reports, skip_target_date)
+        render_user_contents(reports, skip_target_date)
+        render_quest_contents(reports, skip_target_date)
+
+        render_error_contents(errors)
 
     return {"status": "ok"}
 
@@ -411,6 +421,11 @@ def rebuild_outputs(event, context):
         skip_target_date = date.fromisoformat(skip_target_date_str)
     else:
         skip_target_date = date(2000, 1, 1)
+
+    skip_build_date = event.get("skipBuildDate", False)
+    skip_build_user = event.get("skipBuildUser", False)
+    skip_build_quest = event.get("skipBuildQuest", False)
+    skip_build_month = event.get("skipBuildMonth", False)
 
     app.log.info("skip target date: %s", skip_target_date)
 
@@ -428,8 +443,28 @@ def rebuild_outputs(event, context):
     app.log.info('retrieved %s tweets', len(tweets))
 
     reports, errors = parse_tweets(app, tweets)
+
+    if skip_build_date:
+        app.log.info("skip building date contents")
+    else:
+        render_date_contents(reports, skip_target_date, ignore_original=True)
+
+    if skip_build_user:
+        app.log.info("skip building user contents")
+    else:
+        render_user_contents(reports, skip_target_date, ignore_original=True)
+
+    if skip_build_quest:
+        app.log.info("skip building quest contents")
+    else:
+        render_quest_contents(reports, skip_target_date, ignore_original=True)
+
+    if skip_build_month:
+        app.log.info("skip building month contents")
+    else:
+        render_month_contents(app, reports, skip_target_date)
+
     render_contents(app, reports, errors, skip_target_date, ignore_original=True)
-    render_month_contents(app, reports, skip_target_date)
     app.log.info('finished rebuilding outputs')
 
 
