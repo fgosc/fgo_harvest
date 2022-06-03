@@ -594,7 +594,7 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
 
     # 【下総国 里】追加100周
     # のように "】" の直後が数値でないケースも考慮する。
-    mo = RE_RUNCOUNT.search(header[loc_end_pos+1:runcount_pos])
+    mo = RE_RUNCOUNT.search(header[loc_end_pos + 1:runcount_pos])
     if not mo:
         raise RunCountNotFoundError(f'could not extract runcount: {header}')
 
