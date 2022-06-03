@@ -198,6 +198,14 @@ class SupportStatefulPartitioningRule(Protocol):
         ...
 
 
+class SupportSkipSaveRule(Protocol):
+    def scan_report(self, report: twitter.RunReport) -> None:
+        ...
+
+    def match(self, key: str) -> bool:
+        ...
+
+
 class PartitioningRuleByDate:
     def dispatch(
         self,
@@ -468,6 +476,75 @@ class PartitioningRuleByQuestList:
         partitions['all'] = ps
 
 
+class SkipSaveRuleNeverMatch:
+    """
+        どんな key とも match しないルール
+    """
+    def scan_report(self, report: twitter.RunReport) -> None:
+        pass
+
+    def match(self, key: str) -> bool:
+        return False
+
+
+class SkipSaveRuleByDate:
+    """
+        指定された日付より前だったら match するルール
+    """
+    def __init__(self, criteria: date):
+        self.criteria = criteria
+
+    def scan_report(self, report: twitter.RunReport) -> None:
+        pass
+
+    def match(self, key: str) -> bool:
+        num_parts = len(key.split("-"))
+        if num_parts == 3:
+            # 日付 YYYY-MM-DD
+            d = date.fromisoformat(key)
+        elif num_parts == 2:
+            # 月 YYYY-MM
+            d = datetime.strptime(key, "%Y-%m").date()
+        else:
+            # 日付変換不可能なら unmatch
+            return False
+
+        return d < self.criteria
+
+
+class SkipSaveRuleByDateAndUser:
+    """
+        指定された日付以後の報告がない user に match するルール
+    """
+    def __init__(self, criteria: date):
+        self.criteria = criteria
+        self.unmatch_users: set[str] = set()
+
+    def scan_report(self, report: twitter.RunReport) -> None:
+        if report.timestamp.date() >= self.criteria:
+            self.unmatch_users.add(report.reporter)
+
+    def match(self, key: str) -> bool:
+        return key not in self.unmatch_users
+
+
+class SkipSaveRuleByDateAndQuest:
+    """
+        指定された日付以後の報告がない quest に match するルール
+    """
+    def __init__(self, criteria: date):
+        self.criteria = criteria
+        self.unmatch_quests: set[str] = set()
+
+    def scan_report(self, report: twitter.RunReport) -> None:
+        if report.timestamp.date() >= self.criteria:
+            quest_id = report.quest_id
+            self.unmatch_quests.add(quest_id)
+
+    def match(self, key: str) -> bool:
+        return key not in self.unmatch_quests
+
+
 class Recorder:
     def __init__(
         self,
@@ -475,12 +552,14 @@ class Recorder:
             SupportPartitioningRule,
             SupportStatefulPartitioningRule
         ],
+        skipSaveRule: SupportSkipSaveRule,
         fileStorage: storage.SupportStorage,
         basedir: str,
         formats: Sequence[OutputFormat],
     ):
         self.partitions: Dict[str, List[SupportDictConversible]] = {}
         self.partitioningRule = partitioningRule
+        self.skipSaveRule = skipSaveRule
         self.fileStorage = fileStorage
         self.basedir = basedir
         self.formats = formats
@@ -496,6 +575,7 @@ class Recorder:
 
     def add(self, report: twitter.RunReport) -> None:
         self.partitioningRule.dispatch(self.partitions, report)
+        self.skipSaveRule.scan_report(report)
         self.counter += 1
 
     def add_all(self, reports: Sequence[twitter.RunReport]) -> None:
@@ -524,6 +604,15 @@ class Recorder:
         for key, reports in self.partitions.items():
             if len(reports) == 0:
                 continue
+
+            if self.skipSaveRule.match(key):
+                logger.info(
+                    "key %s matched %s",
+                    key,
+                    self.skipSaveRule.__class__.__name__,
+                )
+                continue
+
             if ignore_original:
                 logger.info(f'ignore original json: {key}.json')
                 original = []

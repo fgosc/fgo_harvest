@@ -7,8 +7,7 @@
 import argparse
 import logging
 import os
-from datetime import datetime
-from typing import List
+from datetime import date, datetime
 
 from chalicelib import settings
 from chalicelib import static
@@ -38,8 +37,9 @@ def setup_censored_accounts() -> twitter.CensoredAccounts:
 
 
 def render_all(
-    tweets: List[twitter.TweetCopy],
+    tweets: list[twitter.TweetCopy],
     output_dir: str,
+    skip_target_date: date,
     rebuild: bool,
 ) -> None:
     recorders = []
@@ -49,6 +49,7 @@ def render_all(
         os.makedirs(contents_date_dir)
     recorder_bydate = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByDate(),
+        skipSaveRule=recording.SkipSaveRuleByDate(skip_target_date),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_date_dir,
         formats=(
@@ -64,6 +65,7 @@ def render_all(
         os.makedirs(contents_month_dir)
     recorder_bymonth = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByMonth(),
+        skipSaveRule=recording.SkipSaveRuleByDate(skip_target_date),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_month_dir,
         formats=(
@@ -79,6 +81,7 @@ def render_all(
         os.makedirs(contents_user_dir)
     recorder_byuser = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByUser(),
+        skipSaveRule=recording.SkipSaveRuleByDateAndUser(skip_target_date),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_user_dir,
         formats=(
@@ -94,6 +97,7 @@ def render_all(
         os.makedirs(contents_quest_dir)
     recorder_byquest = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByQuest(),
+        skipSaveRule=recording.SkipSaveRuleByDateAndQuest(skip_target_date),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_quest_dir,
         formats=(
@@ -107,6 +111,7 @@ def render_all(
     # 出力先は contents_user_dir
     recorder_byuserlist = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByUserList(),
+        skipSaveRule=recording.SkipSaveRuleNeverMatch(),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_user_dir,
         formats=(
@@ -120,6 +125,7 @@ def render_all(
     recorder_byquestlist = recording.Recorder(
         # この partitioningRule は rebuild フラグを個別に渡す必要あり
         partitioningRule=recording.PartitioningRuleByQuestList(rebuild),
+        skipSaveRule=recording.SkipSaveRuleNeverMatch(),
         fileStorage=storage.FilesystemStorage(),
         basedir=contents_quest_dir,
         formats=(
@@ -197,7 +203,7 @@ def command_rebuild(args: argparse.Namespace) -> None:
     tweet_repository = setup_tweet_repository(args.output_dir)
     censored_accounts = setup_censored_accounts()
     tweets = tweet_repository.readall(set(censored_accounts.list()))
-    render_all(tweets, args.output_dir, rebuild=True)
+    render_all(tweets, args.output_dir, args.skip_target_date, rebuild=True)
 
 
 def command_build(args: argparse.Namespace) -> None:
@@ -241,7 +247,7 @@ def command_build(args: argparse.Namespace) -> None:
     key = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
     tweet_repository.put(key, tweets)
 
-    render_all(tweets, args.output_dir, rebuild=False)
+    render_all(tweets, args.output_dir, args.skip_target_date, rebuild=False)
 
     censored_accounts.save()
 
@@ -256,6 +262,10 @@ def command_build(args: argparse.Namespace) -> None:
 def command_delete(args: argparse.Namespace) -> None:
     # TODO 実装
     pass
+
+
+def date_type(date_str: str) -> date:
+    return date.fromisoformat(date_str)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -285,10 +295,20 @@ def build_parser() -> argparse.ArgumentParser:
         '-t', '--tweet-id',
         nargs='+',
     )
+    build_parser.add_argument(
+        "--skip-target-date",
+        type=date_type,
+        default=date(2000, 1, 1),
+    )
     build_parser.set_defaults(func=command_build)
 
     rebuild_parser = subparsers.add_parser('rebuild')
     add_common_arguments(rebuild_parser)
+    rebuild_parser.add_argument(
+        "--skip-target-date",
+        type=date_type,
+        default=date(2000, 1, 1),
+    )
     rebuild_parser.set_defaults(func=command_rebuild)
 
     static_parser = subparsers.add_parser('static')

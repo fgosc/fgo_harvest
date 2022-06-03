@@ -1,10 +1,12 @@
+import concurrent.futures
 import io
 import os
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from logging import getLogger
-from typing import List, Sequence, Tuple
+from typing import Sequence
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
@@ -38,7 +40,7 @@ cors_config = CORSConfig(
 )
 
 
-def setup_twitter_agent():
+def setup_twitter_agent() -> twitter.Agent:
     return twitter.Agent(
         consumer_key=settings.TwitterConsumerKey,
         consumer_secret=settings.TwitterConsumerSecret,
@@ -47,7 +49,13 @@ def setup_twitter_agent():
     )
 
 
-def parse_tweets(app, tweets):
+def parse_tweets(
+    app,
+    tweets: list[twitter.TweetCopy],
+) -> tuple[
+    list[twitter.RunReport],
+    list[twitter.ParseErrorTweet],
+]:
     parsed = []
     errors = []
 
@@ -69,115 +77,163 @@ def parse_tweets(app, tweets):
     return parsed, errors
 
 
-def render_contents(app, reports, errors, ignore_original=False):
-    recorders: List[Tuple[recording.Recorder, bool]] = []
-
-    outdir_bydate = f'{settings.ProcessorOutputDir}/date'
-    recorder_bydate = recording.Recorder(
+def render_date_contents(
+    reports: list[twitter.RunReport],
+    skip_target_date: date,
+    force_save: bool = False,
+    ignore_original: bool = False,
+) -> None:
+    outdir = f'{settings.ProcessorOutputDir}/date'
+    recorder = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByDate(),
+        skipSaveRule=recording.SkipSaveRuleByDate(skip_target_date),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=outdir_bydate,
+        basedir=outdir,
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
             recording.OutputFormat.DATEHTML,
         ),
     )
-    recorders.append((recorder_bydate, False))
+    recorder.add_all(reports)
 
-    outdir_byuser = f'{settings.ProcessorOutputDir}/user'
-    recorder_byuser = recording.Recorder(
-        partitioningRule=recording.PartitioningRuleByUser(),
+    if recorder.count():
+        recorder.save(force=force_save, ignore_original=ignore_original)
+
+    latestDatePageBuilder = recording.LatestDatePageBuilder(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=outdir_byuser,
+        basedir=outdir,
+    )
+    latestDatePageBuilder.build()
+
+
+def render_user_contents(
+    reports: list[twitter.RunReport],
+    skip_target_date: date,
+    force_save: bool = False,
+    ignore_original: bool = False,
+) -> None:
+    outdir = f'{settings.ProcessorOutputDir}/user'
+    recorder = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByUser(),
+        skipSaveRule=recording.SkipSaveRuleByDateAndUser(skip_target_date),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir,
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
             recording.OutputFormat.USERHTML,
         ),
     )
-    recorders.append((recorder_byuser, False))
+    recorder.add_all(reports)
 
-    outdir_byquest = f'{settings.ProcessorOutputDir}/quest'
-    recorder_byquest = recording.Recorder(
-        partitioningRule=recording.PartitioningRuleByQuest(),
+    if recorder.count():
+        recorder.save(force=force_save, ignore_original=ignore_original)
+
+    recorder_byuserlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByUserList(),
+        skipSaveRule=recording.SkipSaveRuleNeverMatch(),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=outdir_byquest,
+        basedir=outdir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.USERLISTHTML,
+        )
+    )
+    recorder_byuserlist.add_all(reports)
+
+    if recorder_byuserlist.count():
+        recorder_byuserlist.save(force=force_save, ignore_original=ignore_original)
+
+
+def render_quest_contents(
+    reports: list[twitter.RunReport],
+    skip_target_date: date,
+    force_save: bool = False,
+    ignore_original: bool = False,
+) -> None:
+    outdir = f'{settings.ProcessorOutputDir}/quest'
+    recorder = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByQuest(),
+        skipSaveRule=recording.SkipSaveRuleByDateAndQuest(skip_target_date),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir,
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
             recording.OutputFormat.QUESTHTML,
         ),
     )
-    recorders.append((recorder_byquest, False))
+    recorder.add_all(reports)
 
-    # 出力先は outdir_byuser
-    recorder_byuserlist = recording.Recorder(
-        partitioningRule=recording.PartitioningRuleByUserList(),
-        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=outdir_byuser,
-        formats=(
-            recording.OutputFormat.JSON,
-            recording.OutputFormat.USERLISTHTML,
-        )
-    )
-    recorders.append((recorder_byuserlist, False))
+    if recorder.count():
+        recorder.save(force=force_save, ignore_original=ignore_original)
 
-    # outdir_byquest
     recorder_byquestlist = recording.Recorder(
         # この partitioningRule は rebuild フラグを個別に渡す必要あり
         partitioningRule=recording.PartitioningRuleByQuestList(
             ignore_original,
         ),
+        skipSaveRule=recording.SkipSaveRuleNeverMatch(),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=outdir_byquest,
+        basedir=outdir,
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.QUESTLISTHTML,
         )
     )
+    recorder_byquestlist.add_all(reports)
     # quest list だけはリストの増減がない場合でも数値の countup を
     # 再描画する必要があるので強制上書きが必要
-    recorders.append((recorder_byquestlist, True))
+    recorder_byquestlist.save(force=True, ignore_original=ignore_original)
 
-    outdir_error = f'{settings.ProcessorOutputDir}/errors'
-    error_recorder = recording.ErrorPageRecorder(
+
+def render_error_contents(
+    errors: list[twitter.ParseErrorTweet],
+    force_save: bool = False,
+    ignore_original: bool = False,
+) -> None:
+    outdir = f'{settings.ProcessorOutputDir}/errors'
+    recorder = recording.ErrorPageRecorder(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=outdir_error,
+        basedir=outdir,
         key='error',
         formats=(
             recording.ErrorOutputFormat.JSON,
             recording.ErrorOutputFormat.HTML,
         )
     )
+    recorder.add_all(errors)
+    recorder.save(force=force_save, ignore_original=ignore_original)
 
-    for recorder, _ in recorders:
-        recorder.add_all(reports)
 
-    error_recorder.add_all(errors)
+def render_contents(
+    app,
+    reports: list[twitter.RunReport],
+    errors: list[twitter.ParseErrorTweet],
+    skip_target_date: date,
+    ignore_original: bool = False,
+) -> None:
+    render_date_contents(reports, skip_target_date, ignore_original=ignore_original)
+    render_user_contents(reports, skip_target_date, ignore_original=ignore_original)
+    render_quest_contents(reports, skip_target_date, ignore_original=ignore_original)
 
-    app.log.info('starting to render pages...')
-    for recorder, force_save in recorders:
-        if recorder.count():
-            recorder.save(force=force_save, ignore_original=ignore_original)
-
-    error_recorder.save(ignore_original=ignore_original)
-
-    # 出力先は outdir_bydate
-    # 少なくとも bydate の HTML レンダリングが完了してからでないと実行できない。
-    # したがってこの位置で実行する。
-    latestDatePageBuilder = recording.LatestDatePageBuilder(
-        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=outdir_bydate,
-    )
-    latestDatePageBuilder.build()
+    render_error_contents(errors, ignore_original=ignore_original)
     app.log.info('done')
 
 
-def render_month_contents(app, reports):
+def render_month_contents(
+    reports: list[twitter.RunReport],
+    skip_target_date: date,
+    force_save: bool = False,
+):
+    # month のレンダリングを render_contents() に含めないのは、日々の
+    # collect tweets のアクションで追記していくには month のサイズが
+    # 大きすぎるから。さすがに read/write のコストが無視できない。
     outdir = f'{settings.ProcessorOutputDir}/month'
     recorder = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByMonth(),
+        skipSaveRule=recording.SkipSaveRuleByDate(skip_target_date),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=outdir,
         formats=(
@@ -190,9 +246,8 @@ def render_month_contents(app, reports):
 
     if recorder.count():
         # original への追記はせず、常に上書き
-        recorder.save(force=False, ignore_original=True)
+        recorder.save(force=force_save, ignore_original=True)
 
-    # 出力先は outdir
     # month の HTML レンダリングが完了してからでないと実行できない。
     # したがってこの位置で実行する。
     latestMonthPageBuilder = recording.LatestMonthPageBuilder(
@@ -200,7 +255,6 @@ def render_month_contents(app, reports):
         basedir=outdir,
     )
     latestMonthPageBuilder.build()
-    app.log.info('done')
 
 
 @app.schedule(Rate(30, unit=Rate.MINUTES))
@@ -251,7 +305,13 @@ def collect_tweets(event):
     tweet_repository.put(tweet_log_file, tweets)
 
     reports, errors = parse_tweets(app, tweets)
-    render_contents(app, reports, errors)
+    # 定期収集において bydate の render を制限する必要はない
+    skip_target_date = date(2000, 1, 1)
+    render_date_contents(reports, skip_target_date)
+    render_user_contents(reports, skip_target_date)
+    render_quest_contents(reports, skip_target_date)
+
+    render_error_contents(errors)
 
     latest_tweet = tweets[0]
     app.log.info('saving the latest tweet id: %s', latest_tweet.tweet_id)
@@ -343,13 +403,32 @@ def recollect_tweets():
         # TODO recollect した場合に month のレンダリングをどうするか未解決。
         # 問題になりそうなのは月をまたぐ場合。
         reports, errors = parse_tweets(app, tweets)
-        render_contents(app, reports, errors)
+        # by date のレンダリングに制限は不要
+        skip_target_date = date(2000, 1, 1)
+        render_date_contents(reports, skip_target_date)
+        render_user_contents(reports, skip_target_date)
+        render_quest_contents(reports, skip_target_date)
+
+        render_error_contents(errors)
 
     return {"status": "ok"}
 
 
 @app.lambda_function()
 def rebuild_outputs(event, context):
+    skip_target_date_str = event.get("skipTargetDate")
+    if skip_target_date_str:
+        skip_target_date = date.fromisoformat(skip_target_date_str)
+    else:
+        skip_target_date = date(2000, 1, 1)
+
+    skip_build_date = event.get("skipBuildDate", False)
+    skip_build_user = event.get("skipBuildUser", False)
+    skip_build_quest = event.get("skipBuildQuest", False)
+    skip_build_month = event.get("skipBuildMonth", False)
+
+    app.log.info("skip target date: %s", skip_target_date)
+
     tweet_repository = recording.TweetRepository(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=settings.TweetStorageDir,
@@ -364,8 +443,63 @@ def rebuild_outputs(event, context):
     app.log.info('retrieved %s tweets', len(tweets))
 
     reports, errors = parse_tweets(app, tweets)
-    render_contents(app, reports, errors, ignore_original=True)
-    render_month_contents(app, reports)
+    procs = []
+
+    with ThreadPoolExecutor() as executor:
+        if skip_build_date:
+            app.log.info("skip building date contents")
+        else:
+            ft = executor.submit(
+                render_date_contents,
+                reports,
+                skip_target_date,
+                ignore_original=True,
+            )
+            procs.append(ft)
+
+        if skip_build_user:
+            app.log.info("skip building user contents")
+        else:
+            ft = executor.submit(
+                render_user_contents,
+                reports,
+                skip_target_date,
+                ignore_original=True,
+            )
+            procs.append(ft)
+
+        if skip_build_quest:
+            app.log.info("skip building quest contents")
+        else:
+            ft = executor.submit(
+                render_quest_contents,
+                reports,
+                skip_target_date,
+                ignore_original=True,
+            )
+            procs.append(ft)
+
+        if skip_build_month:
+            app.log.info("skip building month contents")
+        else:
+            ft = executor.submit(
+                render_month_contents,
+                reports,
+                skip_target_date,
+            )
+            procs.append(ft)
+
+        ft = executor.submit(
+            render_error_contents,
+            errors,
+            ignore_original=True,
+        )
+        procs.append(ft)
+
+        done, not_done = concurrent.futures.wait(procs)
+        app.log.info("done: %s", done)
+        app.log.info("not_done: %s", not_done)
+
     app.log.info('finished rebuilding outputs')
 
 
@@ -410,7 +544,7 @@ def invalidate_cloudfront_cache(event, context):
     items = []
     # .../index.html を invalidate する代わりに
     # .../ を invalidate する。
-    items.append(item[:item.rfind('/')+1])
+    items.append(item[:item.rfind('/') + 1])
 
     logger.info('cache invalidation: %s', items)
 
