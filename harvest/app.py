@@ -47,7 +47,29 @@ def setup_twitter_agent():
     )
 
 
-def render_contents(app, tweets, ignore_original=False):
+def parse_tweets(app, tweets):
+    parsed = []
+    errors = []
+
+    app.log.info('starting to parse tweets...')
+    for tweet in tweets:
+        try:
+            report = twitter.parse_tweet(tweet)
+            parsed.append(report)
+
+        except twitter.TweetParseError as e:
+            app.log.error(e)
+            app.log.error(tweet)
+            etw = twitter.ParseErrorTweet(
+                tweet=tweet,
+                error_message=e.get_message(),
+            )
+            errors.append(etw)
+
+    return parsed, errors
+
+
+def render_contents(app, reports, errors, ignore_original=False):
     recorders: List[Tuple[recording.Recorder, bool]] = []
 
     outdir_bydate = f'{settings.ProcessorOutputDir}/date'
@@ -57,6 +79,7 @@ def render_contents(app, tweets, ignore_original=False):
         basedir=outdir_bydate,
         formats=(
             recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
             recording.OutputFormat.DATEHTML,
         ),
     )
@@ -69,6 +92,7 @@ def render_contents(app, tweets, ignore_original=False):
         basedir=outdir_byuser,
         formats=(
             recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
             recording.OutputFormat.USERHTML,
         ),
     )
@@ -81,6 +105,7 @@ def render_contents(app, tweets, ignore_original=False):
         basedir=outdir_byquest,
         formats=(
             recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
             recording.OutputFormat.QUESTHTML,
         ),
     )
@@ -126,21 +151,10 @@ def render_contents(app, tweets, ignore_original=False):
         )
     )
 
-    app.log.info('starting to parse tweets...')
-    for tweet in tweets:
-        try:
-            report = twitter.parse_tweet(tweet)
-            for recorder, _ in recorders:
-                recorder.add(report)
+    for recorder, _ in recorders:
+        recorder.add_all(reports)
 
-        except twitter.TweetParseError as e:
-            app.log.error(e)
-            app.log.error(tweet)
-            etw = twitter.ParseErrorTweet(
-                tweet=tweet,
-                error_message=e.get_message(),
-            )
-            error_recorder.add_error(etw)
+    error_recorder.add_all(errors)
 
     app.log.info('starting to render pages...')
     for recorder, force_save in recorders:
@@ -157,6 +171,35 @@ def render_contents(app, tweets, ignore_original=False):
         basedir=outdir_bydate,
     )
     latestDatePageBuilder.build()
+    app.log.info('done')
+
+
+def render_month_contents(app, reports):
+    outdir = f'{settings.ProcessorOutputDir}/month'
+    recorder = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByMonth(),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
+            recording.OutputFormat.MONTHHTML,
+        ),
+    )
+    recorder.add_all(reports)
+
+    if recorder.count():
+        # original への追記はせず、常に上書き
+        recorder.save(force=False, ignore_original=True)
+
+    # 出力先は outdir
+    # month の HTML レンダリングが完了してからでないと実行できない。
+    # したがってこの位置で実行する。
+    latestMonthPageBuilder = recording.LatestMonthPageBuilder(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir,
+    )
+    latestMonthPageBuilder.build()
     app.log.info('done')
 
 
@@ -207,7 +250,8 @@ def collect_tweets(event):
     app.log.info('tweet_log: %s', tweet_log_file)
     tweet_repository.put(tweet_log_file, tweets)
 
-    render_contents(app, tweets)
+    reports, errors = parse_tweets(app, tweets)
+    render_contents(app, reports, errors)
 
     latest_tweet = tweets[0]
     app.log.info('saving the latest tweet id: %s', latest_tweet.tweet_id)
@@ -296,7 +340,10 @@ def recollect_tweets():
         app.log.info('tweet_log: %s', tweet_log_file)
         tweet_repository.append_tweets(tweet_log_file, tweets)
 
-        render_contents(app, tweets)
+        # TODO recollect した場合に month のレンダリングをどうするか未解決。
+        # 問題になりそうなのは月をまたぐ場合。
+        reports, errors = parse_tweets(app, tweets)
+        render_contents(app, reports, errors)
 
     return {"status": "ok"}
 
@@ -316,7 +363,9 @@ def rebuild_outputs(event, context):
     tweets = tweet_repository.readall(set(censored_accounts.list()))
     app.log.info('retrieved %s tweets', len(tweets))
 
-    render_contents(app, tweets, ignore_original=True)
+    reports, errors = parse_tweets(app, tweets)
+    render_contents(app, reports, errors, ignore_original=True)
+    render_month_contents(app, reports)
     app.log.info('finished rebuilding outputs')
 
 

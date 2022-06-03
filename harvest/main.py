@@ -53,10 +53,26 @@ def render_all(
         basedir=contents_date_dir,
         formats=(
             recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
             recording.OutputFormat.DATEHTML,
         ),
     )
     recorders.append(recorder_bydate)
+
+    contents_month_dir = os.path.join(output_dir, 'contents', 'month')
+    if not os.path.exists(contents_month_dir):
+        os.makedirs(contents_month_dir)
+    recorder_bymonth = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleByMonth(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_month_dir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
+            recording.OutputFormat.MONTHHTML,
+        )
+    )
+    recorders.append(recorder_bymonth)
 
     contents_user_dir = os.path.join(output_dir, 'contents', 'user')
     if not os.path.exists(contents_user_dir):
@@ -67,6 +83,7 @@ def render_all(
         basedir=contents_user_dir,
         formats=(
             recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
             recording.OutputFormat.USERHTML,
         ),
     )
@@ -81,6 +98,7 @@ def render_all(
         basedir=contents_quest_dir,
         formats=(
             recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
             recording.OutputFormat.QUESTHTML,
         ),
     )
@@ -153,6 +171,15 @@ def render_all(
         basedir=contents_date_dir,
     )
     latestDatePageBuilder.build()
+
+    # 出力先は contents_month_dir
+    # 少なくとも bymonth の HTML レンダリングが完了してからでないと実行できない。
+    # したがってこの位置で実行する。
+    latestMonthPageBuilder = recording.LatestMonthPageBuilder(
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_month_dir,
+    )
+    latestMonthPageBuilder.build()
 
 
 def command_static(args: argparse.Namespace) -> None:
