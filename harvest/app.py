@@ -1,7 +1,9 @@
+import concurrent.futures
 import io
 import os
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from logging import getLogger
 from typing import Sequence
@@ -221,7 +223,6 @@ def render_contents(
 
 
 def render_month_contents(
-    app,
     reports: list[twitter.RunReport],
     skip_target_date: date,
     force_save: bool = False,
@@ -254,7 +255,6 @@ def render_month_contents(
         basedir=outdir,
     )
     latestMonthPageBuilder.build()
-    app.log.info('done')
 
 
 @app.schedule(Rate(30, unit=Rate.MINUTES))
@@ -443,28 +443,63 @@ def rebuild_outputs(event, context):
     app.log.info('retrieved %s tweets', len(tweets))
 
     reports, errors = parse_tweets(app, tweets)
+    procs = []
 
-    if skip_build_date:
-        app.log.info("skip building date contents")
-    else:
-        render_date_contents(reports, skip_target_date, ignore_original=True)
+    with ThreadPoolExecutor() as executor:
+        if skip_build_date:
+            app.log.info("skip building date contents")
+        else:
+            ft = executor.submit(
+                render_date_contents,
+                reports,
+                skip_target_date,
+                ignore_original=True,
+            )
+            procs.append(ft)
 
-    if skip_build_user:
-        app.log.info("skip building user contents")
-    else:
-        render_user_contents(reports, skip_target_date, ignore_original=True)
+        if skip_build_user:
+            app.log.info("skip building user contents")
+        else:
+            ft = executor.submit(
+                render_user_contents,
+                reports,
+                skip_target_date,
+                ignore_original=True,
+            )
+            procs.append(ft)
 
-    if skip_build_quest:
-        app.log.info("skip building quest contents")
-    else:
-        render_quest_contents(reports, skip_target_date, ignore_original=True)
+        if skip_build_quest:
+            app.log.info("skip building quest contents")
+        else:
+            ft = executor.submit(
+                render_quest_contents,
+                reports,
+                skip_target_date,
+                ignore_original=True,
+            )
+            procs.append(ft)
 
-    if skip_build_month:
-        app.log.info("skip building month contents")
-    else:
-        render_month_contents(app, reports, skip_target_date)
+        if skip_build_month:
+            app.log.info("skip building month contents")
+        else:
+            ft = executor.submit(
+                render_month_contents,
+                reports,
+                skip_target_date,
+            )
+            procs.append(ft)
 
-    render_contents(app, reports, errors, skip_target_date, ignore_original=True)
+        ft = executor.submit(
+            render_error_contents,
+            errors,
+            ignore_original=True,
+        )
+        procs.append(ft)
+
+        done, not_done = concurrent.futures.wait(procs)
+        app.log.info("done: %s", done)
+        app.log.info("not_done: %s", not_done)
+
     app.log.info('finished rebuilding outputs')
 
 

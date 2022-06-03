@@ -523,7 +523,6 @@ class SkipSaveRuleByDateAndUser:
     def scan_report(self, report: twitter.RunReport) -> None:
         if report.timestamp.date() >= self.criteria:
             self.unmatch_users.add(report.reporter)
-            logger.info("added %s to unmatch_users", report.reporter)
 
     def match(self, key: str) -> bool:
         return key not in self.unmatch_users
@@ -541,7 +540,6 @@ class SkipSaveRuleByDateAndQuest:
         if report.timestamp.date() >= self.criteria:
             quest_id = report.quest_id
             self.unmatch_quests.add(quest_id)
-            logger.info("added %s to unmatch_quests", quest_id)
 
     def match(self, key: str) -> bool:
         return key not in self.unmatch_quests
