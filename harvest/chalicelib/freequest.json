@@ -29,7 +29,7 @@
   },
   {
     "id": "00a05",
-    "internal_id": "",
+    "internal_id": "94066107",
     "chapter": "剣の修練場",
     "place": "極級",
     "quest": ""
@@ -64,7 +64,7 @@
   },
   {
     "id": "00b05",
-    "internal_id": "",
+    "internal_id": "94066101",
     "chapter": "弓の修練場",
     "place": "極級",
     "quest": ""
@@ -99,7 +99,7 @@
   },
   {
     "id": "00c05",
-    "internal_id": "",
+    "internal_id": "94066102",
     "chapter": "槍の修練場",
     "place": "極級",
     "quest": ""
@@ -134,7 +134,7 @@
   },
   {
     "id": "00d05",
-    "internal_id": "",
+    "internal_id": "94066104",
     "chapter": "騎の修練場",
     "place": "極級",
     "quest": ""
@@ -169,7 +169,7 @@
   },
   {
     "id": "00f05",
-    "internal_id": "",
+    "internal_id": "94066105",
     "chapter": "術の修練場",
     "place": "極級",
     "quest": ""
@@ -204,7 +204,7 @@
   },
   {
     "id": "00g05",
-    "internal_id": "",
+    "internal_id": "94066106",
     "chapter": "殺の修練場",
     "place": "極級",
     "quest": ""
@@ -239,7 +239,7 @@
   },
   {
     "id": "00h05",
-    "internal_id": "",
+    "internal_id": "94066103",
     "chapter": "狂の修練場",
     "place": "極級",
     "quest": ""
@@ -1846,5 +1846,117 @@
     "chapter": "アヴァロン",
     "place": "ドーバーハウス",
     "quest": "ドーバーハウス"
+  },
+  {
+    "id": "20i01",
+    "internal_id": "93031201",
+    "chapter": "トラオム",
+    "place": "狭間の街",
+    "quest": "陣地作成"
+  },
+  {
+    "id": "20i02",
+    "internal_id": "93031202",
+    "chapter": "トラオム",
+    "place": "暁の平原",
+    "quest": "愚者の分かれ道"
+  },
+  {
+    "id": "20i03",
+    "internal_id": "93031203",
+    "chapter": "トラオム",
+    "place": "中つ森",
+    "quest": "三界分立"
+  },
+  {
+    "id": "20i04",
+    "internal_id": "93031204",
+    "chapter": "トラオム",
+    "place": "薄暮れの森",
+    "quest": "隠者の逃げ道"
+  },
+  {
+    "id": "20i05",
+    "internal_id": "93031205",
+    "chapter": "トラオム",
+    "place": "天嶮山脈",
+    "quest": "要害の砦"
+  },
+  {
+    "id": "20i06",
+    "internal_id": "93031206",
+    "chapter": "トラオム",
+    "place": "王道界域拠点",
+    "quest": "遍歴の都"
+  },
+  {
+    "id": "20i07",
+    "internal_id": "93031207",
+    "chapter": "トラオム",
+    "place": "クサンテンの塔",
+    "quest": "月光大砲増幅装置"
+  },
+  {
+    "id": "20i08",
+    "internal_id": "93031208",
+    "chapter": "トラオム",
+    "place": "アツァガウク砦",
+    "quest": "傀儡の根城"
+  },
+  {
+    "id": "20i09",
+    "internal_id": "93031209",
+    "chapter": "トラオム",
+    "place": "湖畔の平原",
+    "quest": "柔らかな残響"
+  },
+  {
+    "id": "20i10",
+    "internal_id": "93031213",
+    "chapter": "トラオム",
+    "place": "復讐界域拠点",
+    "quest": "真紅の絢爛と漆黒の狂気"
+  },
+  {
+    "id": "20i11",
+    "internal_id": "93031214",
+    "chapter": "トラオム",
+    "place": "ライヘンバッハ",
+    "quest": "失落の滝"
+  },
+  {
+    "id": "20i12",
+    "internal_id": "93031210",
+    "chapter": "トラオム",
+    "place": "シルミウム",
+    "quest": "一夜要塞"
+  },
+  {
+    "id": "20i13",
+    "internal_id": "93031211",
+    "chapter": "トラオム",
+    "place": "復権界域拠点",
+    "quest": "贖罪の都"
+  },
+  {
+    "id": "20i14",
+    "internal_id": "93031212",
+    "chapter": "トラオム",
+    "place": "門前の平原",
+    "quest": "空赤き大地"
+  },
+  {
+    "id": "20i15",
+    "internal_id": "93031215",
+    "chapter": "トラオム",
+    "place": "果ての荒野",
+    "quest": "未確認領域"
+  },
+  {
+    "id": "20i16",
+    "internal_id": "93031216",
+    "chapter": "トラオム",
+    "place": "ヨウィヌス砦",
+    "quest": "外壁補修中"
   }
 ]

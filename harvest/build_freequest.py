@@ -40,6 +40,7 @@ harvest_chapter_map: Dict[str, str] = {
     'オリュンポス': '20f',
     '平安京': '20g',
     'アヴァロン': '20h',
+    'トラオム': '20i',
 }
 
 
@@ -103,6 +104,7 @@ def main(args: argparse.Namespace) -> None:
     all_list.extend(fq_list)
 
     json.dump(all_list, args.output, ensure_ascii=False, indent=2)
+    args.output.write("\n")
 
 
 def parse_args() -> argparse.Namespace:
