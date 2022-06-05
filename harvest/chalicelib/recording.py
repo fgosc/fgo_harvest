@@ -107,7 +107,7 @@ class TweetRepository:
         tweets: List[twitter.TweetCopy] = []
         id_cache: Set[int] = set()
 
-        for stream in self.fileStorage.streams(self.basedir, '.json'):
+        for stream in self.fileStorage.streams(self.basedir, suffix='.json'):
             loaded = json.load(stream)
             _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
             logger.info(f'{len(_tweets)} tweets retrieved')
