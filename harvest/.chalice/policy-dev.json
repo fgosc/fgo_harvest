@@ -5,12 +5,12 @@
             "Effect": "Allow",
             "Action": [
                 "s3:PutObject",
-                "s3:GetObject"
+                "s3:GetObject",
+                "s3:DeleteObject"
             ],
             "Resource": [
-                "arn:aws:s3:::fgojunks.max747.org/*"
-            ],
-            "Sid": "Statement1"
+                "arn:aws:s3:::fgojunks.max747.org/harvest/*"
+            ]
         },
         {
             "Effect": "Allow",
@@ -19,8 +19,7 @@
             ],
             "Resource": [
                 "arn:aws:s3:::fgojunks.max747.org"
-            ],
-            "Sid": "Statement2"
+            ]
         },
         {
             "Effect": "Allow",
@@ -38,8 +37,7 @@
             ],
             "Resource": [
                 "*"
-            ],
-            "Sid": "Statement3"
+            ]
         }
     ]
 }

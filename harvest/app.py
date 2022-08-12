@@ -429,7 +429,7 @@ def rebuild_outputs(event, context):
     skip_build_quest = event.get("skipBuildQuest", False)
     skip_build_month = event.get("skipBuildMonth", False)
 
-    app.log.info("skip target date: %s", skip_target_date)
+    app.log.info("skip rebuilding before the target date: %s", skip_target_date)
 
     tweet_repository = recording.TweetRepository(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
@@ -517,7 +517,7 @@ def merge_tweets_into_datefile(event):
     )
 
 
-@app.schedule(Cron(11, 2, 1, '*', '?', '*'))  # JST 11:11 every 1st day of the month
+@app.schedule(Cron(10, 2, 1, '*', '?', '*'))  # JST 11:10 every 1st day of the month
 def merge_tweets_into_monthfile(event):
     # 月初に動かすので 1 日前は先月のはず
     yesterday = (datetime.utcnow() - timedelta(days=1)).date()
@@ -529,6 +529,20 @@ def merge_tweets_into_monthfile(event):
         basedir=settings.TweetStorageDir,
         target_month=target_month,
     )
+
+
+@app.schedule(Cron(10, 3, 1, '*', '?', '*'))  # JST 12:10 every 1st day of the month
+def rebuild_month_summary(event):
+    # 32 日前にすれば確実に 1 か月分を覆うことができる
+    target_date = (datetime.utcnow() - timedelta(days=32)).date()
+
+    d = event.to_dict()
+    d["skipTargetDate"] = target_date.isoformat()
+    d["skipBuildDate"] = True
+    d["skipBuildUser"] = True
+    d["skipBuildQuest"] = True
+
+    rebuild_outputs(d, None)
 
 
 @app.lambda_function()

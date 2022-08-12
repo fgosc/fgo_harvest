@@ -44,17 +44,27 @@ def merge_into_datefile(
     streams = fileStorage.streams(basedir, prefix, suffix)
 
     merged = _merge(streams)
+    if len(merged) < 10:
+        logger.error("Data size is too small. Maybe a bug?")
+        return
+
+    logger.info("merge %d tweets into %s", len(merged), key)
     js = json.dumps(merged, ensure_ascii=False)
     out = fileStorage.get_output_stream(key)
-    logger.info("merge tweets into %s", key)
     out.write(js.encode("utf-8"))
     fileStorage.close_output_stream(out)
+
+    # 存在をチェック
+    if not fileStorage.exists(key):
+        logger.error("f{key} does not exist")
+        return
 
     parts = fileStorage.list(basedir, prefix, suffix)
 
     for part in parts:
         # 自身とマッチしてしまうのを回避（ないはずだが、念のため）
         if part == key:
+            logger.info("skip deleting %s", part)
             continue
         logger.info("delete: %s", part)
         fileStorage.delete(part)
@@ -80,17 +90,27 @@ def merge_into_monthfile(
     streams = fileStorage.streams(basedir, target_month, suffix)
 
     merged = _merge(streams)
+    if len(merged) < 300:
+        logger.error("Data size is too small. Maybe a bug?")
+        return
+
+    logger.info("merge %d tweets into %s", len(merged), key)
     js = json.dumps(merged, ensure_ascii=False)
     out = fileStorage.get_output_stream(key)
-    logger.info("merging tweets into %s", key)
     out.write(js.encode("utf-8"))
+    fileStorage.close_output_stream(out)
+
+    # 存在をチェック
+    if not fileStorage.exists(key):
+        logger.error("f{key} does not exist")
+        return
 
     parts = fileStorage.list(basedir, target_month, suffix)
 
     for part in parts:
         # 自身とマッチしてしまうのを回避
         if part == key:
+            logger.info("skip deleting %s", part)
             continue
         logger.info("delete: %s", part)
-        # TODO 最初の動作確認後に削除を有効にする
-        # fileStorage.delete(part)
+        fileStorage.delete(part)
