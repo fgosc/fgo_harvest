@@ -4,7 +4,7 @@ import os
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from logging import getLogger
 from typing import Sequence
 
@@ -14,9 +14,11 @@ from chalice import (  # type: ignore
     BadRequestError,
     Chalice,
     CORSConfig,
+    Cron,
     Rate,
 )
 
+from chalicelib import merging
 from chalicelib import settings
 from chalicelib import static
 from chalicelib import storage
@@ -427,7 +429,7 @@ def rebuild_outputs(event, context):
     skip_build_quest = event.get("skipBuildQuest", False)
     skip_build_month = event.get("skipBuildMonth", False)
 
-    app.log.info("skip target date: %s", skip_target_date)
+    app.log.info("skip rebuilding before the target date: %s", skip_target_date)
 
     tweet_repository = recording.TweetRepository(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
@@ -501,6 +503,46 @@ def rebuild_outputs(event, context):
         app.log.info("not_done: %s", not_done)
 
     app.log.info('finished rebuilding outputs')
+
+
+@app.schedule(Cron(10, 1, '*', '*', '?', '*'))  # JST 10:10 everyday
+def merge_tweets_into_datefile(event):
+    yesterday = (datetime.utcnow() - timedelta(days=1)).date()
+    app.log.info("target date: %s", yesterday)
+
+    merging.merge_into_datefile(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.TweetStorageDir,
+        target_date=yesterday,
+    )
+
+
+@app.schedule(Cron(10, 2, 1, '*', '?', '*'))  # JST 11:10 every 1st day of the month
+def merge_tweets_into_monthfile(event):
+    # 月初に動かすので 1 日前は先月のはず
+    yesterday = (datetime.utcnow() - timedelta(days=1)).date()
+    target_month = yesterday.strftime("%Y%m")
+    app.log.info("target month: %s", target_month)
+
+    merging.merge_into_monthfile(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.TweetStorageDir,
+        target_month=target_month,
+    )
+
+
+@app.schedule(Cron(10, 3, 1, '*', '?', '*'))  # JST 12:10 every 1st day of the month
+def rebuild_month_summary(event):
+    # 32 日前にすれば確実に 1 か月分を覆うことができる
+    target_date = (datetime.utcnow() - timedelta(days=32)).date()
+
+    d = event.to_dict()
+    d["skipTargetDate"] = target_date.isoformat()
+    d["skipBuildDate"] = True
+    d["skipBuildUser"] = True
+    d["skipBuildQuest"] = True
+
+    rebuild_outputs(d, None)
 
 
 @app.lambda_function()

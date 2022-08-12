@@ -1,5 +1,4 @@
 import io
-import os
 import pathlib
 import shutil
 from logging import getLogger
@@ -12,6 +11,14 @@ logger = getLogger(__name__)
 
 
 class SupportStorage(Protocol):
+    def list(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[str]:
+        ...
+
     def exists(self, path: str) -> bool:
         ...
 
@@ -33,22 +40,41 @@ class SupportStorage(Protocol):
     def copy(self, src: str, dest: str) -> None:
         ...
 
-    def streams(self, basedir: str, suffix: str) -> Iterator[BinaryIO]:
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+        ...
+
+    def delete(self, path: str) -> None:
         ...
 
 
 class FilesystemStorage:
+    def list(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[str]:
+        entries = pathlib.Path(basedir).glob(prefix + '*' + suffix)
+        for entry in entries:
+            if entry.is_file():
+                yield str(entry)
+
     def exists(self, path: str) -> bool:
-        return os.path.exists(path)
+        return pathlib.Path(path).exists()
 
     def get_as_text(self, path: str) -> str:
-        if not os.path.exists(path):
+        if not pathlib.Path(path).exists():
             return ''
         with open(path) as fp:
             return fp.read()
 
     def get_as_binary(self, path: str) -> bytes:
-        if not os.path.exists(path):
+        if not pathlib.Path(path).exists():
             return b''
         with open(path, 'rb') as fp:
             return fp.read()
@@ -68,13 +94,21 @@ class FilesystemStorage:
     def copy(self, src: str, dest: str) -> None:
         shutil.copyfile(src, dest)
 
-    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
-        entries = pathlib.Path(basedir).glob('*' + suffix)
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+        entries = pathlib.Path(basedir).glob(prefix + '*' + suffix)
         for entry in entries:
             if entry.is_file():
                 logger.info('read %s', entry.name)
                 with open(entry, 'rb') as fp:
                     yield fp
+
+    def delete(self, path: str) -> None:
+        pathlib.Path(path).unlink(missing_ok=True)
 
 
 class AmazonS3Storage:
@@ -86,6 +120,19 @@ class AmazonS3Storage:
         self.s3client = boto3.client('s3')
         self.bucket = self.s3.Bucket(bucket)
         self.key_stream_pairs: Dict[str, BinaryIO] = {}
+
+    def list(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[str]:
+        prefix = f"{basedir}/{prefix}"
+        object_summaries = self.bucket.objects.filter(Prefix=prefix)
+
+        for entry in object_summaries:
+            if entry.key.endswith(suffix):
+                yield entry.key
 
     def exists(self, path: str) -> bool:
         try:
@@ -163,11 +210,20 @@ class AmazonS3Storage:
         source = {'Bucket': self.bucket.name, 'Key': src}
         self.bucket.copy(source, dest)
 
-    def streams(self, basedir: str, suffix: str = '') -> Iterator[BinaryIO]:
-        object_summaries = self.bucket.objects.filter(Prefix=basedir)
+    def streams(
+        self,
+        basedir: str,
+        prefix: str = '',
+        suffix: str = '',
+    ) -> Iterator[BinaryIO]:
+        prefix = f"{basedir}/{prefix}"
+        object_summaries = self.bucket.objects.filter(Prefix=prefix)
 
         for entry in object_summaries:
             if entry.key.endswith(suffix):
                 logger.info(f'get s3://{self.bucket.name}/{entry.key}')
                 resp = entry.get()
                 yield resp['Body']
+
+    def delete(self, path: str) -> None:
+        self.bucket.Object(path).delete()

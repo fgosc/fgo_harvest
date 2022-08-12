@@ -7,6 +7,7 @@ verify_ssl = true
 pytest = "*"
 rope = "*"
 flake8 = "*"
+black = "*"
 
 [packages]
 tweepy = "*"
