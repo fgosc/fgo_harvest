@@ -512,6 +512,32 @@ class SkipSaveRuleByDate:
         return d < self.criteria
 
 
+class SkipSaveRuleByDateRange:
+    """
+        指定された期間外だったら match するルール
+    """
+    def __init__(self, start_date: date, end_date: date):
+        self.start_date = start_date
+        self.end_date = end_date
+
+    def scan_report(self, report: twitter.RunReport) -> None:
+        pass
+
+    def match(self, key: str) -> bool:
+        num_parts = len(key.split("-"))
+        if num_parts == 3:
+            # 日付 YYYY-MM-DD
+            d = date.fromisoformat(key)
+        elif num_parts == 2:
+            # 月 YYYY-MM
+            d = datetime.strptime(key, "%Y-%m").date()
+        else:
+            # 日付変換不可能なら unmatch
+            return False
+
+        return d < self.start_date or d > self.end_date
+
+
 class SkipSaveRuleByDateAndUser:
     """
         指定された日付以後の報告がない user に match するルール

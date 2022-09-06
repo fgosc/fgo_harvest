@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from logging import getLogger
 from typing import Sequence
+from zoneinfo import ZoneInfo
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
@@ -28,6 +29,8 @@ from chalicelib import recording
 
 logger = getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
+
+jst = ZoneInfo("Asia/Tokyo")
 
 app = Chalice(app_name='harvest')
 app.log.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -233,9 +236,15 @@ def render_month_contents(
     # collect tweets のアクションで追記していくには month のサイズが
     # 大きすぎるから。さすがに read/write のコストが無視できない。
     outdir = f'{settings.ProcessorOutputDir}/month'
+
+    # 現在月を month のレンダリング対象にしないための工夫
+    today = datetime.now(tz=jst).date()
+    last_day_of_prev_month = date(today.year, today.month, 1) - timedelta(days=1)
+    app.log.info("SkipSaveRuleByDateRange: start = %s, end = %s", skip_target_date, last_day_of_prev_month)
+
     recorder = recording.Recorder(
         partitioningRule=recording.PartitioningRuleByMonth(),
-        skipSaveRule=recording.SkipSaveRuleByDate(skip_target_date),
+        skipSaveRule=recording.SkipSaveRuleByDateRange(skip_target_date, last_day_of_prev_month),
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=outdir,
         formats=(
