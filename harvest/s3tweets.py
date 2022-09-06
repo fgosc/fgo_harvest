@@ -57,6 +57,111 @@ def exec_pull(args):
             fp.write(resp['Body'].read())
 
 
+def all_tweets_in_id_set(tweets: dict[str, Any], id_set: set[int]) -> bool:
+    return all([int(tw["id"]) in id_set for tw in tweets])
+
+
+def exec_scan(args):
+    """
+        ファイルが不要かどうか調べる。
+        そのファイルに収録された id がすべて上位ファイルに含まれていれば、そのファイルは不要と判断できる。
+        - あるファイルが時間単位ファイルである -> 月単位ファイルがあればそれを、なければ日単位ファイルを参照。日単位ファイルもなければそのファイルは削除不可
+        - あるファイルが日単位ファイルである -> 月単位ファイルを参照。月単位ファイルがなければそのファイルは削除不可
+    """
+    target_dir = pathlib.Path(args.target_dir)
+    files = target_dir.glob("*.json")
+
+    month_files: list[pathlib.Path] = []
+    month_dict: dict[str, set[int]] = {}
+    date_files: list[pathlib.Path] = []
+    date_dict: dict[str, set[int]] = {}
+    time_files: list[pathlib.Path] = []
+
+    for filepath in files:
+        name_length = len(filepath.name)
+        if name_length == 6 + 5:
+            month_files.append(filepath)
+
+            s = set()
+            with open(filepath) as fp:
+                tweets = json.load(fp)
+            for tw in tweets:
+                s.add(tw["id"])
+            month_dict[filepath.stem] = s
+
+        elif name_length == 8 + 5:
+            date_files.append(filepath)
+
+            s = set()
+            with open(filepath) as fp:
+                tweets = json.load(fp)
+            for tw in tweets:
+                s.add(tw["id"])
+            date_dict[filepath.stem] = s
+
+        elif name_length == 8 + 1 + 6 + 5:
+            time_files.append(filepath)
+        else:
+            logger.warning("does not match any pattern: %s", filepath)
+
+    logger.info(sorted(month_dict.keys()))
+    logger.info(sorted(date_dict.keys()))
+
+    for filepath in time_files:
+        if filepath.stem[:6] in month_dict:
+            id_set = month_dict[filepath.stem[:6]]
+
+            with open(filepath) as fp:
+                tweets = json.load(fp)
+
+            included = all_tweets_in_id_set(tweets, id_set)
+            if included:
+                logger.debug("all elements are included in month file: %s", filepath)
+                if args.dry_run:
+                    logger.info("(fake) deleted: %s", filepath)
+                else:
+                    filepath.unlink()
+                    logger.info("deleted: %s", filepath)
+                continue
+
+        if filepath.stem[:8] in date_dict:
+            id_set = date_dict[filepath.stem[:8]]
+
+            with open(filepath) as fp:
+                tweets = json.load(fp)
+
+            included = all_tweets_in_id_set(tweets, id_set)
+            if included:
+                logger.debug("all elements are included in date file: %s", filepath)
+                if args.dry_run:
+                    logger.info("(fake) deleted: %s", filepath)
+                else:
+                    filepath.unlink()
+                    logger.info("deleted: %s", filepath)
+                continue
+
+        logger.info("some tweets are not include in month/date files: %s", filepath)
+
+    for filepath in date_files:
+        if filepath.stem[:6] in month_dict:
+            id_set = month_dict[filepath.stem[:6]]
+
+            with open(filepath) as fp:
+                tweets = json.load(fp)
+
+            included = all_tweets_in_id_set(tweets, id_set)
+            if included:
+                logger.debug("all elements are included in month file: %s", filepath)
+                if args.dry_run:
+                    logger.info("(fake) deleted: %s", filepath)
+                else:
+                    filepath.unlink()
+                    logger.info("deleted: %s", filepath)
+                continue
+
+        logger.info("some tweets are not include in month files: %s", filepath)
+
+
 def merge(files: List[pathlib.Path]) -> List[Dict[str, Any]]:
     merged_tweets = []
     for filepath in files:
@@ -243,6 +348,12 @@ def build_parser():
     add_common_arguments(pull_parser)
     pull_parser.set_defaults(func=exec_pull)
 
+    scan_parser = subparsers.add_parser("scan")
+    scan_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
+    scan_parser.add_argument('--dry-run', action='store_true')
+    add_common_arguments(scan_parser)
+    scan_parser.set_defaults(func=exec_scan)
+
     merge_parser = subparsers.add_parser('merge')
     merge_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
     merge_parser.add_argument(
@@ -252,6 +363,7 @@ def build_parser():
     )
     add_common_arguments(merge_parser)
     merge_parser.set_defaults(func=exec_merge)
+
     push_parser = subparsers.add_parser('push')
     push_parser.add_argument(
         '-d',
