@@ -11,6 +11,10 @@
         },
         "merge_tweets_into_monthfile": {
           "lambda_timeout": 180
+        },
+        "rebuild_month_summary": {
+          "lambda_timeout": 600,
+          "lambda_memory_size": 256
         }
       }
     }
