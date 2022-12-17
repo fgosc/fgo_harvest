@@ -572,6 +572,8 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
             # place が空文字列の location として扱う。
             location_tokens = [normalized_location, '']
 
+    logger.debug("location_tokens: %s", location_tokens)
+
     if len(location_tokens) == 2:
         chapter = location_tokens[0]
         place = location_tokens[1]

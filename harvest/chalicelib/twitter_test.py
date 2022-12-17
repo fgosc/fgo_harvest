@@ -103,6 +103,53 @@ def test_parse_tweet2():
     }
 
 
+def test_parse_tweet3():
+    text = """【ウルトラヘビー級】80周
+礼装1
+鬼灯23-霊子31-ランタン30
+狂秘22-狂魔13-狂輝12
+狂モ27
+バンテージ(x3)1422-バナナ(x3)291-バナナ(x4)434-バー(x3)282-バー(x4)430-ガム(x3)289-ガム(x4)435
+#FGO周回カウンタ http://aoshirobo.net/fatego/rc/
+"""
+
+    user = MockUser('testuser')
+    original_tweet = MockTweet(
+        1234567890,
+        user,
+        text,
+        datetime(2020, 1, 2, 3, 4, 5),
+    )
+
+    tw = twitter.TweetCopy(original_tweet)
+
+    parsed = twitter.parse_tweet(tw)
+    assert parsed.tweet_id == 1234567890
+    assert parsed.reporter == 'testuser'
+    assert parsed.chapter == 'ウルトラヘビー級'
+    assert parsed.place == ''
+    assert parsed.is_freequest is False
+    tz = timezone.Local
+    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
+    assert parsed.items == {
+        '礼装': '1',
+        '鬼灯': '23',
+        '霊子': '31',
+        'ランタン': '30',
+        '狂秘': '22',
+        '狂魔': '13',
+        '狂輝': '12',
+        '狂モ': '27',
+        'バンテージ(x3)': '1422',
+        'バナナ(x3)': '291',
+        'バナナ(x4)': '434',
+        'バー(x3)': '282',
+        'バー(x4)': '430',
+        'ガム(x3)': '289',
+        'ガム(x4)': '435',
+    }
+
+
 runreport0 = """【大江山 鬼の住み処】100周
 鬼灯11-狂骨38-狂の秘石3-狂の輝石33-叡智の猛火4
 #FGO周回カウンタ http://aoshirobo.net/fatego/rc/

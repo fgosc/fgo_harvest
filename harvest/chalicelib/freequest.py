@@ -1,6 +1,7 @@
 import json
 import os
 from base64 import urlsafe_b64encode
+from difflib import SequenceMatcher
 from hashlib import md5
 from logging import getLogger
 from typing import Dict, Iterable, List, Optional, Set, Tuple
@@ -149,10 +150,27 @@ class Detector:
             if expr.startswith(pq)
         ]
         if len(place_candidates) == 1:
-            qid = self.freequest_place_index[place_candidates[0]]
+            # place 候補で実際に切ってみて、残り部分が quest name と近いかどうかを見る
+            place_candidate = place_candidates[0]
+            quest_candidate = expr[len(place_candidate):].strip()
+            qid = self.freequest_place_index[place_candidate]
             chapter_place_quest = self.quest_reverse_index[qid]
             _, place, quest = chapter_place_quest.split()
-            return place, quest
+            # expr が場所のみの場合は、以降のチェックは不要。
+            # quest name がないのだから類似度判定自体ができない。
+            if expr == place:
+                return place, quest
+
+            sm = SequenceMatcher(isjunk=None, a=quest_candidate, b=quest)
+            quest_radio = sm.ratio()
+            logger.debug(
+                f"quest_candidate = {quest_candidate}, quest = {quest}, "
+                f"ratio = {quest_radio}"
+            )
+            # フリクエの quest name が書かれていると推測できるならフリクエとして扱う
+            if quest_radio > 0.7:
+                return place, quest
+            return None
 
         elif len(place_candidates) > 1:
             # 複数マッチはバグ以外では考えにくい
