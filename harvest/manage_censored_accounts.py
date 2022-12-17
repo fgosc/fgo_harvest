@@ -40,13 +40,20 @@ def main(args: argparse.Namespace):
     with open(settings.CensoredAccountsFile, 'w') as fp:
         fp.write(json.dumps(existing_accounts, indent=4))
 
-    if not args.accounts_file and not args.safe_account:
+    if not args.accounts_file and not args.safe_account and not args.add_account:
         logger.info('skipping merge process')
     else:
         new_accounts = []
         if args.accounts_file:
             new_accounts = args.accounts_file.read().strip().split()
             logger.info('new accounts: %s', new_accounts)
+
+        if args.add_account:
+            if args.add_account in existing_accounts:
+                logger.info("account %s already exists", args.add_account)
+            else:
+                new_accounts.append(args.add_account)
+                logger.info('new account added: %s', args.add_account)
 
         if args.safe_account in existing_accounts:
             logger.info('safe account found: %s', args.safe_account)
@@ -67,6 +74,7 @@ def parse_args() -> argparse.Namespace:
         default='info',
     )
     parser.add_argument('--accounts-file', type=argparse.FileType('r'))
+    parser.add_argument('--add-account')
     parser.add_argument('--safe-account')
     return parser.parse_args()
 
