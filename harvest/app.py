@@ -540,6 +540,18 @@ def merge_tweets_into_monthfile(event):
     )
 
 
+@app.lambda_function()
+def merge_tweets_into_monthfile_manually(event, context):
+    target_month = event["targetMonth"]
+    app.log.info("target month: %s", target_month)
+
+    merging.merge_into_monthfile(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.TweetStorageDir,
+        target_month=target_month,
+    )
+
+
 @app.schedule(Cron(10, 3, 1, '*', '?', '*'))  # JST 12:10 every 1st day of the month
 def rebuild_month_summary(event):
     # 32 日前にすれば確実に 1 か月分を覆うことができる
