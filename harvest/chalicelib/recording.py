@@ -95,6 +95,7 @@ class TweetRepository:
             default=json_serialize_helper,
         )
 
+        stream.seek(0)
         stream.write(s.encode('UTF-8'))
         self.fileStorage.close_output_stream(stream)
 
