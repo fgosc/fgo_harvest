@@ -15,3 +15,8 @@ ProcessorOutputDir = 'harvest/contents'
 SettingsDir = 'harvest/settings'
 
 DistributionId = ''
+RestAPIBase = ''
+CORSAllowOrigin = ''
+
+GraphQLEndpoint = ''
+GraphQLApiKey = ''

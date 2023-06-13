@@ -38,8 +38,9 @@ QP(+194千)50-QP(+195千)58
     assert parsed.chapter == 'シャーロット'
     assert parsed.place == 'ゴールドラッシュ'
     assert parsed.is_freequest is True
-    tz = timezone.Local
-    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
+    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=timezone.Local)
+    assert parsed.note == ""
+    assert parsed.source == "twitter"
     assert parsed.items == {
         '塵': '643',
         '証': '487',
@@ -88,8 +89,9 @@ def test_parse_tweet2():
     assert parsed.chapter == '上級'
     assert parsed.place == ''
     assert parsed.is_freequest is False
-    tz = timezone.Local
-    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
+    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=timezone.Local)
+    assert parsed.note == ""
+    assert parsed.source == "twitter"
     assert parsed.items == {
         '礼装': '0',
         '結氷': '16',
@@ -129,8 +131,9 @@ def test_parse_tweet3():
     assert parsed.chapter == 'ウルトラヘビー級'
     assert parsed.place == ''
     assert parsed.is_freequest is False
-    tz = timezone.Local
-    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=tz)
+    assert parsed.timestamp == datetime(2020, 1, 2, 12, 4, 5, tzinfo=timezone.Local)
+    assert parsed.note == ""
+    assert parsed.source == "twitter"
     assert parsed.items == {
         '礼装': '1',
         '鬼灯': '23',
@@ -266,38 +269,3 @@ def test_parse_status_url_error(url):
     parser = twitter.StatusTweetURLParser()
     with pytest.raises(twitter.TweetURLParseError):
         parser.parse(url)
-
-
-def test_retrieve_runreport():
-    data = {
-        "id": 1495032114890559488,
-        "timestamp": "2022-02-19T22:46:47+09:00",
-        "reporter": "_8_LotuS_8_",
-        "chapter": "町への脅威を取り除け",
-        "place": "",
-        "runcount": 100,
-        "items": {
-            "礼装": "3",
-            "胆石": "28",
-            "冠": "54",
-            "術秘": "33",
-            "術魔": "20",
-            "術モ": "34",
-            "ショコラトル(x3)": "911",
-            "パウダー(x3)": "915",
-            "カカオチップ(x3)": "927"
-        },
-        "freequest": False,
-        "quest_id": "QevNqjrdjveF"
-    }
-    report = twitter.RunReport.retrieve(data)
-
-    assert report.tweet_id == data["id"]
-    assert report.reporter == data["reporter"]
-    assert report.chapter == data["chapter"]
-    assert report.place == data["place"]
-    assert report.runcount == data["runcount"]
-    assert report.timestamp.isoformat() == data["timestamp"]
-    assert report.is_freequest == data["freequest"]
-    assert report.quest_id == data["quest_id"]
-    assert report.items == data["items"]

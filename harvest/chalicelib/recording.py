@@ -13,13 +13,20 @@ from typing import (
 )
 
 from dateutil.relativedelta import relativedelta  # type: ignore
-from jinja2 import (
+from jinja2 import (  # type: ignore
     Environment,
     PackageLoader,
     select_autoescape,
 )
 
-from . import freequest, storage, timezone, twitter
+from . import (
+    freequest,
+    helper,
+    model,
+    storage,
+    timezone,
+    twitter,
+)
 
 logger = getLogger(__name__)
 jinja2_env = Environment(
@@ -27,14 +34,6 @@ jinja2_env = Environment(
     autoescape=select_autoescape(['html'])
 )
 month_format = "%Y-%m"
-
-
-def json_serialize_helper(o: Any):
-    if hasattr(o, 'isoformat'):
-        return o.isoformat()
-    raise TypeError(
-        f'Object of type {o.__class__.__name__} is not JSON serializable'
-    )
 
 
 class OutputFormat(Enum):
@@ -53,132 +52,11 @@ class ErrorOutputFormat(Enum):
     HTML = ('html', 'html')
 
 
-class TweetRepository:
-    def __init__(
-        self,
-        fileStorage: storage.SupportStorage,
-        basedir: str,
-    ):
-        self.fileStorage = fileStorage
-        self.basedir = basedir
-
-    def put(self, key: str, tweets: List[twitter.TweetCopy]) -> None:
-        s = json.dumps(
-            [tw.as_dict() for tw in tweets],
-            ensure_ascii=False,
-            default=json_serialize_helper,
-        )
-        basepath = self.fileStorage.path_object(self.basedir)
-        keypath = str(basepath / key)
-        stream = self.fileStorage.get_output_stream(keypath)
-        stream.write(s.encode('UTF-8'))
-        self.fileStorage.close_output_stream(stream)
-
-    def append_tweets(self, key: str, tweets: List[twitter.TweetCopy]) -> None:
-        basepath = self.fileStorage.path_object(self.basedir)
-        keypath = str(basepath / key)
-        stream = self.fileStorage.get_output_stream(keypath, append=True)
-        stream.seek(0)
-        try:
-            loaded = json.load(stream)
-        except json.decoder.JSONDecodeError as e:
-            logger.warning(e)
-            logger.warning("use the blank list [] as alternative")
-            loaded = []
-
-        merged_tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
-        merged_tweets.extend(tweets)
-
-        s = json.dumps(
-            [tw.as_dict() for tw in merged_tweets if tw is not None],
-            ensure_ascii=False,
-            default=json_serialize_helper,
-        )
-
-        stream.seek(0)
-        stream.write(s.encode('UTF-8'))
-        self.fileStorage.close_output_stream(stream)
-
-    def exists(self, key: str) -> bool:
-        basepath = self.fileStorage.path_object(self.basedir)
-        keypath = str(basepath / key)
-        return self.fileStorage.exists(keypath)
-
-    def readall(self, exclude_accounts: Set[str]) -> List[twitter.TweetCopy]:
-        tweets: List[twitter.TweetCopy] = []
-        id_cache: Set[int] = set()
-
-        for stream in self.fileStorage.streams(self.basedir, suffix='.json'):
-            loaded = json.load(stream)
-            _tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
-            logger.info(f'{len(_tweets)} tweets retrieved')
-            for tw in _tweets:
-                if tw is None:
-                    continue
-                if tw.tweet_id in id_cache:
-                    logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
-                    continue
-                elif tw.screen_name in exclude_accounts:
-                    logger.warning(
-                        "ignoring exclude account's tweet: %s",
-                        tw.tweet_id,
-                    )
-                    continue
-
-                tweets.append(tw)
-                id_cache.add(tw.tweet_id)
-
-        # 新しい順
-        tweets.sort(key=lambda e: e.tweet_id)
-        tweets.reverse()
-
-        logger.info(f'total: {len(tweets)} tweets')
-        return tweets
-
-
-class UserOutputRepository:
-    def __init__(
-        self,
-        user: str,
-        fileStorage: storage.SupportStorage,
-        basedir: str,
-    ):
-        self.user = user
-        self.fileStorage = fileStorage
-        self.basedir = basedir
-
-    def load(self) -> dict[int, twitter.RunReport]:
-        basepath = self.fileStorage.path_object(self.basedir)
-        keypath = str(basepath / f'{self.user}.json')
-        logger.info('loading %s', keypath)
-        text = self.fileStorage.get_as_text(keypath)
-        loaded = json.loads(text)
-
-        report_dict: dict[int, twitter.RunReport] = {}
-        for e in loaded:
-            report = twitter.RunReport.retrieve(e)
-            if report:
-                report_dict[report.tweet_id] = report
-
-        return report_dict
-
-
-class SupportDictConversible(Protocol):
-    def as_dict(self) -> Dict[str, Any]:
-        ...
-
-    def get_id(self) -> Any:
-        ...
-
-    def equals(self, obj: Any) -> bool:
-        ...
-
-
 class SupportPartitioningRule(Protocol):
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
         ...
 
@@ -193,14 +71,14 @@ class SupportStatefulPartitioningRule(Protocol):
 
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
         ...
 
 
 class SupportSkipSaveRule(Protocol):
-    def scan_report(self, report: twitter.RunReport) -> None:
+    def scan_report(self, report: model.RunReport) -> None:
         ...
 
     def match(self, key: str) -> bool:
@@ -210,8 +88,8 @@ class SupportSkipSaveRule(Protocol):
 class PartitioningRuleByDate:
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
 
         date = report.timestamp.date().isoformat()
@@ -223,8 +101,8 @@ class PartitioningRuleByDate:
 class PartitioningRuleByMonth:
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
 
         month = report.timestamp.date().strftime(month_format)
@@ -236,8 +114,8 @@ class PartitioningRuleByMonth:
 class PartitioningRuleByUser:
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
 
         if report.reporter not in partitions:
@@ -248,8 +126,8 @@ class PartitioningRuleByUser:
 class PartitioningRuleByQuest:
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
 
         qid = report.quest_id
@@ -264,7 +142,7 @@ class UserListElement:
 
     def as_dict(self) -> Dict[str, Any]:
         """
-            for SupportDictConversible
+            for model.SupportDictConversible
         """
         return {
             'id': self.uid
@@ -272,13 +150,13 @@ class UserListElement:
 
     def get_id(self) -> Any:
         """
-            for SupportDictConversible
+            for model.SupportDictConversible
         """
         return self.uid
 
     def equals(self, obj: Any) -> bool:
         """
-            for SupportDictConversible
+            for model.SupportDictConversible
         """
         if isinstance(obj, dict):
             return self.uid == obj.get('id')
@@ -297,8 +175,8 @@ class PartitioningRuleByUserList:
 
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
 
         if report.reporter in self.existing_reporters:
@@ -348,7 +226,7 @@ class QuestListElement:
 
     def as_dict(self) -> Dict[str, Any]:
         """
-            for SupportDictConversible
+            for model.SupportDictConversible
         """
         return {
             'id': self.quest_id,
@@ -363,7 +241,7 @@ class QuestListElement:
 
     def get_id(self) -> Any:
         """
-            for SupportDictConversible
+            for model.SupportDictConversible
         """
         return self.quest_id
 
@@ -375,7 +253,7 @@ class QuestListElement:
 
     def equals(self, obj: Any) -> bool:
         """
-            for SupportDictConversible
+            for model.SupportDictConversible
         """
         if isinstance(obj, dict):
             return self.as_dict() == obj
@@ -417,7 +295,11 @@ class PartitioningRuleByQuestList:
                 d['latest'] = datetime.fromisoformat(ts)
             return d
 
-        quest_list = json.loads(text, object_hook=_load_hook)
+        if text.strip() == "":
+            quest_list = []
+        else:
+            quest_list = json.loads(text, object_hook=_load_hook)
+
         for q in quest_list:
             e = QuestListElement(
                 q['id'],
@@ -436,8 +318,8 @@ class PartitioningRuleByQuestList:
 
     def dispatch(
         self,
-        partitions: Dict[str, List[SupportDictConversible]],
-        report: twitter.RunReport,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
     ) -> None:
 
         e = QuestListElement(
@@ -481,7 +363,7 @@ class SkipSaveRuleNeverMatch:
     """
         どんな key とも match しないルール
     """
-    def scan_report(self, report: twitter.RunReport) -> None:
+    def scan_report(self, report: model.RunReport) -> None:
         pass
 
     def match(self, key: str) -> bool:
@@ -495,7 +377,7 @@ class SkipSaveRuleByDate:
     def __init__(self, criteria: date):
         self.criteria = criteria
 
-    def scan_report(self, report: twitter.RunReport) -> None:
+    def scan_report(self, report: model.RunReport) -> None:
         pass
 
     def match(self, key: str) -> bool:
@@ -521,7 +403,7 @@ class SkipSaveRuleByDateRange:
         self.start_date = start_date
         self.end_date = end_date
 
-    def scan_report(self, report: twitter.RunReport) -> None:
+    def scan_report(self, report: model.RunReport) -> None:
         pass
 
     def match(self, key: str) -> bool:
@@ -547,7 +429,7 @@ class SkipSaveRuleByDateAndUser:
         self.criteria = criteria
         self.unmatch_users: set[str] = set()
 
-    def scan_report(self, report: twitter.RunReport) -> None:
+    def scan_report(self, report: model.RunReport) -> None:
         if report.timestamp.date() >= self.criteria:
             self.unmatch_users.add(report.reporter)
 
@@ -563,7 +445,7 @@ class SkipSaveRuleByDateAndQuest:
         self.criteria = criteria
         self.unmatch_quests: set[str] = set()
 
-    def scan_report(self, report: twitter.RunReport) -> None:
+    def scan_report(self, report: model.RunReport) -> None:
         if report.timestamp.date() >= self.criteria:
             quest_id = report.quest_id
             self.unmatch_quests.add(quest_id)
@@ -584,7 +466,7 @@ class Recorder:
         basedir: str,
         formats: Sequence[OutputFormat],
     ):
-        self.partitions: Dict[str, List[SupportDictConversible]] = {}
+        self.partitions: Dict[str, List[model.SupportDictConversible]] = {}
         self.partitioningRule = partitioningRule
         self.skipSaveRule = skipSaveRule
         self.fileStorage = fileStorage
@@ -600,12 +482,12 @@ class Recorder:
             )
             statefulPartitioningRule.setup(self.fileStorage, self.basepath)
 
-    def add(self, report: twitter.RunReport) -> None:
+    def add(self, report: model.RunReport) -> None:
         self.partitioningRule.dispatch(self.partitions, report)
         self.skipSaveRule.scan_report(report)
         self.counter += 1
 
-    def add_all(self, reports: Sequence[twitter.RunReport]) -> None:
+    def add_all(self, reports: Sequence[model.RunReport]) -> None:
         for report in reports:
             self.add(report)
 
@@ -699,7 +581,7 @@ class ReportMerger:
 
     def merge(
         self,
-        additional_items: List[SupportDictConversible],
+        additional_items: List[model.SupportDictConversible],
         original: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
 
@@ -727,11 +609,16 @@ class ReportMerger:
                 overriden_count += 1
 
         merged_list = list(merged_dict.values())
-        merged_list.sort(key=lambda e: e['id'])
-        merged_list.reverse()
+        merged_list.sort(key=ReportMerger.marged_list_sorter, reverse=True)
         logger.info('additional reports: %d', additional_count)
         logger.info('overriden reports: %d', overriden_count)
         return merged_list
+
+    @staticmethod
+    def marged_list_sorter(e: Dict[str, Any]) -> Any:
+        if 'timestamp' in e:
+            return e['timestamp']
+        return e['id']
 
 
 class JSONPageProcessor:
@@ -744,7 +631,7 @@ class JSONPageProcessor:
         s = json.dumps(
             merged_reports,
             ensure_ascii=False,
-            default=json_serialize_helper,
+            default=helper.json_serialize_helper,
         )
         stream.write(s.encode('UTF-8'))
 
@@ -1133,7 +1020,7 @@ class JSONErrorPageProcessor:
         s = json.dumps(
             data,
             ensure_ascii=False,
-            default=json_serialize_helper,
+            default=helper.json_serialize_helper,
         )
         stream.write(s.encode('UTF-8'))
 

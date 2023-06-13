@@ -12,7 +12,13 @@ from typing import (
 
 import tweepy  # type: ignore
 
-from . import freequest, settings, storage, timezone
+from . import (
+    freequest,
+    model,
+    settings,
+    storage,
+    timezone,
+)
 
 logger = getLogger(__name__)
 
@@ -351,112 +357,6 @@ class Agent:
         }
 
 
-class RunReport:
-    """
-        周回報告レポート
-    """
-    def __init__(
-        self,
-        tweet_id: int,
-        reporter: str,
-        chapter: str,
-        place: str,
-        runcount: int,
-        items: Dict[str, str],
-        timestamp: datetime,
-    ):
-        self.tweet_id = tweet_id
-        self.reporter = reporter
-        self.chapter = chapter
-        self.place = place
-        self.runcount = runcount
-        self.items = items
-        self.timestamp = timestamp
-
-    def __str__(self) -> str:
-        return '{} https://twitter.com/{}/status/{} <{}/{}/{}周> {}'.format(
-            self.timestamp,
-            self.reporter,
-            self.tweet_id,
-            self.chapter,
-            self.place,
-            self.runcount,
-            self.items,
-        )
-
-    def as_dict(self) -> Dict[str, Any]:
-        """
-            for reporting.SupportDictConversible
-        """
-        return dict(
-            id=self.tweet_id,
-            timestamp=self.timestamp,
-            reporter=self.reporter,
-            chapter=self.chapter,
-            place=self.place,
-            runcount=self.runcount,
-            items=self.items,
-            freequest=self.is_freequest,
-            quest_id=self.quest_id,
-        )
-
-    def get_id(self) -> Any:
-        """
-            for reporting.SupportDictConversible
-        """
-        return self.tweet_id
-
-    def equals(self, obj: Any) -> bool:
-        """
-            for reporting.SupportDictConversible
-        """
-        if isinstance(obj, dict):
-            return self.as_dict() == obj
-        if isinstance(obj, RunReport):
-            return self.as_dict() == obj.as_dict()
-        return False
-
-    @property
-    def is_freequest(self) -> bool:
-        isfq = freequest.defaultDetector.is_freequest(self.chapter, self.place)
-        if isfq:
-            return True
-        bestmatch = freequest.defaultDetector.search_bestmatch_freequest(
-            f'{self.chapter} {self.place}'.strip(),
-        )
-        if bestmatch:
-            return True
-        return False
-
-    @property
-    def quest_id(self) -> str:
-        if not freequest.defaultDetector.is_freequest(
-            self.chapter,
-            self.place,
-        ):
-            bestmatch = freequest.defaultDetector.search_bestmatch_freequest(
-                f'{self.chapter} {self.place}'.strip(),
-            )
-            if bestmatch:
-                return bestmatch
-
-        return freequest.defaultDetector.get_quest_id(
-            self.chapter, self.place, self.timestamp.year,
-        )
-
-    @staticmethod
-    def retrieve(data: dict[str, Any]) -> RunReport:
-        return RunReport(
-            tweet_id=int(data["id"]),
-            reporter=str(data["reporter"]),
-            chapter=str(data["chapter"]),
-            place=str(data["place"]),
-            runcount=int(data["runcount"]),
-            items=cast(dict[str, str], data["items"]),
-            timestamp=datetime.fromisoformat(str(data["timestamp"])),
-        )
-
-
 class TweetURLParseError(Exception):
     pass
 
@@ -492,7 +392,7 @@ class RunCountZeroError(TweetParseError):
     message = '周回数が 0 です。'
 
 
-def parse_tweet(tweet: TweetCopy) -> RunReport:
+def parse_tweet(tweet: TweetCopy) -> model.RunReport:
     """
         周回報告ツイートを周回報告オブジェクトに変換する。
         変換できない場合 TweetParseError を投げる。
@@ -639,14 +539,18 @@ def parse_tweet(tweet: TweetCopy) -> RunReport:
 
     logger.debug('item_dict: %s', item_dict)
 
-    return RunReport(
+    return model.RunReport(
+        report_id=None,
         tweet_id=tweet.tweet_id,
         reporter=tweet.screen_name,
+        reporter_id=None,
         chapter=chapter,
         place=place,
         runcount=runcount,
         items=item_dict,
+        note="",
         timestamp=tweet.timestamp,
+        source="twitter",
     )
 
 

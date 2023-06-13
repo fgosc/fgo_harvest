@@ -20,6 +20,7 @@ from chalice import (  # type: ignore
 )
 
 from chalicelib import merging
+from chalicelib import model
 from chalicelib import settings
 from chalicelib import static
 from chalicelib import storage
@@ -58,7 +59,7 @@ def parse_tweets(
     app,
     tweets: list[twitter.TweetCopy],
 ) -> tuple[
-    list[twitter.RunReport],
+    list[model.RunReport],
     list[twitter.ParseErrorTweet],
 ]:
     parsed = []
@@ -83,7 +84,7 @@ def parse_tweets(
 
 
 def render_date_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
     ignore_original: bool = False,
@@ -113,7 +114,7 @@ def render_date_contents(
 
 
 def render_user_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
     ignore_original: bool = False,
@@ -152,7 +153,7 @@ def render_user_contents(
 
 
 def render_quest_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
     ignore_original: bool = False,
@@ -214,7 +215,7 @@ def render_error_contents(
 
 def render_contents(
     app,
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     errors: list[twitter.ParseErrorTweet],
     skip_target_date: date,
     ignore_original: bool = False,
@@ -228,7 +229,7 @@ def render_contents(
 
 
 def render_month_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
 ):
