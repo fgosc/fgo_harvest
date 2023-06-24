@@ -8,7 +8,6 @@ import argparse
 import logging
 import os
 from datetime import date, datetime
-from zoneinfo import ZoneInfo
 
 from chalicelib import (
     graphql,
@@ -17,11 +16,11 @@ from chalicelib import (
     static,
     storage,
     twitter,
+    timezone,
     recording,
     repository,
 )
 
-JST = ZoneInfo("Asia/Tokyo")
 logger = logging.getLogger(__name__)
 
 
@@ -230,11 +229,11 @@ def command_build(args: argparse.Namespace) -> None:
         return
 
     report_repository = setup_report_repository(args.output_dir)
-    key = '{}.json'.format(datetime.now(tz=JST).strftime('%Y%m%d_%H%M%S'))
+    key = '{}.json'.format(datetime.now(tz=timezone.Local).strftime('%Y%m%d_%H%M%S'))
     report_repository.put(key, reports)
 
     # fgodrop graphql から取得する結果はすでに RunReport 形式と互換であり parse error は発生しない
-    parse_error_tweets = []
+    parse_error_tweets: list[twitter.ParseErrorTweet] = []
     render_all(reports, parse_error_tweets, args.output_dir, args.skip_target_date, rebuild=False)
 
 

@@ -10,17 +10,17 @@ logger = getLogger(__name__)
 
 
 def _merge(readers: Iterator[BinaryIO]) -> list[dict[str, Any]]:
-    merged_tweets = []
+    merged_items = []
 
     for reader in readers:
-        tweets = json.load(reader)
-        if len(tweets) == 0:
+        items = json.load(reader)
+        if len(items) == 0:
             continue
-        merged_tweets.extend(tweets)
+        merged_items.extend(items)
 
-    tweet_set = set([json.dumps(tw) for tw in merged_tweets])
-    distinct_tweets = [json.loads(tw) for tw in tweet_set]
-    return sorted(distinct_tweets, key=itemgetter("id"))
+    item_set = set([json.dumps(item) for item in merged_items])
+    distinct_items = [json.loads(item) for item in item_set]
+    return sorted(distinct_items, key=itemgetter("id"))
 
 
 def merge_into_datefile(
@@ -48,7 +48,7 @@ def merge_into_datefile(
         logger.error("Data size is too small. Maybe a bug?")
         return
 
-    logger.info("merge %d tweets into %s", len(merged), key)
+    logger.info("merge %d items into %s", len(merged), key)
     js = json.dumps(merged, ensure_ascii=False)
     out = fileStorage.get_output_stream(key)
     out.write(js.encode("utf-8"))
@@ -94,7 +94,7 @@ def merge_into_monthfile(
         logger.error("Data size is too small. Maybe a bug?")
         return
 
-    logger.info("merge %d tweets into %s", len(merged), key)
+    logger.info("merge %d items into %s", len(merged), key)
     js = json.dumps(merged, ensure_ascii=False)
     out = fileStorage.get_output_stream(key)
     out.write(js.encode("utf-8"))

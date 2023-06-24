@@ -1,20 +1,17 @@
-TwitterConsumerKey = ''
-TwitterConsumerSecret = ''
-TwitterAccessToken = ''
-TwitterAccessTokenSecret = ''
-
 NGWords = []
 NGTags = []
 
 LatestTweetIDFile = 'latest_tweet.txt'
+LastReportTimeFile = 'last_report_time.txt'
 CensoredAccountsFile = 'censored_accounts.json'
 
 S3Bucket = ''
 TweetStorageDir = 'harvest/tweets'
+ReportStorageDir = 'harvest/reports'
 ProcessorOutputDir = 'harvest/contents'
 SettingsDir = 'harvest/settings'
 
-DistributionId = ''
+CloudfrontDistributionId = ''
 RestAPIBase = ''
 CORSAllowOrigin = ''
 

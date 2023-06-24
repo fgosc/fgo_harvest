@@ -19,9 +19,10 @@ class SupportDictConversible(Protocol):
 
 class RunReport:
     """
-        周回報告レポート
-        report_id または tweet_id いずれかが必須
+    周回報告レポート
+    report_id または tweet_id いずれかが必須
     """
+
     def __init__(
         self,
         # report_id は source: twitter の場合 None
@@ -57,7 +58,7 @@ class RunReport:
 
     def __str__(self) -> str:
         if self.tweet_id:
-            return '{} https://twitter.com/{}/status/{} <{}/{}/{}周> {}'.format(
+            return "{} https://twitter.com/{}/status/{} <{}/{}/{}周> {}".format(
                 self.timestamp,
                 self.reporter,
                 self.tweet_id,
@@ -67,7 +68,7 @@ class RunReport:
                 self.items,
             )
         else:
-            return '{} [{}] {} <{}/{}/{}周> {}'.format(
+            return "{} [{}] {} <{}/{}/{}周> {}".format(
                 self.timestamp,
                 self.reporter,
                 self.report_id,
@@ -79,7 +80,7 @@ class RunReport:
 
     def as_dict(self) -> dict[str, Any]:
         """
-            for reporting.SupportDictConversible
+        for reporting.SupportDictConversible
         """
         return dict(
             # NOTE: 既存データとの後方互換性のため id は残す
@@ -101,7 +102,7 @@ class RunReport:
 
     def get_id(self) -> Any:
         """
-            for reporting.SupportDictConversible
+        for reporting.SupportDictConversible
         """
         # report_id を優先する
         if self.report_id:
@@ -110,7 +111,7 @@ class RunReport:
 
     def equals(self, obj: Any) -> bool:
         """
-            for reporting.SupportDictConversible
+        for reporting.SupportDictConversible
         """
         if isinstance(obj, dict):
             return self.as_dict() == obj
@@ -124,7 +125,7 @@ class RunReport:
         if isfq:
             return True
         bestmatch = freequest.defaultDetector.search_bestmatch_freequest(
-            f'{self.chapter} {self.place}'.strip(),
+            f"{self.chapter} {self.place}".strip(),
         )
         if bestmatch:
             return True
@@ -137,13 +138,15 @@ class RunReport:
             self.place,
         ):
             bestmatch = freequest.defaultDetector.search_bestmatch_freequest(
-                f'{self.chapter} {self.place}'.strip(),
+                f"{self.chapter} {self.place}".strip(),
             )
             if bestmatch:
                 return bestmatch
 
         return freequest.defaultDetector.get_quest_id(
-            self.chapter, self.place, self.timestamp.year,
+            self.chapter,
+            self.place,
+            self.timestamp.year,
         )
 
     @staticmethod

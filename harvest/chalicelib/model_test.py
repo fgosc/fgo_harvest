@@ -1,5 +1,6 @@
 from . import model
 
+
 def test_retrieve_runreport():
     data = {
         "id": 1495032114890559488,
@@ -20,7 +21,7 @@ def test_retrieve_runreport():
             "術モ": "34",
             "ショコラトル(x3)": "911",
             "パウダー(x3)": "915",
-            "カカオチップ(x3)": "927"
+            "カカオチップ(x3)": "927",
         },
         "note": "",
         "quest_id": "QevNqjrdjveF",

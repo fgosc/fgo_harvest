@@ -170,7 +170,7 @@ class PartitioningRuleByUserList:
         既存の PartitioningRule の枠組みを利用して
         user list を作る
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.existing_reporters: Set[str] = set()
 
     def dispatch(
@@ -267,7 +267,7 @@ class PartitioningRuleByQuestList:
         既存の PartitioningRule の枠組みを利用して
         quest list を作る
     """
-    def __init__(self, rebuild=False):
+    def __init__(self, rebuild: bool = False):
         self.quest_dict: Dict[str, QuestListElement] = {}
         self.rebuild = rebuild
 

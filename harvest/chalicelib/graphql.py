@@ -83,7 +83,7 @@ query ListReports($nextToken: String, $timestamp: Int) {
             for item in items:
                 report = self.to_report(item)
                 reports.append(report)
-            
+
             if not next_token:
                 break
 
@@ -121,7 +121,7 @@ query ListReports($nextToken: String, $timestamp: Int) {
                         plus_sign = True
                     else:
                         plus_sign = False
-                    
+
                     if plus_sign:
                         items[f"{key}(+{stack})"] = num
                     else:

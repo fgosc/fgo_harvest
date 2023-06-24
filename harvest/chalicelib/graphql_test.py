@@ -4,7 +4,7 @@ from . import graphql
 
 
 def test_to_report():
-    client = graphql.GraphQLClient('', '')
+    client = graphql.GraphQLClient("", "")
     data = {
         "id": "abcd1234-abcd-1234-5678-000011112222",
         "owner": "abcd1234-abcd-1234-5678-12345678abcd",
@@ -21,25 +21,9 @@ def test_to_report():
         "note": "貝殻泥UP %\n羽根泥UP %",
         "createdAt": "2023-06-18T03:43:15.239Z",
         "dropObjects": [
-            {
-                "objectName": "貝殻",
-                "drops": [
-                    {
-                    "num": 5,
-                    "stack": 1
-                    }
-                ]
-            },
-            {
-                "objectName": "羽根",
-                "drops": [
-                    {
-                    "num": -1,
-                    "stack": 1
-                    }
-                ]
-            }
-        ]
+            {"objectName": "貝殻", "drops": [{"num": 5, "stack": 1}]},
+            {"objectName": "羽根", "drops": [{"num": -1, "stack": 1}]},
+        ],
     }
     report = client.to_report(data)
 

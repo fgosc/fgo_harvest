@@ -19,6 +19,7 @@ Twitter API から取得した報告データは TweetRepository にそのまま
 レンダリングの時点では両方のデータを統一的に扱う必要があるので、そのギャップを埋める必要がある。
 """
 
+
 class TweetRepository:
     def __init__(
         self,
@@ -30,7 +31,7 @@ class TweetRepository:
 
     def put(self, key: str, tweets: list[twitter.TweetCopy]) -> None:
         """
-            append_tweets との違い: 同名のファイルが存在する場合は、そのファイルを上書きする
+        append_tweets との違い: 同名のファイルが存在する場合は、そのファイルを上書きする
         """
         s = json.dumps(
             [tw.as_dict() for tw in tweets],
@@ -40,12 +41,12 @@ class TweetRepository:
         basepath = self.fileStorage.path_object(self.basedir)
         keypath = str(basepath / key)
         stream = self.fileStorage.get_output_stream(keypath)
-        stream.write(s.encode('UTF-8'))
+        stream.write(s.encode("UTF-8"))
         self.fileStorage.close_output_stream(stream)
 
     def append_tweets(self, key: str, tweets: list[twitter.TweetCopy]) -> None:
         """
-            put との違い: 同名のファイルが存在する場合は、そのファイルに追記する
+        put との違い: 同名のファイルが存在する場合は、そのファイルに追記する
         """
         basepath = self.fileStorage.path_object(self.basedir)
         keypath = str(basepath / key)
@@ -68,7 +69,7 @@ class TweetRepository:
         )
 
         stream.seek(0)
-        stream.write(s.encode('UTF-8'))
+        stream.write(s.encode("UTF-8"))
         self.fileStorage.close_output_stream(stream)
 
     def exists(self, key: str) -> bool:
@@ -76,20 +77,22 @@ class TweetRepository:
         keypath = str(basepath / key)
         return self.fileStorage.exists(keypath)
 
-    def readall(self, exclude_accounts: set[str]) -> tuple[list[model.RunReport], list[twitter.ParseErrorTweet]]:
+    def readall(
+        self, exclude_accounts: set[str]
+    ) -> tuple[list[model.RunReport], list[twitter.ParseErrorTweet]]:
         reports: list[model.RunReport] = []
         parseErrorTweets: list[twitter.ParseErrorTweet] = []
         id_cache: set[int] = set()
 
-        for stream in self.fileStorage.streams(self.basedir, suffix='.json'):
+        for stream in self.fileStorage.streams(self.basedir, suffix=".json"):
             loaded = json.load(stream)
             tweets = [twitter.TweetCopy.retrieve(e) for e in loaded]
-            logger.info(f'{len(tweets)} tweets retrieved')
+            logger.info(f"{len(tweets)} tweets retrieved")
             for tw in tweets:
                 if tw is None:
                     continue
                 if tw.tweet_id in id_cache:
-                    logger.warning('ignoring duplicate tweet: %s', tw.tweet_id)
+                    logger.warning("ignoring duplicate tweet: %s", tw.tweet_id)
                     continue
                 elif tw.screen_name in exclude_accounts:
                     logger.warning(
@@ -100,7 +103,9 @@ class TweetRepository:
                 try:
                     report = twitter.parse_tweet(tw)
                 except twitter.TweetParseError as e:
-                    error_tw = twitter.ParseErrorTweet(tweet=tw, error_message=e.get_message())
+                    error_tw = twitter.ParseErrorTweet(
+                        tweet=tw, error_message=e.get_message()
+                    )
                     parseErrorTweets.append(error_tw)
 
                 reports.append(report)
@@ -109,7 +114,9 @@ class TweetRepository:
         # 新しい順
         reports.sort(key=lambda e: e.timestamp, reverse=True)
 
-        logger.info(f'total: {len(reports)} reports, {len(parseErrorTweets)} parse error tweets')
+        logger.info(
+            f"total: {len(reports)} reports, {len(parseErrorTweets)} parse error tweets"
+        )
         return reports, parseErrorTweets
 
 
@@ -124,7 +131,7 @@ class ReportRepository:
 
     def put(self, key: str, reports: list[model.RunReport]) -> None:
         """
-            append との違い: 同名のファイルが存在する場合は、そのファイルを上書きする
+        append との違い: 同名のファイルが存在する場合は、そのファイルを上書きする
         """
         s = json.dumps(
             [r.as_dict() for r in reports],
@@ -134,12 +141,12 @@ class ReportRepository:
         basepath = self.fileStorage.path_object(self.basedir)
         keypath = str(basepath / key)
         stream = self.fileStorage.get_output_stream(keypath)
-        stream.write(s.encode('UTF-8'))
+        stream.write(s.encode("UTF-8"))
         self.fileStorage.close_output_stream(stream)
 
     def append(self, key: str, reports: list[model.RunReport]) -> None:
         """
-            put との違い: 同名のファイルが存在する場合は、そのファイルに追記する
+        put との違い: 同名のファイルが存在する場合は、そのファイルに追記する
         """
         basepath = self.fileStorage.path_object(self.basedir)
         keypath = str(basepath / key)
@@ -162,7 +169,7 @@ class ReportRepository:
         )
 
         stream.seek(0)
-        stream.write(s.encode('UTF-8'))
+        stream.write(s.encode("UTF-8"))
         self.fileStorage.close_output_stream(stream)
 
     def exists(self, key: str) -> bool:
@@ -173,10 +180,10 @@ class ReportRepository:
     def readall(self) -> list[model.RunReport]:
         reports: list[model.RunReport] = []
 
-        for stream in self.fileStorage.streams(self.basedir, suffix='.json'):
+        for stream in self.fileStorage.streams(self.basedir, suffix=".json"):
             loaded = json.load(stream)
             reports = [model.RunReport.retrieve(e) for e in loaded]
-            logger.info(f'{len(reports)} tweets retrieved')
+            logger.info(f"{len(reports)} tweets retrieved")
 
         # 新しい順
         reports.sort(key=lambda e: e.timestamp, reverse=True)
