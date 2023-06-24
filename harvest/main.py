@@ -7,7 +7,9 @@
 import argparse
 import logging
 import os
+import pathlib
 from datetime import date, datetime
+from typing import cast
 
 from chalicelib import (
     graphql,
@@ -221,8 +223,20 @@ def command_rebuild(args: argparse.Namespace) -> None:
 
 
 def command_build(args: argparse.Namespace) -> None:
+    # --since が指定された場合はそれが最優先
+    # --last-report-time-file が存在する場合は次点
+    # いずれも満たさない場合は 2023-06-13 20:35:00 JST (Twitter Crawling の停止時刻)
+    if args.since:
+        since = int(args.since)
+    elif pathlib.Path(args.last_report_time_file).exists():
+        with open(args.last_report_time_file) as fp:
+            last_report_time = datetime.fromisoformat(fp.read().strip())
+            since = int(last_report_time.timestamp())
+    else:
+        since = 1686656100
+
     client = graphql.GraphQLClient(settings.GraphQLEndpoint, settings.GraphQLApiKey)
-    reports = client.list_reports(timestamp=args.since)
+    reports = client.list_reports(timestamp=since)
 
     if len(reports) == 0:
         logger.info('no reports')
@@ -235,6 +249,11 @@ def command_build(args: argparse.Namespace) -> None:
     # fgodrop graphql から取得する結果はすでに RunReport 形式と互換であり parse error は発生しない
     parse_error_tweets: list[twitter.ParseErrorTweet] = []
     render_all(reports, parse_error_tweets, args.output_dir, args.skip_target_date, rebuild=False)
+
+    last_report_time = cast(datetime, max([r.timestamp for r in reports]))
+    logger.info('saving last report time: %s', last_report_time)
+    with open(args.last_report_time_file, "w") as fp:
+        fp.write(last_report_time.isoformat())
 
 
 def command_delete(args: argparse.Namespace) -> None:
@@ -274,9 +293,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--since",
         action=StoreUnixTimeAction,
         help="since. format: YYYYMMDDHHMMSS",
-        # 2023-06-13 20:35:00 JST
-        # Twitter Crawl の停止時刻
-        default=1686656100,
+    )
+    build_parser.add_argument(
+        "--last-report-time-file",
+        default=settings.LastReportTimeFile,
+        help=f"last report time file which the program fetched. default: {settings.LastReportTimeFile}"
     )
     build_parser.add_argument(
         "--skip-target-date",

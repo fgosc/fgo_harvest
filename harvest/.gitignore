@@ -2,3 +2,4 @@
 .chalice/venv/
 .chalice/deployed/
 /*.json
+last_report_time.txt

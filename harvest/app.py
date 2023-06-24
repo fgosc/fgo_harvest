@@ -267,7 +267,7 @@ def render_month_contents(
     latestMonthPageBuilder.build()
 
 
-@app.schedule(Rate(10, unit=Rate.MINUTES))
+@app.schedule(Rate(20, unit=Rate.MINUTES))
 def collect_reports(event):
     agent = setup_graphql_client()
 
@@ -314,7 +314,7 @@ def collect_reports(event):
     render_user_contents(reports, skip_target_date)
     render_quest_contents(reports, skip_target_date)
 
-    last_report_time = cast(datetime, max([r["timestamp"] for r in reports]))
+    last_report_time = cast(datetime, max([r.timestamp for r in reports]))
     app.log.info('saving last report time: %s', last_report_time)
     last_report_time_bytes = last_report_time.isoformat().encode('utf-8')
     last_report_time_stream = io.BytesIO(last_report_time_bytes)
