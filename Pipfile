@@ -8,6 +8,7 @@ pytest = "*"
 rope = "*"
 flake8 = "*"
 black = "*"
+types-requests = "*"
 
 [packages]
 tweepy = "*"
@@ -17,4 +18,4 @@ chalice = "*"
 mypy = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"

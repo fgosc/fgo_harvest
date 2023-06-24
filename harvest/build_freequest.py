@@ -42,6 +42,8 @@ harvest_chapter_map: Dict[str, str] = {
     'アヴァロン': '20h',
     'トラオム': '20i',
     'ナウイ・ミクトラン': '20j',
+    'オーディール・コール': '25a',
+    'ペーパームーン': '25b',
 }
 
 
@@ -113,13 +115,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '-fc',
         '--freequest_csv',
-        type=argparse.FileType('r'),
+        type=argparse.FileType('r', encoding='utf-8-sig'),
         required=True,
     )
     parser.add_argument(
         '-sc',
         '--syurenquest_csv',
-        type=argparse.FileType('r'),
+        type=argparse.FileType('r', encoding='utf-8-sig'),
         required=True,
     )
     parser.add_argument(

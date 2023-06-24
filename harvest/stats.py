@@ -72,7 +72,7 @@ class StatUser:
 
 
 class StatUsers:
-    def __init__(self):
+    def __init__(self) -> None:
         self.users: list[StatUser] = []
 
     def add(self, stat: StatUser):

@@ -7,26 +7,45 @@
 import argparse
 import logging
 import os
+import pathlib
 from datetime import date, datetime
+from typing import cast
 
-from chalicelib import settings
-from chalicelib import static
-from chalicelib import storage
-from chalicelib import twitter
-from chalicelib import recording
+from chalicelib import (
+    graphql,
+    model,
+    settings,
+    static,
+    storage,
+    twitter,
+    timezone,
+    recording,
+    repository,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def setup_tweet_repository(output_dir: str) -> recording.TweetRepository:
+def setup_tweet_repository(output_dir: str) -> repository.TweetRepository:
     storage_dir = os.path.join(output_dir, 'tweets')
     if not os.path.exists(storage_dir):
         os.makedirs(storage_dir)
-    tweet_storage = recording.TweetRepository(
+    tweet_storage = repository.TweetRepository(
         fileStorage=storage.FilesystemStorage(),
         basedir=storage_dir,
     )
     return tweet_storage
+
+
+def setup_report_repository(output_dir: str) -> repository.ReportRepository:
+    storage_dir = os.path.join(output_dir, 'reports')
+    if not os.path.exists(storage_dir):
+        os.makedirs(storage_dir)
+    report_storage = repository.ReportRepository(
+        fileStorage=storage.FilesystemStorage(),
+        basedir=storage_dir,
+    )
+    return report_storage
 
 
 def setup_censored_accounts() -> twitter.CensoredAccounts:
@@ -37,12 +56,13 @@ def setup_censored_accounts() -> twitter.CensoredAccounts:
 
 
 def render_all(
-    tweets: list[twitter.TweetCopy],
+    reports: list[model.RunReport],
+    parse_error_tweets: list[twitter.ParseErrorTweet],
     output_dir: str,
     skip_target_date: date,
     rebuild: bool,
 ) -> None:
-    recorders = []
+    recorders: list[recording.Recorder] = []
 
     contents_date_dir = os.path.join(output_dir, 'contents', 'date')
     if not os.path.exists(contents_date_dir):
@@ -148,21 +168,10 @@ def render_all(
         )
     )
 
-    for tweet in tweets:
-        try:
-            report = twitter.parse_tweet(tweet)
-            logger.info(report)
-            for recorder in recorders:
-                recorder.add(report)
+    for recorder in recorders:
+        recorder.add_all(reports)
 
-        except twitter.TweetParseError as e:
-            logger.error(e)
-            logger.error(tweet)
-            etw = twitter.ParseErrorTweet(
-                tweet=tweet,
-                error_message=e.get_message(),
-            )
-            error_recorder.add_error(etw)
+    error_recorder.add_all(parse_error_tweets)
 
     ignore_original = rebuild
     for recorder in recorders:
@@ -201,62 +210,50 @@ def command_static(args: argparse.Namespace) -> None:
 
 def command_rebuild(args: argparse.Namespace) -> None:
     tweet_repository = setup_tweet_repository(args.output_dir)
+    report_reporitory = setup_report_repository(args.output_dir)
     censored_accounts = setup_censored_accounts()
-    tweets = tweet_repository.readall(set(censored_accounts.list()))
-    render_all(tweets, args.output_dir, args.skip_target_date, rebuild=True)
+    tweet_reports, parse_error_tweets = tweet_repository.readall(set(censored_accounts.list()))
+    report_reports = report_reporitory.readall()
+
+    # マージして新しい順に並べる
+    reports = tweet_reports + report_reports
+    reports.sort(key=lambda e: e.timestamp, reverse=True)
+
+    render_all(reports, parse_error_tweets, args.output_dir, args.skip_target_date, rebuild=True)
 
 
 def command_build(args: argparse.Namespace) -> None:
-    agent = twitter.Agent(
-        consumer_key=settings.TwitterConsumerKey,
-        consumer_secret=settings.TwitterConsumerSecret,
-        access_token=settings.TwitterAccessToken,
-        access_token_secret=settings.TwitterAccessTokenSecret,
-    )
-    if args.tweet_id:
-        tweet_dict = agent.get_multi(args.tweet_id)
-        for tid, tw in tweet_dict.items():
-            logger.info(f'id: {tid}, tw: {tw}')
-            try:
-                report = twitter.parse_tweet(tw)
-                logger.info(report)
-                logger.info('is_freequest: %s', report.is_freequest)
+    # --since が指定された場合はそれが最優先
+    # --last-report-time-file が存在する場合は次点
+    # いずれも満たさない場合は 2023-06-13 20:35:00 JST (Twitter Crawling の停止時刻)
+    if args.since:
+        since = int(args.since)
+    elif pathlib.Path(args.last_report_time_file).exists():
+        with open(args.last_report_time_file) as fp:
+            last_report_time = datetime.fromisoformat(fp.read().strip())
+            since = int(last_report_time.timestamp())
+    else:
+        since = 1686656100
 
-            except twitter.TweetParseError as e:
-                logger.error(e)
+    client = graphql.GraphQLClient(settings.GraphQLEndpoint, settings.GraphQLApiKey)
+    reports = client.list_reports(timestamp=since)
+
+    if len(reports) == 0:
+        logger.info('no reports')
         return
 
-    tweet_repository = setup_tweet_repository(args.output_dir)
-    censored_accounts = setup_censored_accounts()
+    report_repository = setup_report_repository(args.output_dir)
+    key = '{}.json'.format(datetime.now(tz=timezone.Local).strftime('%Y%m%d_%H%M%S'))
+    report_repository.put(key, reports)
 
-    since_id = None
-    if os.path.exists(settings.LatestTweetIDFile):
-        with open(settings.LatestTweetIDFile) as fp:
-            since_id = int(fp.read().strip())
+    # fgodrop graphql から取得する結果はすでに RunReport 形式と互換であり parse error は発生しない
+    parse_error_tweets: list[twitter.ParseErrorTweet] = []
+    render_all(reports, parse_error_tweets, args.output_dir, args.skip_target_date, rebuild=False)
 
-    logger.info(f'since_id: {since_id}')
-    tweets = agent.collect(
-        max_repeat=args.max_repeat,
-        since_id=since_id,
-        censored=censored_accounts,
-    )
-
-    if len(tweets) == 0:
-        return
-
-    key = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-    tweet_repository.put(key, tweets)
-
-    render_all(tweets, args.output_dir, args.skip_target_date, rebuild=False)
-
-    censored_accounts.save()
-
-    if len(tweets) == 0:
-        return
-    latest_tweet = tweets[0]
-    logger.info(f'save latest tweet id: {latest_tweet.tweet_id}')
-    with open(settings.LatestTweetIDFile, 'w') as fp:
-        fp.write(str(latest_tweet.tweet_id))
+    last_report_time = cast(datetime, max([r.timestamp for r in reports]))
+    logger.info('saving last report time: %s', last_report_time)
+    with open(args.last_report_time_file, "w") as fp:
+        fp.write(last_report_time.isoformat())
 
 
 def command_delete(args: argparse.Namespace) -> None:
@@ -266,6 +263,12 @@ def command_delete(args: argparse.Namespace) -> None:
 
 def date_type(date_str: str) -> date:
     return date.fromisoformat(date_str)
+
+
+class StoreUnixTimeAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        t = datetime.strptime(values, "%Y%m%d%H%M%S")
+        setattr(namespace, self.dest, int(t.timestamp()))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -287,13 +290,14 @@ def build_parser() -> argparse.ArgumentParser:
     build_parser = subparsers.add_parser('build')
     add_common_arguments(build_parser)
     build_parser.add_argument(
-        '--max-repeat',
-        type=int,
-        default=10,
+        "--since",
+        action=StoreUnixTimeAction,
+        help="since. format: YYYYMMDDHHMMSS",
     )
     build_parser.add_argument(
-        '-t', '--tweet-id',
-        nargs='+',
+        "--last-report-time-file",
+        default=settings.LastReportTimeFile,
+        help=f"last report time file which the program fetched. default: {settings.LastReportTimeFile}"
     )
     build_parser.add_argument(
         "--skip-target-date",

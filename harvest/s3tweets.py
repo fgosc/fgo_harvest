@@ -17,14 +17,20 @@ import boto3  # type: ignore
 from chalicelib import settings
 
 logger = logging.getLogger(__name__)
-s3 = boto3.resource('s3')
-s3bucket = s3.Bucket(settings.S3Bucket)
+
+
+def get_s3bucket(profile):
+    if profile:
+        session = boto3.Session(profile_name=profile)
+        return session.resource('s3').Bucket(settings.S3Bucket)
+    return boto3.resource('s3').Bucket(settings.S3Bucket)
 
 
 def exec_pull(args):
     """
         S3 の JSON ファイルを一括でダウンロードする。
     """
+    s3bucket = get_s3bucket(args.profile)
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
 
@@ -57,11 +63,11 @@ def exec_pull(args):
             fp.write(resp['Body'].read())
 
 
-def all_tweets_in_id_set(tweets: dict[str, Any], id_set: set[int]) -> bool:
+def all_tweets_in_id_set(tweets: list[dict[str, Any]], id_set: set[int]) -> bool:
     return all([int(tw["id"]) in id_set for tw in tweets])
 
 
-def exec_scan(args):
+def exec_scan(args: argparse.Namespace) -> None:
     """
         ファイルが不要かどうか調べる。
         そのファイルに収録された id がすべて上位ファイルに含まれていれば、そのファイルは不要と判断できる。
@@ -177,7 +183,7 @@ def merge(files: List[pathlib.Path]) -> List[Dict[str, Any]]:
     return sorted(distinct_tweets, key=itemgetter('id'))
 
 
-def exec_merge(args):
+def exec_merge(args: argparse.Namespace) -> None:
     """
         JSON ファイルを日付または月単位でマージする。
     """
@@ -211,9 +217,9 @@ def exec_merge(args):
             partition[date] = []
         partition[date].append(filepath)
 
-    for date, files in partition.items():
+    for date, filepaths in partition.items():
         logger.info(date)
-        merged = merge(files)
+        merged = merge(filepaths)
         filename = f'{date}.json'
         filepath = output_dir / filename
         logger.info(f'save tweets to {filepath}')
@@ -228,10 +234,11 @@ def checksum(filepath):
     return hashlib.sha1(data).hexdigest()
 
 
-def exec_push(args):
+def exec_push(args: argparse.Namespace) -> None:
     """
         JSON ファイルを S3 にアップロードする。
     """
+    s3bucket = get_s3bucket(args.profile)
     target_dir = pathlib.Path(args.target_dir)
     files = target_dir.glob('*.json')
     basepath = pathlib.PurePosixPath(settings.TweetStorageDir)
@@ -260,7 +267,7 @@ def exec_push(args):
         )
 
 
-def exec_clean(args):
+def exec_clean(args: argparse.Namespace) -> None:
     """
         target_dir にある JSON ファイルと同名のファイルを S3 から削除する。
 
@@ -273,6 +280,7 @@ def exec_clean(args):
         - yyyyMM.json
         - yyyyMM.json が存在しないときの yyyyMMdd.json, yyyyMMdd_HHMMSS.json
     """
+    s3bucket = get_s3bucket(args.profile)
     object_summary_iterator = s3bucket.objects.filter(
         Prefix=settings.TweetStorageDir,
     )
@@ -339,6 +347,7 @@ def build_parser():
             choices=('debug', 'info', 'warning'),
             default='info',
         )
+        subparser.add_argument("--profile")
 
     subparsers = parser.add_subparsers(dest='command')
 

@@ -12,7 +12,11 @@
   <tbody>
 {% for r in reports %}<tr>
   <td>
-    <a href="https://twitter.com/{{ r.reporter }}/status/{{ r.id }}" target="_blank">
+    {% if r.source == "fgodrop" %}
+      <a href="https://fgodrop.max747.org/reports/{{ r.report_id }}" target="_blank">
+    {% else %}
+      <a href="https://twitter.com/{{ r.reporter }}/status/{{ r.id }}" target="_blank">
+    {% endif %}
       {{ r.timestamp.strftime("%Y-%m-%d") }}<br>
       {{ r.timestamp.strftime("%H:%M:%S") }}
       <span style="margin-left: 0.1rem"><small><i class="fa-solid fa-arrow-up-right-from-square"></i></small></span>

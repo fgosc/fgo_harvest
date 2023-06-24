@@ -6,31 +6,32 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from logging import getLogger
-from typing import Sequence
-from zoneinfo import ZoneInfo
+from typing import cast
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
 from chalice import (  # type: ignore
-    BadRequestError,
     Chalice,
     CORSConfig,
     Cron,
     Rate,
 )
 
-from chalicelib import merging
-from chalicelib import settings
-from chalicelib import static
-from chalicelib import storage
-from chalicelib import twitter
-from chalicelib import recording
-
+from chalicelib import (
+    graphql,
+    merging,
+    model,
+    settings,
+    static,
+    storage,
+    timezone,
+    twitter,
+    recording,
+    repository,
+)
 
 logger = getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
-
-jst = ZoneInfo("Asia/Tokyo")
 
 app = Chalice(app_name='harvest')
 app.log.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -45,45 +46,15 @@ cors_config = CORSConfig(
 )
 
 
-def setup_twitter_agent() -> twitter.Agent:
-    return twitter.Agent(
-        consumer_key=settings.TwitterConsumerKey,
-        consumer_secret=settings.TwitterConsumerSecret,
-        access_token=settings.TwitterAccessToken,
-        access_token_secret=settings.TwitterAccessTokenSecret,
+def setup_graphql_client() -> graphql.GraphQLClient:
+    return graphql.GraphQLClient(
+        endpoint=settings.GraphQLEndpoint,
+        api_key=settings.GraphQLApiKey,
     )
 
 
-def parse_tweets(
-    app,
-    tweets: list[twitter.TweetCopy],
-) -> tuple[
-    list[twitter.RunReport],
-    list[twitter.ParseErrorTweet],
-]:
-    parsed = []
-    errors = []
-
-    app.log.info('starting to parse tweets...')
-    for tweet in tweets:
-        try:
-            report = twitter.parse_tweet(tweet)
-            parsed.append(report)
-
-        except twitter.TweetParseError as e:
-            app.log.error(e)
-            app.log.error(tweet)
-            etw = twitter.ParseErrorTweet(
-                tweet=tweet,
-                error_message=e.get_message(),
-            )
-            errors.append(etw)
-
-    return parsed, errors
-
-
 def render_date_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
     ignore_original: bool = False,
@@ -113,7 +84,7 @@ def render_date_contents(
 
 
 def render_user_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
     ignore_original: bool = False,
@@ -152,7 +123,7 @@ def render_user_contents(
 
 
 def render_quest_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
     ignore_original: bool = False,
@@ -214,7 +185,7 @@ def render_error_contents(
 
 def render_contents(
     app,
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     errors: list[twitter.ParseErrorTweet],
     skip_target_date: date,
     ignore_original: bool = False,
@@ -228,7 +199,7 @@ def render_contents(
 
 
 def render_month_contents(
-    reports: list[twitter.RunReport],
+    reports: list[model.RunReport],
     skip_target_date: date,
     force_save: bool = False,
 ):
@@ -238,7 +209,7 @@ def render_month_contents(
     outdir = f'{settings.ProcessorOutputDir}/month'
 
     # 現在月を month のレンダリング対象にしないための工夫
-    today = datetime.now(tz=jst).date()
+    today = datetime.now(tz=timezone.Local).date()
     last_day_of_prev_month = date(today.year, today.month, 1) - timedelta(days=1)
     app.log.info("SkipSaveRuleByDateRange: start = %s, end = %s", skip_target_date, last_day_of_prev_month)
 
@@ -268,161 +239,69 @@ def render_month_contents(
     latestMonthPageBuilder.build()
 
 
-@app.schedule(Rate(30, unit=Rate.MINUTES))
-def collect_tweets(event):
-    agent = setup_twitter_agent()
+@app.schedule(Rate(20, unit=Rate.MINUTES))
+def collect_reports_scheduled(event):
+    collect_reports(event)
 
-    tweet_repository = recording.TweetRepository(
+
+@app.lambda_function()
+def collect_reports_manually(event, context):
+    collect_reports(event)
+
+
+def collect_reports(event):
+    agent = setup_graphql_client()
+
+    report_repository = repository.ReportRepository(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=settings.TweetStorageDir,
+        basedir=settings.ReportStorageDir,
     )
 
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(settings.S3Bucket)
-    latest_tweet_id_file_key = \
-        f'{settings.SettingsDir}/{settings.LatestTweetIDFile}'
+    last_report_time_file_key = \
+        f'{settings.SettingsDir}/{settings.LastReportTimeFile}'
     bio = io.BytesIO()
-    app.log.info('checking latest_tweet_id file: %s', latest_tweet_id_file_key)
+    app.log.info('checking LastReportTimeFile: %s', last_report_time_file_key)
     try:
-        bucket.download_fileobj(latest_tweet_id_file_key, bio)
-        latest_tweet_id_str = bio.getvalue().decode('utf-8')
+        bucket.download_fileobj(last_report_time_file_key, bio)
+        last_fetch_time_str = bio.getvalue().decode('utf-8').strip()
     except botocore.exceptions.ClientError as e:
         app.log.warning(e)
-        latest_tweet_id_str = ''
+        last_fetch_time_str = ''
 
-    censored_accounts = twitter.CensoredAccounts(
-        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        filepath=f'{settings.SettingsDir}/{settings.CensoredAccountsFile}',
-    )
+    if not last_fetch_time_str:
+        # Twitter Crawling の停止時刻
+        since = datetime(2023, 6, 13, 20, 35, 0, tzinfo=timezone.Local)
+    else:
+        since = datetime.fromisoformat(last_fetch_time_str)
 
-    try:
-        since_id = int(latest_tweet_id_str)
-    except ValueError:
-        since_id = None
-    app.log.info(f'since_id: {since_id}')
+    since_timestamp = int(since.timestamp())
+    app.log.info(f'since: {since}, timestamp: {since_timestamp}')
 
-    tweets = agent.collect(
-        max_repeat=5,
-        since_id=since_id,
-        censored=censored_accounts,
-    )
-    app.log.info('collected %s tweets', len(tweets))
+    reports = agent.list_reports(since_timestamp)
+    app.log.info('fetched %s reports', len(reports))
 
-    if len(tweets) == 0:
+    if len(reports) == 0:
         return
 
-    tweet_log_file = '{}.json'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-    app.log.info('tweet_log: %s', tweet_log_file)
-    tweet_repository.put(tweet_log_file, tweets)
+    report_log_file = '{}.json'.format(datetime.now(tz=timezone.Local).strftime('%Y%m%d_%H%M%S'))
+    app.log.info('report log: %s', report_log_file)
+    report_repository.put(report_log_file, reports)
 
-    reports, errors = parse_tweets(app, tweets)
+    last_report_time = cast(datetime, max([r.timestamp for r in reports]))
+    app.log.info('saving last report time: %s', last_report_time)
+    last_report_time_bytes = last_report_time.isoformat().encode('utf-8')
+    last_report_time_stream = io.BytesIO(last_report_time_bytes)
+    bucket.upload_fileobj(last_report_time_stream, last_report_time_file_key)
+
     # 定期収集において bydate の render を制限する必要はない
     skip_target_date = date(2000, 1, 1)
     render_date_contents(reports, skip_target_date)
     render_user_contents(reports, skip_target_date)
     render_quest_contents(reports, skip_target_date)
 
-    render_error_contents(errors)
-
-    latest_tweet = tweets[0]
-    app.log.info('saving the latest tweet id: %s', latest_tweet.tweet_id)
-    latest_tweet_id_bytes = str(latest_tweet.tweet_id).encode('utf-8')
-    latest_tweet_id_stream = io.BytesIO(latest_tweet_id_bytes)
-    bucket.upload_fileobj(latest_tweet_id_stream, latest_tweet_id_file_key)
-
-    censored_accounts.save()
-
-
-def split_tweets_by_date(
-    tweets: Sequence[twitter.TweetCopy],
-) -> dict[date, list[twitter.TweetCopy]]:
-    """TweetCopyを投稿日で分類して返す。
-    """
-    d: dict[date, list[twitter.TweetCopy]] = {}
-
-    for tw in tweets:
-        # UTC 基準
-        dt = tw.created_at.date()
-        if dt in d:
-            d[dt].append(tw)
-        else:
-            d[dt] = [tw]
-
-    return d
-
-
-@app.route("/recollect_tweets", methods=["POST"], cors=cors_config)
-def recollect_tweets():
-    # TODO implement rate limit
-    request = app.current_request
-    data = request.json_body
-    app.log.info("json_body %s", data)
-
-    if not isinstance(data, list):
-        app.log.error("invalid data")
-        raise BadRequestError("wrong format")
-
-    if len(data) > 20:
-        app.log.info("too many urls: %s", len(data))
-        raise BadRequestError("wrong format")
-
-    parser = twitter.StatusTweetURLParser()
-    try:
-        user_retargets_dict = parser.parse_multi(data)
-    except twitter.TweetURLParseError:
-        raise BadRequestError("wrong format")
-
-    candidates: list[int] = []
-
-    for user, targets in user_retargets_dict.items():
-        repo = recording.UserOutputRepository(
-            user,
-            fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-            basedir=f"{settings.ProcessorOutputDir}/user",
-        )
-        user_reports = repo.load()
-        for target in targets:
-            if target not in user_reports:
-                candidates.append(target)
-            else:
-                app.log.info("requested tweet %s already exists", target)
-
-    if not candidates:
-        app.log.info("no candidates")
-        return {"status": "ok"}
-
-    app.log.info("candidates: %s", candidates)
-
-    agent = setup_twitter_agent()
-    tweet_dict = agent.get_multi(candidates)
-
-    if not tweet_dict:
-        app.log.info("no results")
-        return {"status": "ok"}
-
-    tweet_repository = recording.TweetRepository(
-        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=settings.TweetStorageDir,
-    )
-
-    tweets_by_date = split_tweets_by_date(tweet_dict.values())
-    for dt, tweets in tweets_by_date.items():
-        tweet_log_file = '{}.json'.format(dt.strftime('%Y%m%d_000000'))
-        app.log.info('tweet_log: %s', tweet_log_file)
-        tweet_repository.append_tweets(tweet_log_file, tweets)
-
-        # TODO recollect した場合に month のレンダリングをどうするか未解決。
-        # 問題になりそうなのは月をまたぐ場合。
-        reports, errors = parse_tweets(app, tweets)
-        # by date のレンダリングに制限は不要
-        skip_target_date = date(2000, 1, 1)
-        render_date_contents(reports, skip_target_date)
-        render_user_contents(reports, skip_target_date)
-        render_quest_contents(reports, skip_target_date)
-
-        render_error_contents(errors)
-
-    return {"status": "ok"}
+    app.log.info('done')
 
 
 @app.lambda_function()
@@ -440,7 +319,7 @@ def rebuild_outputs(event, context):
 
     app.log.info("skip rebuilding before the target date: %s", skip_target_date)
 
-    tweet_repository = recording.TweetRepository(
+    tweet_repository = repository.TweetRepository(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=settings.TweetStorageDir,
     )
@@ -450,10 +329,21 @@ def rebuild_outputs(event, context):
         filepath=f'{settings.SettingsDir}/{settings.CensoredAccountsFile}',
     )
 
-    tweets = tweet_repository.readall(set(censored_accounts.list()))
-    app.log.info('retrieved %s tweets', len(tweets))
+    report_repository = repository.ReportRepository(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.ReportStorageDir,
+    )
 
-    reports, errors = parse_tweets(app, tweets)
+    twitter_reports, errors = tweet_repository.readall(set(censored_accounts.list()))
+    app.log.info(f'retrieved {len(twitter_reports)} reports, {len(errors)} parse error tweets from twitter archive')
+
+    fgodrop_reports = report_repository.readall()
+    app.log.info(f'retrieved {len(fgodrop_reports)} reports from fgodrop archive')
+
+    # マージして新しい順に並べる
+    reports = twitter_reports + fgodrop_reports
+    reports.sort(key=lambda e: e.timestamp, reverse=True)
+
     procs = []
 
     with ThreadPoolExecutor() as executor:
@@ -519,9 +409,17 @@ def merge_tweets_into_datefile(event):
     yesterday = (datetime.utcnow() - timedelta(days=1)).date()
     app.log.info("target date: %s", yesterday)
 
+    # TODO: 完全に移行し終えたらこのブロックは消してよい
+    # TODO: 消すタイミングで関数名も変えると良さそう
     merging.merge_into_datefile(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=settings.TweetStorageDir,
+        target_date=yesterday,
+    )
+
+    merging.merge_into_datefile(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.ReportStorageDir,
         target_date=yesterday,
     )
 
@@ -533,9 +431,17 @@ def merge_tweets_into_monthfile(event):
     target_month = yesterday.strftime("%Y%m")
     app.log.info("target month: %s", target_month)
 
+    # TODO: 完全に移行し終えたらこのブロックは消してよい
+    # TODO: 消すタイミングで関数名も変えると良さそう
     merging.merge_into_monthfile(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=settings.TweetStorageDir,
+        target_month=target_month,
+    )
+
+    merging.merge_into_monthfile(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.ReportStorageDir,
         target_month=target_month,
     )
 
@@ -545,9 +451,17 @@ def merge_tweets_into_monthfile_manually(event, context):
     target_month = event["targetMonth"]
     app.log.info("target month: %s", target_month)
 
+    # TODO: 完全に移行し終えたらこのブロックは消してよい
+    # TODO: 消すタイミングで関数名も変えると良さそう
     merging.merge_into_monthfile(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=settings.TweetStorageDir,
+        target_month=target_month,
+    )
+
+    merging.merge_into_monthfile(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.ReportStorageDir,
         target_month=target_month,
     )
 
@@ -583,6 +497,7 @@ def generate_caller_reference():
     return f'harvest-{t}-{r}'
 
 
+# NOTE: 本来ここに実装すべきものではない。可能なら別リポジトリに切り出すべき。
 # @app.s3_event() を使うと複数のトリガーを設定できない。
 # @app.lambda_function() で Lambda を定義して S3 トリガーは手動で設定する。
 @app.lambda_function()

@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
-Local = timezone(timedelta(hours=+9), 'JST')
+Local = ZoneInfo("Asia/Tokyo")
 UTC = timezone.utc
 
 
 def now():
-    return datetime.now(tz=UTC).astimezone(Local)
+    return datetime.now(tz=Local)
