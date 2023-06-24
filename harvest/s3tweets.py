@@ -17,14 +17,20 @@ import boto3  # type: ignore
 from chalicelib import settings
 
 logger = logging.getLogger(__name__)
-s3 = boto3.resource('s3')
-s3bucket = s3.Bucket(settings.S3Bucket)
+
+
+def get_s3bucket(profile):
+    if profile:
+        session = boto3.Session(profile_name=profile)
+        return session.resource('s3').Bucket(settings.S3Bucket)
+    return boto3.resource('s3').Bucket(settings.S3Bucket)
 
 
 def exec_pull(args):
     """
         S3 の JSON ファイルを一括でダウンロードする。
     """
+    s3bucket = get_s3bucket(args.profile)
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
 
@@ -232,6 +238,7 @@ def exec_push(args):
     """
         JSON ファイルを S3 にアップロードする。
     """
+    s3bucket = get_s3bucket(args.profile)
     target_dir = pathlib.Path(args.target_dir)
     files = target_dir.glob('*.json')
     basepath = pathlib.PurePosixPath(settings.TweetStorageDir)
@@ -273,6 +280,7 @@ def exec_clean(args):
         - yyyyMM.json
         - yyyyMM.json が存在しないときの yyyyMMdd.json, yyyyMMdd_HHMMSS.json
     """
+    s3bucket = get_s3bucket(args.profile)
     object_summary_iterator = s3bucket.objects.filter(
         Prefix=settings.TweetStorageDir,
     )
@@ -339,6 +347,7 @@ def build_parser():
             choices=('debug', 'info', 'warning'),
             default='info',
         )
+        subparser.add_argument("--profile")
 
     subparsers = parser.add_subparsers(dest='command')
 
