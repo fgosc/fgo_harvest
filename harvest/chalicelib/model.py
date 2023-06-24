@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Optional, Protocol, cast
 
 from . import freequest
+from . import timezone
 
 
 class SupportDictConversible(Protocol):
@@ -161,6 +162,6 @@ class RunReport:
             runcount=int(data["runcount"]),
             items=cast(dict[str, str], data["items"]),
             note=str(data["note"]),
-            timestamp=datetime.fromisoformat(str(data["timestamp"])),
+            timestamp=datetime.fromisoformat(str(data["timestamp"])).astimezone(timezone.Local),
             source=str(data["source"]),
         )
