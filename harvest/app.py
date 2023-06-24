@@ -335,10 +335,14 @@ def rebuild_outputs(event, context):
     )
 
     twitter_reports, errors = tweet_repository.readall(set(censored_accounts.list()))
-    app.log.info(f'retrieved {len(twitter_reports)} reports, {len(errors)} parse error tweets')
+    app.log.info(f'retrieved {len(twitter_reports)} reports, {len(errors)} parse error tweets from twitter archive')
 
     fgodrop_reports = report_repository.readall()
+    app.log.info(f'retrieved {len(fgodrop_reports)} reports from fgodrop archive')
+
+    # マージして新しい順に並べる
     reports = twitter_reports + fgodrop_reports
+    reports.sort(key=lambda e: e.timestamp, reverse=True)
 
     procs = []
 
