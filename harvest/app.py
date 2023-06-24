@@ -295,7 +295,7 @@ def collect_reports(event):
     else:
         since = datetime.fromisoformat(last_fetch_time_str)
 
-    since_timestamp = int(since.timestamp)
+    since_timestamp = int(since.timestamp())
     app.log.info(f'since: {since}, timestamp: {since_timestamp}')
 
     reports = agent.list_reports(since_timestamp)
