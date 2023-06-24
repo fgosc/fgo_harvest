@@ -178,13 +178,14 @@ class ReportRepository:
         return self.fileStorage.exists(keypath)
 
     def readall(self) -> list[model.RunReport]:
-        reports: list[model.RunReport] = []
+        all_reports: list[model.RunReport] = []
 
         for stream in self.fileStorage.streams(self.basedir, suffix=".json"):
             loaded = json.load(stream)
             reports = [model.RunReport.retrieve(e) for e in loaded]
             logger.info(f"{len(reports)} reports retrieved")
+            all_reports.extend(reports)
 
         # 新しい順
-        reports.sort(key=lambda e: e.timestamp, reverse=True)
-        return reports
+        all_reports.sort(key=lambda e: e.timestamp, reverse=True)
+        return all_reports
