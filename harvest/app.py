@@ -335,7 +335,7 @@ def rebuild_outputs(event, context):
     )
 
     twitter_reports, errors = tweet_repository.readall(set(censored_accounts.list()))
-    app.log.info(f'retrieved {len(twitter_reports)} tweets, {len(errors)} parse error tweets')
+    app.log.info(f'retrieved {len(twitter_reports)} reports, {len(errors)} parse error tweets')
 
     fgodrop_reports = report_repository.readall()
     reports = twitter_reports + fgodrop_reports

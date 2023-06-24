@@ -183,7 +183,7 @@ class ReportRepository:
         for stream in self.fileStorage.streams(self.basedir, suffix=".json"):
             loaded = json.load(stream)
             reports = [model.RunReport.retrieve(e) for e in loaded]
-            logger.info(f"{len(reports)} tweets retrieved")
+            logger.info(f"{len(reports)} reports retrieved")
 
         # 新しい順
         reports.sort(key=lambda e: e.timestamp, reverse=True)
