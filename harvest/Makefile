@@ -6,4 +6,4 @@ test:
 	find -type f -name "*.py" | flake8 --ignore=E126,E501
 
 deploy:
-	chalice deploy --no-autogen-policy
+	chalice deploy --no-autogen-policy $(EXTRA_ARGS)
