@@ -15,6 +15,10 @@
         "rebuild_month_summary": {
           "lambda_timeout": 600,
           "lambda_memory_size": 256
+        },
+        "collect_reports_manually": {
+          "lambda_timeout": 300,
+          "lambda_memory_size": 256
         }
       }
     }

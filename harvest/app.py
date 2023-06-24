@@ -53,34 +53,6 @@ def setup_graphql_client() -> graphql.GraphQLClient:
     )
 
 
-def parse_tweets(
-    app,
-    tweets: list[twitter.TweetCopy],
-) -> tuple[
-    list[model.RunReport],
-    list[twitter.ParseErrorTweet],
-]:
-    parsed = []
-    errors = []
-
-    app.log.info('starting to parse tweets...')
-    for tweet in tweets:
-        try:
-            report = twitter.parse_tweet(tweet)
-            parsed.append(report)
-
-        except twitter.TweetParseError as e:
-            app.log.error(e)
-            app.log.error(tweet)
-            etw = twitter.ParseErrorTweet(
-                tweet=tweet,
-                error_message=e.get_message(),
-            )
-            errors.append(etw)
-
-    return parsed, errors
-
-
 def render_date_contents(
     reports: list[model.RunReport],
     skip_target_date: date,
@@ -268,6 +240,15 @@ def render_month_contents(
 
 
 @app.schedule(Rate(20, unit=Rate.MINUTES))
+def collect_reports_scheduled(event):
+    collect_reports(event)
+
+
+@app.lambda_function()
+def collect_reports_manually(event, context):
+    collect_reports(event)
+
+
 def collect_reports(event):
     agent = setup_graphql_client()
 
@@ -308,17 +289,17 @@ def collect_reports(event):
     app.log.info('report log: %s', report_log_file)
     report_repository.put(report_log_file, reports)
 
-    # 定期収集において bydate の render を制限する必要はない
-    skip_target_date = date(2000, 1, 1)
-    render_date_contents(reports, skip_target_date)
-    render_user_contents(reports, skip_target_date)
-    render_quest_contents(reports, skip_target_date)
-
     last_report_time = cast(datetime, max([r.timestamp for r in reports]))
     app.log.info('saving last report time: %s', last_report_time)
     last_report_time_bytes = last_report_time.isoformat().encode('utf-8')
     last_report_time_stream = io.BytesIO(last_report_time_bytes)
     bucket.upload_fileobj(last_report_time_stream, last_report_time_file_key)
+
+    # 定期収集において bydate の render を制限する必要はない
+    skip_target_date = date(2000, 1, 1)
+    render_date_contents(reports, skip_target_date)
+    render_user_contents(reports, skip_target_date)
+    render_quest_contents(reports, skip_target_date)
 
     app.log.info('done')
 
@@ -353,10 +334,9 @@ def rebuild_outputs(event, context):
         basedir=settings.ReportStorageDir,
     )
 
-    tweets = tweet_repository.readall(set(censored_accounts.list()))
-    app.log.info('retrieved %s tweets', len(tweets))
+    twitter_reports, errors = tweet_repository.readall(set(censored_accounts.list()))
+    app.log.info(f'retrieved {len(twitter_reports)} tweets, {len(errors)} parse error tweets')
 
-    twitter_reports, errors = parse_tweets(app, tweets)
     fgodrop_reports = report_repository.readall()
     reports = twitter_reports + fgodrop_reports
 
