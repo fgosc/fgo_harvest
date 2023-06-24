@@ -77,8 +77,6 @@ query ListReports($nextToken: String, $timestamp: Int) {
                 raise ValueError(f"Failed to fetch data from AppSync: {resp.text}")
 
             data = resp.json()
-            # import json
-            # logger.info(json.dumps(data, indent=2, ensure_ascii=False))
             items = data["data"]["listReports"]["items"]
             next_token = data["data"]["listReports"]["nextToken"]
 
@@ -129,13 +127,21 @@ query ListReports($nextToken: String, $timestamp: Int) {
                     else:
                         items[f"{key}(x{stack})"] = num
 
+        chapter = data["warName"]
+        if chapter is None:
+            chapter = ""
+
+        place = data["questName"]
+        if place is None:
+            place = ""
+
         return model.RunReport(
             report_id=data["id"],
             tweet_id=None,
             reporter=reporter,
             reporter_id=data["owner"],
-            chapter=data["warName"],
-            place=data["questName"],
+            chapter=chapter,
+            place=place,
             runcount=data["runs"],
             items=items,
             note=data["note"],
