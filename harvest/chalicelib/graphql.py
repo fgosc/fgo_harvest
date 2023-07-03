@@ -27,8 +27,16 @@ class GraphQLClient:
             "x-api-key": self.api_key,
         }
         query = """
-query ListReports($nextToken: String, $timestamp: Int) {
-    listReports(filter: { timestamp: {gt: $timestamp} }, nextToken: $nextToken) {
+query ListReportsSortedByTimestamp(
+    $type: String!
+    $timestamp: ModelIntKeyConditionInput
+    $nextToken: String
+) {
+    listReportsSortedByTimestamp(
+        type: $type
+        timestamp: $timestamp
+        nextToken: $nextToken
+    ) {
         items {
             id
             owner
@@ -66,8 +74,9 @@ query ListReports($nextToken: String, $timestamp: Int) {
                 json={
                     "query": query,
                     "variables": {
+                        "type": "open",
+                        "timestamp": {"ge": timestamp},
                         "nextToken": next_token,
-                        "timestamp": timestamp,
                     },
                 },
                 headers=headers,
@@ -77,8 +86,8 @@ query ListReports($nextToken: String, $timestamp: Int) {
                 raise ValueError(f"Failed to fetch data from AppSync: {resp.text}")
 
             data = resp.json()
-            items = data["data"]["listReports"]["items"]
-            next_token = data["data"]["listReports"]["nextToken"]
+            items = data["data"]["listReportsSortedByTimestamp"]["items"]
+            next_token = data["data"]["listReportsSortedByTimestamp"]["nextToken"]
 
             for item in items:
                 report = self.to_report(item)
