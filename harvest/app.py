@@ -1,5 +1,7 @@
+import calendar
 import concurrent.futures
 import io
+import json
 import os
 import random
 import time
@@ -68,7 +70,7 @@ def render_date_contents(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.DATEHTML,
+            recording.OutputFormat.DATE_HTML,
         ),
     )
     recorder.add_all(reports)
@@ -98,7 +100,7 @@ def render_user_contents(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.USERHTML,
+            recording.OutputFormat.USER_HTML,
         ),
     )
     recorder.add_all(reports)
@@ -113,7 +115,7 @@ def render_user_contents(
         basedir=outdir,
         formats=(
             recording.OutputFormat.JSON,
-            recording.OutputFormat.USERLISTHTML,
+            recording.OutputFormat.USER_LIST_HTML,
         )
     )
     recorder_byuserlist.add_all(reports)
@@ -137,7 +139,7 @@ def render_quest_contents(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.QUESTHTML,
+            recording.OutputFormat.QUEST_HTML,
         ),
     )
     recorder.add_all(reports)
@@ -155,13 +157,52 @@ def render_quest_contents(
         basedir=outdir,
         formats=(
             recording.OutputFormat.JSON,
-            recording.OutputFormat.QUESTLISTHTML,
+            recording.OutputFormat.QUEST_LIST_HTML,
         )
     )
     recorder_byquestlist.add_all(reports)
     # quest list だけはリストの増減がない場合でも数値の countup を
     # 再描画する必要があるので強制上書きが必要
     recorder_byquestlist.save(force=True, ignore_original=ignore_original)
+
+
+def render_1hrun_contents(
+    reports: list[model.RunReport],
+    skip_target_date: date,
+    force_save: bool = False,
+    ignore_original: bool = False,
+) -> None:
+    outdir = f'{settings.ProcessorOutputDir}/1hrun'
+    recorder = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleBy1HRun(calendar.THURSDAY),
+        skipSaveRule=recording.SkipSaveRuleByDate(skip_target_date),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
+            recording.OutputFormat.FGO1HRUN_HTML,
+        )
+    )
+    recorder.add_all(reports)
+
+    if recorder.count():
+        recorder.save(force=force_save, ignore_original=ignore_original)
+
+    recorder_by1hrunlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleBy1HRunWeekList(
+            start_day=calendar.THURSDAY,
+        ),
+        skipSaveRule=recording.SkipSaveRuleNeverMatch(),
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=outdir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.FGO1HRUN_LIST_HTML,
+        )
+    )
+    recorder_by1hrunlist.add_all(reports)
+    recorder_by1hrunlist.save(force=force_save, ignore_original=ignore_original)
 
 
 def render_error_contents(
@@ -193,6 +234,7 @@ def render_contents(
     render_date_contents(reports, skip_target_date, ignore_original=ignore_original)
     render_user_contents(reports, skip_target_date, ignore_original=ignore_original)
     render_quest_contents(reports, skip_target_date, ignore_original=ignore_original)
+    render_1hrun_contents(reports, skip_target_date, ignore_original=ignore_original)
 
     render_error_contents(errors, ignore_original=ignore_original)
     app.log.info('done')
@@ -221,7 +263,7 @@ def render_month_contents(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.MONTHHTML,
+            recording.OutputFormat.MONTH_HTML,
         ),
     )
     recorder.add_all(reports)
@@ -257,24 +299,19 @@ def collect_reports(event):
         basedir=settings.ReportStorageDir,
     )
 
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(settings.S3Bucket)
-    last_report_time_file_key = \
-        f'{settings.SettingsDir}/{settings.LastReportTimeFile}'
-    bio = io.BytesIO()
-    app.log.info('checking LastReportTimeFile: %s', last_report_time_file_key)
-    try:
-        bucket.download_fileobj(last_report_time_file_key, bio)
-        last_fetch_time_str = bio.getvalue().decode('utf-8').strip()
-    except botocore.exceptions.ClientError as e:
-        app.log.warning(e)
-        last_fetch_time_str = ''
+    last_report_ts_retriever = repository.LastReportTimeStamp(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.SettingsDir,
+        key=settings.LastReportTimeFile,
+    )
 
-    if not last_fetch_time_str:
+    if last_report_ts_retriever.exists():
+        last_report_id, since = last_report_ts_retriever.load()
+        app.log.info(f"load last_report_ts from S3: report_id = {last_report_id}, timestamp = {since}")
+    else:
+        last_report_id = ""
         # Twitter Crawling の停止時刻
         since = datetime(2023, 6, 13, 20, 35, 0, tzinfo=timezone.Local)
-    else:
-        since = datetime.fromisoformat(last_fetch_time_str)
 
     since_timestamp = int(since.timestamp())
     app.log.info(f'since: {since}, timestamp: {since_timestamp}')
@@ -285,21 +322,27 @@ def collect_reports(event):
     if len(reports) == 0:
         return
 
+    if len(reports) == 1 and reports[0].report_id == last_report_id:
+        app.log.info('no new reports')
+        return
+
     report_log_file = '{}.json'.format(datetime.now(tz=timezone.Local).strftime('%Y%m%d_%H%M%S'))
     app.log.info('report log: %s', report_log_file)
     report_repository.put(report_log_file, reports)
 
-    last_report_time = cast(datetime, max([r.timestamp for r in reports]))
-    app.log.info('saving last report time: %s', last_report_time)
-    last_report_time_bytes = last_report_time.isoformat().encode('utf-8')
-    last_report_time_stream = io.BytesIO(last_report_time_bytes)
-    bucket.upload_fileobj(last_report_time_stream, last_report_time_file_key)
+    newest_report = max(reports, key=lambda r: r.timestamp)
+    app.log.info(
+        "saving newest report id and timestamp: "
+        f"id = {newest_report.report_id}, time = {newest_report.timestamp}"
+    )
+    last_report_ts_retriever.save(newest_report.report_id, newest_report.timestamp)
 
     # 定期収集において bydate の render を制限する必要はない
     skip_target_date = date(2000, 1, 1)
     render_date_contents(reports, skip_target_date)
     render_user_contents(reports, skip_target_date)
     render_quest_contents(reports, skip_target_date)
+    render_1hrun_contents(reports, skip_target_date)
 
     app.log.info('done')
 
@@ -316,6 +359,7 @@ def rebuild_outputs(event, context):
     skip_build_user = event.get("skipBuildUser", False)
     skip_build_quest = event.get("skipBuildQuest", False)
     skip_build_month = event.get("skipBuildMonth", False)
+    skip_build_1hrun = event.get("skipBuild1HRun", False)
 
     app.log.info("skip rebuilding before the target date: %s", skip_target_date)
 
@@ -387,6 +431,17 @@ def rebuild_outputs(event, context):
                 render_month_contents,
                 reports,
                 skip_target_date,
+            )
+            procs.append(ft)
+
+        if skip_build_1hrun:
+            app.log.info("skip building 1HRun contents")
+        else:
+            ft = executor.submit(
+                render_1hrun_contents,
+                reports,
+                skip_target_date,
+                ignore_original=True,
             )
             procs.append(ft)
 

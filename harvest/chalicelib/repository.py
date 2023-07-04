@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from logging import getLogger
 
 from . import model
@@ -18,6 +19,9 @@ Twitter API から取得した報告データは TweetRepository にそのまま
 一方、新サイトの GraphQL から取得したデータはすでに parse 済みのデータである。
 レンダリングの時点では両方のデータを統一的に扱う必要があるので、そのギャップを埋める必要がある。
 """
+
+class FileNotFound(Exception):
+    pass
 
 
 class TweetRepository:
@@ -189,3 +193,43 @@ class ReportRepository:
         # 新しい順
         all_reports.sort(key=lambda e: e.timestamp, reverse=True)
         return all_reports
+
+
+class LastReportTimeStamp:
+    """
+    取得済み最新レポートおよび、そのレポートの時刻を記録するもの。
+    次回の polling で同じレポートを繰り返し取得しないようにするために用いる。
+    """
+    def __init__(self, fileStorage: storage.SupportStorage, basedir: str, key: str):
+        self.fileStorage = fileStorage
+        self.basedir = basedir
+        self.key = key
+
+    def _keypath(self) -> str:
+        basepath = self.fileStorage.path_object(self.basedir)
+        return str(basepath / self.key)
+
+    def save(self, report_id: str, timestamp: datetime) -> None:
+        d = {
+            "report_id": report_id,
+            "timestamp": timestamp.isoformat(),
+        }
+        text = json.dumps(d)
+
+        keypath = self._keypath()
+        out = self.fileStorage.get_output_stream(keypath)
+        out.write(text.encode("UTF-8"))
+        self.fileStorage.close_output_stream(out)
+
+    def load(self) -> tuple[str, datetime]:
+        keypath = self._keypath()
+        if not self.fileStorage.exists(keypath):
+            raise FileNotFound(keypath)
+
+        text = self.fileStorage.get_as_text(keypath)
+        d = json.loads(text)
+        return d["report_id"], datetime.fromisoformat(d["timestamp"])
+
+    def exists(self) -> bool:
+        keypath = self._keypath()
+        return self.fileStorage.exists(keypath)

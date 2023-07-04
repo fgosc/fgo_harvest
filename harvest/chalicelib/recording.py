@@ -39,12 +39,14 @@ month_format = "%Y-%m"
 class OutputFormat(Enum):
     JSON = ('json', 'json')
     CSV = ('csv', 'csv')
-    USERHTML = ('userhtml', 'html')
-    DATEHTML = ('datehtml', 'html')
-    MONTHHTML = ('monthhtml', 'html')
-    QUESTHTML = ('questhtml', 'html')
-    USERLISTHTML = ('userlisthtml', 'html')
-    QUESTLISTHTML = ('questlisthtml', 'html')
+    USER_HTML = ('userhtml', 'html')
+    DATE_HTML = ('datehtml', 'html')
+    MONTH_HTML = ('monthhtml', 'html')
+    FGO1HRUN_HTML = ('fgo1hrunhtml', 'html')
+    QUEST_HTML = ('questhtml', 'html')
+    USER_LIST_HTML = ('userlisthtml', 'html')
+    QUEST_LIST_HTML = ('questlisthtml', 'html')
+    FGO1HRUN_LIST_HTML = ('fgo1hrunlisthtml', 'html')
 
 
 class ErrorOutputFormat(Enum):
@@ -96,6 +98,48 @@ class PartitioningRuleByDate:
         if date not in partitions:
             partitions[date] = []
         partitions[date].append(report)
+
+
+def get_week_start_day(target_date: date, start_day: int) -> date:
+    """
+        target_date よりも前で、最も近い開始曜日の日付を返す
+    """
+    delta = target_date.weekday() - start_day
+    if delta < 0:
+        delta += 7
+    return target_date - timedelta(days=delta)
+
+
+class PartitioningRuleBy1HRun:
+    def __init__(self, start_day: int) -> None:
+        """
+            start_day: 0-6 (0: Monday, 6: Sunday)
+            週の開始曜日
+        """
+        if start_day < 0 or start_day > 6:
+            raise ValueError("start_day must be 0-6")
+        self.start_day = start_day
+
+    def dispatch(
+        self,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
+    ) -> None:
+
+        if "#fgo_1h_run" not in report.note.lower().split():
+            return
+
+        target_date = report.timestamp.date()
+        week_start = get_week_start_day(target_date, self.start_day)
+
+        # 表示上は土曜にする (FGO_1H_run の実施日が土曜のため)
+        # NOTE: たぶんこの実装だと start_day = 6 (SUN) のときバグりそう。
+        # ただ、指定する可能性はほぼないので考えないことにする。
+        display_date = week_start + timedelta(days=5 - self.start_day)
+        display_date_str = display_date.isoformat()
+        if display_date_str not in partitions:
+            partitions[display_date_str] = []
+        partitions[display_date_str].append(report)
 
 
 class PartitioningRuleByMonth:
@@ -357,6 +401,75 @@ class PartitioningRuleByQuestList:
             ps.append(actual_e)
 
         partitions['all'] = ps
+
+
+class FGO1HRunWeekListElement:
+    def __init__(self, week_start: date, display_date: date) -> None:
+        self.week_start = week_start
+        self.display_date = display_date
+
+    def as_dict(self) -> Dict[str, Any]:
+        """
+            for model.SupportDictConversible
+        """
+        return {
+            'id': self.display_date.isoformat(),
+            'week_start': self.week_start.isoformat(),
+            'display_date': self.display_date.isoformat(),
+        }
+
+    def get_id(self) -> Any:
+        """
+            for model.SupportDictConversible
+        """
+        return self.display_date.isoformat()
+
+    def equals(self, obj: Any) -> bool:
+        """
+            for model.SupportDictConversible
+        """
+        if isinstance(obj, dict):
+            return self.get_id() == obj.get('id')
+        if isinstance(obj, FGO1HRunWeekListElement):
+            return self.get_id() == cast(FGO1HRunWeekListElement, obj).get_id()
+        return False
+
+
+class PartitioningRuleBy1HRunWeekList:
+    def __init__(self, start_day: int) -> None:
+        self.existing_week: set[str] = set()
+
+        if start_day < 0 or start_day > 6:
+            raise ValueError("start_day must be 0-6")
+        self.start_day = start_day
+
+    def dispatch(
+        self,
+        partitions: Dict[str, List[model.SupportDictConversible]],
+        report: model.RunReport,
+    ) -> None:
+
+        if "#fgo_1h_run" not in report.note.lower().split():
+            return
+
+        target_date = report.timestamp.date()
+        week_start = get_week_start_day(target_date, self.start_day)
+        if week_start.isoformat() in self.existing_week:
+            return
+        self.existing_week.add(week_start.isoformat())
+
+        # 表示上は土曜にする (FGO_1H_run の実施日が土曜のため)
+        # NOTE: たぶんこの実装だと start_day = 6 (SUN) のときバグりそう。
+        # ただ、指定する可能性はほぼないので考えないことにする。
+        display_date = week_start + timedelta(days=5 - self.start_day)
+
+        e = FGO1HRunWeekListElement(week_start, display_date)
+
+        # パーティションは常に all のみ
+        if 'all' not in partitions:
+            partitions['all'] = []
+
+        partitions['all'].append(e)
 
 
 class SkipSaveRuleNeverMatch:
@@ -763,6 +876,29 @@ class QuestHTMLPageProcessor:
         stream.write(html.encode('UTF-8'))
 
 
+class FGO1HRunHTMLPageProcessor:
+    template_html = 'report_by1hrun.jinja2'
+
+    def dump(
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        today = kwargs['key']
+        today_obj = date.fromisoformat(today)
+        last_week = (today_obj + timedelta(days=-7)).isoformat()
+        next_week = (today_obj + timedelta(days=+7)).isoformat()
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            reports=merged_reports,
+            last_week=last_week,
+            today=today,
+            next_week=next_week,
+        )
+        stream.write(html.encode('UTF-8'))
+
+
 class UserListHTMLPageProcessor:
     template_html = 'all_user.jinja2'
 
@@ -802,23 +938,43 @@ class QuestListHTMLPageProcessor:
         stream.write(html.encode('UTF-8'))
 
 
+class FGO1HRunListHTMLPageProcessor:
+    template_html = 'all_1hrun.jinja2'
+
+    def dump(
+        self,
+        merged_reports: List[Dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            weeks=sorted(merged_reports, key=itemgetter('id'), reverse=True),
+        )
+        stream.write(html.encode('UTF-8'))
+
+
 def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
     if fmt == OutputFormat.JSON:
         return JSONPageProcessor()
     elif fmt == OutputFormat.CSV:
         return CSVPageProcessor()
-    elif fmt == OutputFormat.DATEHTML:
+    elif fmt == OutputFormat.DATE_HTML:
         return DateHTMLPageProcessor()
-    elif fmt == OutputFormat.MONTHHTML:
+    elif fmt == OutputFormat.MONTH_HTML:
         return MonthHTMLPageProcessor()
-    elif fmt == OutputFormat.USERHTML:
+    elif fmt == OutputFormat.USER_HTML:
         return UserHTMLPageProcessor()
-    elif fmt == OutputFormat.QUESTHTML:
+    elif fmt == OutputFormat.QUEST_HTML:
         return QuestHTMLPageProcessor()
-    elif fmt == OutputFormat.USERLISTHTML:
+    elif fmt == OutputFormat.FGO1HRUN_HTML:
+        return FGO1HRunHTMLPageProcessor()
+    elif fmt == OutputFormat.USER_LIST_HTML:
         return UserListHTMLPageProcessor()
-    elif fmt == OutputFormat.QUESTLISTHTML:
+    elif fmt == OutputFormat.QUEST_LIST_HTML:
         return QuestListHTMLPageProcessor()
+    elif fmt == OutputFormat.FGO1HRUN_LIST_HTML:
+        return FGO1HRunListHTMLPageProcessor()
 
     raise ValueError(f'Unsupported format: {fmt}')
 

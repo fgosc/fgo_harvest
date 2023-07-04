@@ -1,13 +1,13 @@
-{% macro table(users) -%}
+{% macro table(weeks) -%}
 <table class="table is-striped is-fullwidth">
   <thead>
     <tr>
-      <th>screen_name</th>
+      <th>開催日</th>
     </tr>
   </thead>
   <tbody>
-{% for user in users %}<tr>
-  <td><a href="{{ user.id }}.html">{{ user.id }}</a></td>
+{% for week in weeks %}<tr>
+  <td><a href="{{ week.id }}.html">{{ week.id }}</a></td>
 </tr>{% endfor %}
   </tbody>
 </table>
@@ -15,14 +15,14 @@
 
 {% extends "base.jinja2" %}
 
-{% block title %}報告者一覧{% endblock %}
+{% block title %}1HRun{% endblock %}
 
 {% block body %}
 
 <h1 class="title" style="margin-bottom: 2.5rem">
-報告者一覧
+1HRun
 </h1>
 
-{{ table(users) }}
+{{ table(weeks) }}
 
 {% endblock %}

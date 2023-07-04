@@ -1,0 +1,65 @@
+{% extends "base.jinja2" %}
+{% macro table(reports) -%}
+<table class="table is-striped is-fullwidth">
+  <thead>
+    <tr>
+      <th>投稿日時</th>
+      <th>投稿者</th>
+      <th style="min-width: 11rem">場所</th>
+      <th style="min-width: 5rem">周回数</th>
+      <th>ドロップ</ht>
+    </tr>
+  </thead>
+  <tbody>
+{% for r in reports %}<tr>
+  <td>
+    {% if r.source == "fgodrop" %}
+      <a href="https://fgodrop.max747.org/reports/{{ r.report_id }}" target="_blank">
+    {% else %}
+      <a href="https://twitter.com/{{ r.reporter }}/status/{{ r.id }}" target="_blank">
+    {% endif %}
+      {{ r.timestamp.strftime("%Y-%m-%d") }}<br>
+      {{ r.timestamp.strftime("%H:%M:%S") }}
+      <span style="margin-left: 0.1rem"><small><i class="fa-solid fa-arrow-up-right-from-square"></i></small></span>
+    </a>
+  </td>
+  <td>
+    <a href="../user/{{ r.reporter }}.html">
+      {{ r.reporter }}
+    </a>
+  </td>
+  <td>
+    <a href="../quest/{{ r.quest_id }}.html">
+      {{ r.chapter }}<br>{{ r.place }}
+    </a>
+  </td>
+  <td>{{ r.runcount }}</td>
+  <td>{% for k, v in r['items'].items() %}{{ k }}: {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+</tr>{% endfor %}
+  </tbody>
+</table>
+
+{%- endmacro -%}
+
+{% block title %}1HRun {{ today }}{% endblock %}
+
+{% block body %}
+
+<nav class="pagination is-centered" role="navigation" aria-label="pagination">
+  <a class="pagination-previous" href="{{ last_week }}.html">← 前週</a>
+  <a class="pagination-next" href="{{ next_week }}.html">翌週 →</a>
+</nav>
+
+<h1 class="title" style="margin-bottom: 2.5rem">
+  1HRun {{ today }}
+
+  <span style="margin-left: 0.5rem">
+    <a href="{{ today }}.csv">
+      <i class="fa-solid fa-file-csv"></i>
+    </a>
+  </span>
+</h1>
+
+{{ table(reports) }}
+
+{% endblock %}
