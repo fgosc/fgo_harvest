@@ -464,14 +464,6 @@ def merge_tweets_into_datefile(event):
     yesterday = (datetime.utcnow() - timedelta(days=1)).date()
     app.log.info("target date: %s", yesterday)
 
-    # TODO: 完全に移行し終えたらこのブロックは消してよい
-    # TODO: 消すタイミングで関数名も変えると良さそう
-    merging.merge_into_datefile(
-        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=settings.TweetStorageDir,
-        target_date=yesterday,
-    )
-
     merging.merge_into_datefile(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=settings.ReportStorageDir,
@@ -486,14 +478,6 @@ def merge_tweets_into_monthfile(event):
     target_month = yesterday.strftime("%Y%m")
     app.log.info("target month: %s", target_month)
 
-    # TODO: 完全に移行し終えたらこのブロックは消してよい
-    # TODO: 消すタイミングで関数名も変えると良さそう
-    merging.merge_into_monthfile(
-        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=settings.TweetStorageDir,
-        target_month=target_month,
-    )
-
     merging.merge_into_monthfile(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
         basedir=settings.ReportStorageDir,
@@ -505,14 +489,6 @@ def merge_tweets_into_monthfile(event):
 def merge_tweets_into_monthfile_manually(event, context):
     target_month = event["targetMonth"]
     app.log.info("target month: %s", target_month)
-
-    # TODO: 完全に移行し終えたらこのブロックは消してよい
-    # TODO: 消すタイミングで関数名も変えると良さそう
-    merging.merge_into_monthfile(
-        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
-        basedir=settings.TweetStorageDir,
-        target_month=target_month,
-    )
 
     merging.merge_into_monthfile(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
