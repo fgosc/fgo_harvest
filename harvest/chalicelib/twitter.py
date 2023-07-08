@@ -6,9 +6,7 @@ import re
 import unicodedata
 from datetime import datetime
 from logging import getLogger
-from typing import (
-    cast, Any, Dict, List, Optional, Sequence, Union,
-)
+from typing import cast, Any, Sequence
 
 import tweepy  # type: ignore
 
@@ -36,10 +34,10 @@ class CensoredAccounts:
     ):
         self.fileStorage = fileStorage
         self.filepath = filepath
-        self.accounts: List[str] = []
+        self.accounts: list[str] = []
         text = fileStorage.get_as_text(filepath)
         if text:
-            self.accounts = cast(List[str], json.loads(text))
+            self.accounts = cast(list[str], json.loads(text))
 
     def save(self) -> None:
         stream = self.fileStorage.get_output_stream(self.filepath)
@@ -55,7 +53,7 @@ class CensoredAccounts:
             return
         self.accounts.append(account)
 
-    def list(self) -> List[str]:
+    def list(self) -> list[str]:
         return copy.deepcopy(self.accounts)
 
 
@@ -63,7 +61,7 @@ class TweetCopy:
     """
         ツイートから周回報告に必要なデータを取り出したもの。
     """
-    def __init__(self, tweet: Optional[Any]):
+    def __init__(self, tweet: Any | None):
         if tweet:
             self.tweet_id: int = tweet.id
             self.screen_name: str = tweet.user.screen_name
@@ -86,7 +84,7 @@ class TweetCopy:
             self.tweet_id,
         )
 
-    def as_dict(self) -> Dict[str, Union[int, str]]:
+    def as_dict(self) -> dict[str, int | str]:
         return dict(
             id=self.tweet_id,
             screen_name=self.screen_name,
@@ -108,7 +106,7 @@ class TweetCopy:
             .astimezone(timezone.Local)
 
     @staticmethod
-    def retrieve(data: Dict[str, Union[int, str]]) -> Optional[TweetCopy]:
+    def retrieve(data: dict[str, int | str]) -> TweetCopy | None:
         full_text = cast(str, data['full_text'])
 
         # 復元時にも censored tweets の簡易チェックをする。
@@ -136,8 +134,8 @@ class ParseErrorTweet:
     """
     def __init__(
         self,
-        tweet: Optional[TweetCopy],
-        error_message: Optional[str],
+        tweet: TweetCopy | None,
+        error_message: str | None,
     ):
         if tweet:
             self.tweet_id = tweet.tweet_id
@@ -164,7 +162,7 @@ class ParseErrorTweet:
             self.tweet_id,
         )
 
-    def as_dict(self) -> Dict[str, Union[int, str]]:
+    def as_dict(self) -> dict[str, int | str]:
         return dict(
             id=self.tweet_id,
             screen_name=self.screen_name,
@@ -188,8 +186,8 @@ class ParseErrorTweet:
 
     @staticmethod
     def retrieve(
-        data: Dict[str, Union[int, str]],
-    ) -> Optional[ParseErrorTweet]:
+        data: dict[str, int | str],
+    ) -> ParseErrorTweet | None:
 
         full_text = cast(str, data['full_text'])
 
@@ -240,12 +238,12 @@ class Agent:
         self,
         fetch_count: int = 100,
         max_repeat: int = 10,
-        since_id: Optional[int] = None,
-        censored: Optional[CensoredAccounts] = None,
-    ) -> List[TweetCopy]:
+        since_id: int | None = None,
+        censored: CensoredAccounts | None = None,
+    ) -> list[TweetCopy]:
 
-        max_id: Optional[int] = None
-        objects: List[TweetCopy] = []
+        max_id: int | None = None
+        objects: list[TweetCopy] = []
 
         # 周回報告の投稿頻度を考えれば、100件ずつ取得している限り
         # ループすることはほとんどないだろう。
@@ -309,7 +307,7 @@ class Agent:
         logger.warning('>>> could not retrieve all available data')
         return objects
 
-    def get(self, tweet_id: int) -> Optional[TweetCopy]:
+    def get(self, tweet_id: int) -> TweetCopy | None:
         """
             ツイートIDを指定し、そのツイートを取得する。
         """
@@ -332,7 +330,7 @@ class Agent:
             return None
         return TweetCopy(tweets[0])
 
-    def get_multi(self, tweet_id_list: List[int]) -> Dict[int, TweetCopy]:
+    def get_multi(self, tweet_id_list: list[int]) -> dict[int, TweetCopy]:
         """
             ツイートIDを複数指定し、それらのツイートを取得する。
             最大100件。
@@ -508,13 +506,13 @@ def parse_tweet(tweet: TweetCopy) -> model.RunReport:
     logger.debug('place: %s', place)
     logger.debug('runcount: %s', runcount)
 
-    items_with_counts: List[str] = []
+    items_with_counts: list[str] = []
     for line in lines:
         tokens = line.strip().split('-')
         items_with_counts.extend(tokens)
 
     logger.debug('items_with_counts: %s', items_with_counts)
-    item_dict: Dict[str, str] = {}
+    item_dict: dict[str, str] = {}
 
     for token in items_with_counts:
         if token == '':
@@ -540,10 +538,11 @@ def parse_tweet(tweet: TweetCopy) -> model.RunReport:
     logger.debug('item_dict: %s', item_dict)
 
     return model.RunReport(
-        report_id=None,
+        report_id="",
         tweet_id=tweet.tweet_id,
         reporter=tweet.screen_name,
-        reporter_id=None,
+        reporter_id="",
+        reporter_name="",
         chapter=chapter,
         place=place,
         runcount=runcount,

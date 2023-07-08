@@ -32,6 +32,7 @@ def test_retrieve_runreport():
 
     assert report.tweet_id == data["id"]
     assert report.reporter == data["reporter"]
+    assert report.reporter_name == ""
     assert report.chapter == data["chapter"]
     assert report.place == data["place"]
     assert report.runcount == data["runcount"]

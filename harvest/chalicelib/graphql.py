@@ -4,8 +4,11 @@ from typing import Any
 
 import requests  # type: ignore
 
-from . import model
-from . import timezone
+from . import (
+    helper,
+    model,
+    timezone,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +89,10 @@ query ListReportsSortedByTimestamp(
                 raise ValueError(f"Failed to fetch data from AppSync: {resp.text}")
 
             data = resp.json()
+
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(data)
+
             items = data["data"]["listReportsSortedByTimestamp"]["items"]
             next_token = data["data"]["listReportsSortedByTimestamp"]["nextToken"]
 
@@ -103,7 +110,7 @@ query ListReportsSortedByTimestamp(
     def to_report(self, data: dict[str, Any]) -> model.RunReport:
         if data["twitterUsername"] is None:
             # twitter account "anonymous" (https://twitter.com/anonymous) は周回報告をしないと仮定してよい
-            reporter = "anonymous"
+            reporter = model.AnonymousReporter
         else:
             reporter = data["twitterUsername"]
 
@@ -136,24 +143,17 @@ query ListReportsSortedByTimestamp(
                     else:
                         items[f"{key}(x{stack})"] = num
 
-        chapter = data["warName"]
-        if chapter is None:
-            chapter = ""
-
-        place = data["questName"]
-        if place is None:
-            place = ""
-
         return model.RunReport(
             report_id=data["id"],
             tweet_id=None,
             reporter=reporter,
-            reporter_id=data["owner"],
-            chapter=chapter,
-            place=place,
+            reporter_id=helper.nvl(data["owner"]),
+            reporter_name=helper.nvl(data["twitterName"]),
+            chapter=helper.nvl(data["warName"]),
+            place=helper.nvl(data["questName"]),
             runcount=data["runs"],
             items=items,
-            note=data["note"],
+            note=helper.nvl(data["note"]),
             timestamp=_from_isoformat(data["createdAt"]),
             source="fgodrop",
         )

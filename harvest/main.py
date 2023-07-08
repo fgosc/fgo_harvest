@@ -5,11 +5,10 @@
 """
 
 import argparse
+import calendar
 import logging
 import os
-import pathlib
 from datetime import date, datetime
-from typing import cast
 
 from chalicelib import (
     graphql,
@@ -75,7 +74,7 @@ def render_all(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.DATEHTML,
+            recording.OutputFormat.DATE_HTML,
         ),
     )
     recorders.append(recorder_bydate)
@@ -91,7 +90,7 @@ def render_all(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.MONTHHTML,
+            recording.OutputFormat.MONTH_HTML,
         )
     )
     recorders.append(recorder_bymonth)
@@ -107,7 +106,7 @@ def render_all(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.USERHTML,
+            recording.OutputFormat.USER_HTML,
         ),
     )
     recorders.append(recorder_byuser)
@@ -123,10 +122,28 @@ def render_all(
         formats=(
             recording.OutputFormat.JSON,
             recording.OutputFormat.CSV,
-            recording.OutputFormat.QUESTHTML,
+            recording.OutputFormat.QUEST_HTML,
         ),
     )
     recorders.append(recorder_byquest)
+
+    contents_1hrun_dir = os.path.join(output_dir, 'contents', '1hrun')
+    if not os.path.exists(contents_1hrun_dir):
+        os.makedirs(contents_1hrun_dir)
+    recorder_by1hrun = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleBy1HRun(
+            start_day=calendar.THURSDAY,
+        ),
+        skipSaveRule=recording.SkipSaveRuleByDate(skip_target_date),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_1hrun_dir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.CSV,
+            recording.OutputFormat.FGO1HRUN_HTML,
+        ),
+    )
+    recorders.append(recorder_by1hrun)
 
     # 出力先は contents_user_dir
     recorder_byuserlist = recording.Recorder(
@@ -136,7 +153,7 @@ def render_all(
         basedir=contents_user_dir,
         formats=(
             recording.OutputFormat.JSON,
-            recording.OutputFormat.USERLISTHTML,
+            recording.OutputFormat.USER_LIST_HTML,
         ),
     )
     recorders.append(recorder_byuserlist)
@@ -150,10 +167,25 @@ def render_all(
         basedir=contents_quest_dir,
         formats=(
             recording.OutputFormat.JSON,
-            recording.OutputFormat.QUESTLISTHTML,
+            recording.OutputFormat.QUEST_LIST_HTML,
         ),
     )
     recorders.append(recorder_byquestlist)
+
+    # 出力先は contents_1hrun_dir
+    recorder_by1hrunlist = recording.Recorder(
+        partitioningRule=recording.PartitioningRuleBy1HRunWeekList(
+            start_day=calendar.THURSDAY,
+        ),
+        skipSaveRule=recording.SkipSaveRuleNeverMatch(),
+        fileStorage=storage.FilesystemStorage(),
+        basedir=contents_1hrun_dir,
+        formats=(
+            recording.OutputFormat.JSON,
+            recording.OutputFormat.FGO1HRUN_LIST_HTML,
+        ),
+    )
+    recorders.append(recorder_by1hrunlist)
 
     contents_error_dir = os.path.join(output_dir, 'contents', 'errors')
     if not os.path.exists(contents_error_dir):
@@ -223,16 +255,22 @@ def command_rebuild(args: argparse.Namespace) -> None:
 
 
 def command_build(args: argparse.Namespace) -> None:
+    last_report_ts_retriever = repository.LastReportTimeStamp(
+        fileStorage=storage.FilesystemStorage(),
+        basedir=".",
+        key=args.last_report_time_file,
+    )
     # --since が指定された場合はそれが最優先
     # --last-report-time-file が存在する場合は次点
     # いずれも満たさない場合は 2023-06-13 20:35:00 JST (Twitter Crawling の停止時刻)
     if args.since:
+        last_report_id = ""
         since = int(args.since)
-    elif pathlib.Path(args.last_report_time_file).exists():
-        with open(args.last_report_time_file) as fp:
-            last_report_time = datetime.fromisoformat(fp.read().strip())
-            since = int(last_report_time.timestamp())
+    elif last_report_ts_retriever.exists():
+        last_report_id, last_report_time = last_report_ts_retriever.load()
+        since = int(last_report_time.timestamp())
     else:
+        last_report_id = ""
         since = 1686656100
 
     client = graphql.GraphQLClient(settings.GraphQLEndpoint, settings.GraphQLApiKey)
@@ -240,6 +278,10 @@ def command_build(args: argparse.Namespace) -> None:
 
     if len(reports) == 0:
         logger.info('no reports')
+        return
+
+    if len(reports) == 1 and last_report_id == reports[0].report_id:
+        logger.info('no new reports')
         return
 
     report_repository = setup_report_repository(args.output_dir)
@@ -250,10 +292,9 @@ def command_build(args: argparse.Namespace) -> None:
     parse_error_tweets: list[twitter.ParseErrorTweet] = []
     render_all(reports, parse_error_tweets, args.output_dir, args.skip_target_date, rebuild=False)
 
-    last_report_time = cast(datetime, max([r.timestamp for r in reports]))
-    logger.info('saving last report time: %s', last_report_time)
-    with open(args.last_report_time_file, "w") as fp:
-        fp.write(last_report_time.isoformat())
+    newest_report = max(reports, key=lambda e: e.timestamp)
+    logger.info(f'saving last report: id = {newest_report.report_id}, time = {newest_report.timestamp}')
+    last_report_ts_retriever.save(newest_report.report_id, newest_report.timestamp)
 
 
 def command_delete(args: argparse.Namespace) -> None:

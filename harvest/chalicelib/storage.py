@@ -2,7 +2,7 @@ import io
 import pathlib
 import shutil
 from logging import getLogger
-from typing import BinaryIO, Iterator, Dict, Protocol
+from typing import BinaryIO, Iterator, Protocol
 
 import boto3  # type: ignore
 import botocore.exceptions  # type: ignore
@@ -119,7 +119,7 @@ class AmazonS3Storage:
         self.s3 = boto3.resource('s3')
         self.s3client = boto3.client('s3')
         self.bucket = self.s3.Bucket(bucket)
-        self.key_stream_pairs: Dict[str, BinaryIO] = {}
+        self.key_stream_pairs: dict[str, BinaryIO] = {}
 
     def list(
         self,

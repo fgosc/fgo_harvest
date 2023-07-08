@@ -7,10 +7,7 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from logging import getLogger
 from operator import itemgetter
-from typing import (
-    cast, Any, BinaryIO, Dict, List, Protocol,
-    Sequence, Set, Union,
-)
+from typing import cast, Any, BinaryIO, Protocol, Sequence
 
 from dateutil.relativedelta import relativedelta  # type: ignore
 from jinja2 import (  # type: ignore
@@ -39,12 +36,14 @@ month_format = "%Y-%m"
 class OutputFormat(Enum):
     JSON = ('json', 'json')
     CSV = ('csv', 'csv')
-    USERHTML = ('userhtml', 'html')
-    DATEHTML = ('datehtml', 'html')
-    MONTHHTML = ('monthhtml', 'html')
-    QUESTHTML = ('questhtml', 'html')
-    USERLISTHTML = ('userlisthtml', 'html')
-    QUESTLISTHTML = ('questlisthtml', 'html')
+    USER_HTML = ('userhtml', 'html')
+    DATE_HTML = ('datehtml', 'html')
+    MONTH_HTML = ('monthhtml', 'html')
+    FGO1HRUN_HTML = ('fgo1hrunhtml', 'html')
+    QUEST_HTML = ('questhtml', 'html')
+    USER_LIST_HTML = ('userlisthtml', 'html')
+    QUEST_LIST_HTML = ('questlisthtml', 'html')
+    FGO1HRUN_LIST_HTML = ('fgo1hrunlisthtml', 'html')
 
 
 class ErrorOutputFormat(Enum):
@@ -55,7 +54,7 @@ class ErrorOutputFormat(Enum):
 class SupportPartitioningRule(Protocol):
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
         ...
@@ -71,7 +70,7 @@ class SupportStatefulPartitioningRule(Protocol):
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
         ...
@@ -88,7 +87,7 @@ class SupportSkipSaveRule(Protocol):
 class PartitioningRuleByDate:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -98,10 +97,55 @@ class PartitioningRuleByDate:
         partitions[date].append(report)
 
 
+def get_week_start_day(target_date: date, start_day: int) -> date:
+    """
+        target_date よりも前で、最も近い開始曜日の日付を返す
+    """
+    delta = target_date.weekday() - start_day
+    if delta < 0:
+        delta += 7
+    return target_date - timedelta(days=delta)
+
+
+class PartitioningRuleBy1HRun:
+    def __init__(self, start_day: int) -> None:
+        """
+            start_day: 0-6 (0: Monday, 6: Sunday)
+            週の開始曜日
+        """
+        if start_day < 0 or start_day > 6:
+            raise ValueError("start_day must be 0-6")
+        self.start_day = start_day
+
+    def dispatch(
+        self,
+        partitions: dict[str, list[model.SupportDictConversible]],
+        report: model.RunReport,
+    ) -> None:
+
+        if report.reporter == model.AnonymousReporter:
+            return
+
+        if "#fgo_1h_run" not in report.note.lower().split():
+            return
+
+        target_date = report.timestamp.date()
+        week_start = get_week_start_day(target_date, self.start_day)
+
+        # 表示上は土曜にする (FGO_1H_run の実施日が土曜のため)
+        # NOTE: たぶんこの実装だと start_day = 6 (SUN) のときバグりそう。
+        # ただ、指定する可能性はほぼないので考えないことにする。
+        display_date = week_start + timedelta(days=5 - self.start_day)
+        display_date_str = display_date.isoformat()
+        if display_date_str not in partitions:
+            partitions[display_date_str] = []
+        partitions[display_date_str].append(report)
+
+
 class PartitioningRuleByMonth:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -114,7 +158,7 @@ class PartitioningRuleByMonth:
 class PartitioningRuleByUser:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -126,7 +170,7 @@ class PartitioningRuleByUser:
 class PartitioningRuleByQuest:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -140,7 +184,7 @@ class UserListElement:
     def __init__(self, uid):
         self.uid = uid
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """
             for model.SupportDictConversible
         """
@@ -171,11 +215,11 @@ class PartitioningRuleByUserList:
         user list を作る
     """
     def __init__(self) -> None:
-        self.existing_reporters: Set[str] = set()
+        self.existing_reporters: set[str] = set()
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -224,7 +268,7 @@ class QuestListElement:
         if timestamp > self.latest:
             self.latest = timestamp
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """
             for model.SupportDictConversible
         """
@@ -268,7 +312,7 @@ class PartitioningRuleByQuestList:
         quest list を作る
     """
     def __init__(self, rebuild: bool = False):
-        self.quest_dict: Dict[str, QuestListElement] = {}
+        self.quest_dict: dict[str, QuestListElement] = {}
         self.rebuild = rebuild
 
     def setup(
@@ -286,7 +330,7 @@ class PartitioningRuleByQuestList:
         filepath = str(basepath / 'all.json')
         text = fileStorage.get_as_text(filepath)
 
-        def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+        def _load_hook(d: dict[str, Any]) -> dict[str, Any]:
             if 'since' in d:
                 ts = d['since']
                 d['since'] = datetime.fromisoformat(ts)
@@ -318,7 +362,7 @@ class PartitioningRuleByQuestList:
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -357,6 +401,78 @@ class PartitioningRuleByQuestList:
             ps.append(actual_e)
 
         partitions['all'] = ps
+
+
+class FGO1HRunWeekListElement:
+    def __init__(self, week_start: date, display_date: date) -> None:
+        self.week_start = week_start
+        self.display_date = display_date
+
+    def as_dict(self) -> dict[str, Any]:
+        """
+            for model.SupportDictConversible
+        """
+        return {
+            'id': self.display_date.isoformat(),
+            'week_start': self.week_start.isoformat(),
+            'display_date': self.display_date.isoformat(),
+        }
+
+    def get_id(self) -> Any:
+        """
+            for model.SupportDictConversible
+        """
+        return self.display_date.isoformat()
+
+    def equals(self, obj: Any) -> bool:
+        """
+            for model.SupportDictConversible
+        """
+        if isinstance(obj, dict):
+            return self.get_id() == obj.get('id')
+        if isinstance(obj, FGO1HRunWeekListElement):
+            return self.get_id() == cast(FGO1HRunWeekListElement, obj).get_id()
+        return False
+
+
+class PartitioningRuleBy1HRunWeekList:
+    def __init__(self, start_day: int) -> None:
+        self.existing_week: set[str] = set()
+
+        if start_day < 0 or start_day > 6:
+            raise ValueError("start_day must be 0-6")
+        self.start_day = start_day
+
+    def dispatch(
+        self,
+        partitions: dict[str, list[model.SupportDictConversible]],
+        report: model.RunReport,
+    ) -> None:
+
+        if report.reporter == model.AnonymousReporter:
+            return
+
+        if "#fgo_1h_run" not in report.note.lower().split():
+            return
+
+        target_date = report.timestamp.date()
+        week_start = get_week_start_day(target_date, self.start_day)
+        if week_start.isoformat() in self.existing_week:
+            return
+        self.existing_week.add(week_start.isoformat())
+
+        # 表示上は土曜にする (FGO_1H_run の実施日が土曜のため)
+        # NOTE: たぶんこの実装だと start_day = 6 (SUN) のときバグりそう。
+        # ただ、指定する可能性はほぼないので考えないことにする。
+        display_date = week_start + timedelta(days=5 - self.start_day)
+
+        e = FGO1HRunWeekListElement(week_start, display_date)
+
+        # パーティションは常に all のみ
+        if 'all' not in partitions:
+            partitions['all'] = []
+
+        partitions['all'].append(e)
 
 
 class SkipSaveRuleNeverMatch:
@@ -457,16 +573,13 @@ class SkipSaveRuleByDateAndQuest:
 class Recorder:
     def __init__(
         self,
-        partitioningRule: Union[
-            SupportPartitioningRule,
-            SupportStatefulPartitioningRule
-        ],
+        partitioningRule: SupportPartitioningRule | SupportStatefulPartitioningRule,
         skipSaveRule: SupportSkipSaveRule,
         fileStorage: storage.SupportStorage,
         basedir: str,
         formats: Sequence[OutputFormat],
     ):
-        self.partitions: Dict[str, List[model.SupportDictConversible]] = {}
+        self.partitions: dict[str, list[model.SupportDictConversible]] = {}
         self.partitioningRule = partitioningRule
         self.skipSaveRule = skipSaveRule
         self.fileStorage = fileStorage
@@ -495,13 +608,13 @@ class Recorder:
         return self.counter
 
     @staticmethod
-    def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+    def _load_hook(d: dict[str, Any]) -> dict[str, Any]:
         if 'timestamp' in d:
             ts = d['timestamp']
             d['timestamp'] = datetime.fromisoformat(ts)
         return d
 
-    def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
+    def _get_original_json(self, key: str) -> list[dict[str, Any]]:
         keypath = str(self.basepath / f'{key}.json')
         logger.info('retrieving original json: %s', keypath)
         text = self.fileStorage.get_as_text(keypath)
@@ -552,7 +665,7 @@ class Recorder:
 class PageProcessorSupport(Protocol):
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -567,11 +680,11 @@ class ReportMerger:
     """
     def _make_index(
         self,
-        original: List[Dict[str, Any]],
+        original: list[dict[str, Any]],
         deepcopy: bool = False,
-    ) -> Dict[Any, Dict[str, Any]]:
+    ) -> dict[Any, dict[str, Any]]:
 
-        d: Dict[Any, Dict[str, Any]] = {}
+        d: dict[Any, dict[str, Any]] = {}
         for r in original:
             if deepcopy:
                 d[r['id']] = copy.deepcopy(r)
@@ -581,9 +694,9 @@ class ReportMerger:
 
     def merge(
         self,
-        additional_items: List[model.SupportDictConversible],
-        original: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        additional_items: list[model.SupportDictConversible],
+        original: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
 
         logger.info('original reports: %d', len(original))
         merged_dict = self._make_index(original, deepcopy=True)
@@ -615,7 +728,7 @@ class ReportMerger:
         return merged_list
 
     @staticmethod
-    def marged_list_sorter(e: Dict[str, Any]) -> Any:
+    def marged_list_sorter(e: dict[str, Any]) -> Any:
         if 'timestamp' in e:
             return e['timestamp']
         return e['id']
@@ -624,7 +737,7 @@ class ReportMerger:
 class JSONPageProcessor:
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -639,33 +752,48 @@ class JSONPageProcessor:
 class CSVPageProcessor:
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
         sio = io.StringIO()
         header = [
+            "報告ID",
+            "ツイートID",
+            "報告者ID",
             "報告者",
+            "報告者名",
             "章",
             "場所",
             "周回数",
             "投稿時刻",
             "フリクエ",
+            "ソース",
             "URL",
             "ドロップ",
         ]
         w = csv.writer(sio)
         w.writerow(header)
         for r in merged_reports:
+            if r["source"] == "fgodrop":
+                permalink = f"https://fgodrop.max747.org/reports/{r['report_id']}"
+            else:
+                permalink = f"https://twitter.com/{r['reporter']}/status/{r['id']}"
+
             row = [
+                r["report_id"],
+                helper.nvl(r["tweet_id"]),
+                r["reporter_id"],
                 r["reporter"],
+                r["reporter_name"],
                 r["chapter"],
                 r["place"],
                 r["runcount"],
                 r["timestamp"],
                 r["freequest"],
-                f"https://twitter.com/{r['reporter']}/status/{r['id']}",
+                permalink,
             ]
+
             for k, v in r["items"].items():
                 row.append(k)
                 row.append(v)
@@ -678,7 +806,7 @@ class DateHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -704,7 +832,7 @@ class MonthHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -730,7 +858,7 @@ class UserHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -750,7 +878,7 @@ class QuestHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -763,12 +891,35 @@ class QuestHTMLPageProcessor:
         stream.write(html.encode('UTF-8'))
 
 
+class FGO1HRunHTMLPageProcessor:
+    template_html = 'report_by1hrun.jinja2'
+
+    def dump(
+        self,
+        merged_reports: list[dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        today = kwargs['key']
+        today_obj = date.fromisoformat(today)
+        last_week = (today_obj + timedelta(days=-7)).isoformat()
+        next_week = (today_obj + timedelta(days=+7)).isoformat()
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            reports=merged_reports,
+            last_week=last_week,
+            today=today,
+            next_week=next_week,
+        )
+        stream.write(html.encode('UTF-8'))
+
+
 class UserListHTMLPageProcessor:
     template_html = 'all_user.jinja2'
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -784,7 +935,7 @@ class QuestListHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -802,23 +953,43 @@ class QuestListHTMLPageProcessor:
         stream.write(html.encode('UTF-8'))
 
 
+class FGO1HRunListHTMLPageProcessor:
+    template_html = 'all_1hrun.jinja2'
+
+    def dump(
+        self,
+        merged_reports: list[dict[str, Any]],
+        stream: BinaryIO,
+        **kwargs,
+    ):
+        template = jinja2_env.get_template(self.template_html)
+        html = template.render(
+            weeks=sorted(merged_reports, key=itemgetter('id'), reverse=True),
+        )
+        stream.write(html.encode('UTF-8'))
+
+
 def create_processor(fmt: OutputFormat) -> PageProcessorSupport:
     if fmt == OutputFormat.JSON:
         return JSONPageProcessor()
     elif fmt == OutputFormat.CSV:
         return CSVPageProcessor()
-    elif fmt == OutputFormat.DATEHTML:
+    elif fmt == OutputFormat.DATE_HTML:
         return DateHTMLPageProcessor()
-    elif fmt == OutputFormat.MONTHHTML:
+    elif fmt == OutputFormat.MONTH_HTML:
         return MonthHTMLPageProcessor()
-    elif fmt == OutputFormat.USERHTML:
+    elif fmt == OutputFormat.USER_HTML:
         return UserHTMLPageProcessor()
-    elif fmt == OutputFormat.QUESTHTML:
+    elif fmt == OutputFormat.QUEST_HTML:
         return QuestHTMLPageProcessor()
-    elif fmt == OutputFormat.USERLISTHTML:
+    elif fmt == OutputFormat.FGO1HRUN_HTML:
+        return FGO1HRunHTMLPageProcessor()
+    elif fmt == OutputFormat.USER_LIST_HTML:
         return UserListHTMLPageProcessor()
-    elif fmt == OutputFormat.QUESTLISTHTML:
+    elif fmt == OutputFormat.QUEST_LIST_HTML:
         return QuestListHTMLPageProcessor()
+    elif fmt == OutputFormat.FGO1HRUN_LIST_HTML:
+        return FGO1HRunListHTMLPageProcessor()
 
     raise ValueError(f'Unsupported format: {fmt}')
 
@@ -919,7 +1090,7 @@ class ErrorPageRecorder:
         self.basedir = basedir
         self.key = key
         self.formats = formats
-        self.errors: List[twitter.ParseErrorTweet] = []
+        self.errors: list[twitter.ParseErrorTweet] = []
         self.basepath = fileStorage.path_object(basedir)
 
     def add_error(self, tweet: twitter.ParseErrorTweet) -> None:
@@ -930,13 +1101,13 @@ class ErrorPageRecorder:
             self.add_error(tw)
 
     @staticmethod
-    def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+    def _load_hook(d: dict[str, Any]) -> dict[str, Any]:
         if 'timestamp' in d:
             ts = d['timestamp']
             d['timestamp'] = datetime.fromisoformat(ts)
         return d
 
-    def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
+    def _get_original_json(self, key: str) -> list[dict[str, Any]]:
         keypath = str(self.basepath / f'{key}.json')
         logger.info('retrieving original json: %s', keypath)
         text = self.fileStorage.get_as_text(keypath)
@@ -959,7 +1130,7 @@ class ErrorPageRecorder:
             _original_tweets = [
                 twitter.ParseErrorTweet.retrieve(d) for d in original
             ]
-            original_tweets: List[twitter.ParseErrorTweet] = [
+            original_tweets: list[twitter.ParseErrorTweet] = [
                 tw for tw in _original_tweets if tw is not None]
             merger = ErrorMerger()
             merged_errors = merger.merge(self.errors, original_tweets)
@@ -975,7 +1146,7 @@ class ErrorPageRecorder:
 
 
 class ErrorMerger:
-    def _make_index(self, original: List[twitter.ParseErrorTweet]):
+    def _make_index(self, original: list[twitter.ParseErrorTweet]):
         s = set()
         for r in original:
             s.add(r.tweet_id)
@@ -983,8 +1154,8 @@ class ErrorMerger:
 
     def merge(
         self,
-        errors: List[twitter.ParseErrorTweet],
-        original: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
+        original: list[twitter.ParseErrorTweet],
     ):
         logger.info('original error tweets: %d', len(original))
         merged = copy.deepcopy(original)
@@ -1004,7 +1175,7 @@ class ErrorMerger:
 class ErrorPageProcessorSupport(Protocol):
     def dump(
         self,
-        errors: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
         stream: BinaryIO,
     ) -> None:
         ...
@@ -1013,7 +1184,7 @@ class ErrorPageProcessorSupport(Protocol):
 class JSONErrorPageProcessor:
     def dump(
         self,
-        errors: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
         stream: BinaryIO,
     ) -> None:
         data = [tw.as_dict() for tw in errors]
@@ -1030,7 +1201,7 @@ class HTMLErrorPageProcessor:
 
     def dump(
         self,
-        errors: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
         stream: BinaryIO,
     ) -> None:
         template = jinja2_env.get_template(self.template_html)

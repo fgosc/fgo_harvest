@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, Protocol, cast
+from typing import Any, Protocol, cast
 
 from . import freequest
 from . import timezone
+
+AnonymousReporter: str = "anonymous"
 
 
 class SupportDictConversible(Protocol):
@@ -26,14 +28,16 @@ class RunReport:
 
     def __init__(
         self,
-        # report_id は source: twitter の場合 None
-        report_id: Optional[str],
+        # report_id は source: twitter の場合 empty
+        report_id: str,
         # tweet_id は source: fgodrop の場合 None
-        tweet_id: Optional[int],
+        tweet_id: int | None,
         # twitter name or "anonymous"
         reporter: str,
-        # reporter_id は source: twitter の場合 None
-        reporter_id: Optional[str],
+        # reporter_id は source: twitter の場合 empty
+        reporter_id: str,
+        # reporter_name は source: twitter の場合 empty
+        reporter_name: str,
         chapter: str,
         place: str,
         runcount: int,
@@ -49,6 +53,7 @@ class RunReport:
         self.tweet_id = tweet_id
         self.reporter = reporter
         self.reporter_id = reporter_id
+        self.reporter_name = reporter_name
         self.chapter = chapter
         self.place = place
         self.runcount = runcount
@@ -90,6 +95,7 @@ class RunReport:
             tweet_id=self.tweet_id,
             reporter=self.reporter,
             reporter_id=self.reporter_id,
+            reporter_name=self.reporter_name,
             chapter=self.chapter,
             place=self.place,
             runcount=self.runcount,
@@ -157,6 +163,8 @@ class RunReport:
             tweet_id=data["tweet_id"],
             reporter=str(data["reporter"]),
             reporter_id=data["reporter_id"],
+            # NOTE: 古いデータ形式だと reporter_name が存在しない可能性がある
+            reporter_name=data.get("reporter_name", ""),
             chapter=str(data["chapter"]),
             place=str(data["place"]),
             runcount=int(data["runcount"]),

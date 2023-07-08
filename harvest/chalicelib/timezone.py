@@ -5,5 +5,5 @@ Local = ZoneInfo("Asia/Tokyo")
 UTC = timezone.utc
 
 
-def now():
+def now() -> datetime:
     return datetime.now(tz=Local)
