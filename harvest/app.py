@@ -1,17 +1,13 @@
 import calendar
 import concurrent.futures
-import io
-import json
 import os
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from logging import getLogger
-from typing import cast
 
 import boto3  # type: ignore
-import botocore.exceptions  # type: ignore
 from chalice import (  # type: ignore
     Chalice,
     CORSConfig,

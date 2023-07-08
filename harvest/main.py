@@ -8,9 +8,7 @@ import argparse
 import calendar
 import logging
 import os
-import pathlib
 from datetime import date, datetime
-from typing import cast
 
 from chalicelib import (
     graphql,
