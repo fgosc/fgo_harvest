@@ -6,6 +6,8 @@ from typing import Any, Protocol, cast
 from . import freequest
 from . import timezone
 
+AnonymousReporter: str = "anonymous"
+
 
 class SupportDictConversible(Protocol):
     def as_dict(self) -> dict[str, Any]:

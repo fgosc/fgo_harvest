@@ -123,6 +123,9 @@ class PartitioningRuleBy1HRun:
         report: model.RunReport,
     ) -> None:
 
+        if report.reporter == model.AnonymousReporter:
+            return
+
         if "#fgo_1h_run" not in report.note.lower().split():
             return
 
@@ -445,6 +448,9 @@ class PartitioningRuleBy1HRunWeekList:
         partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
+
+        if report.reporter == model.AnonymousReporter:
+            return
 
         if "#fgo_1h_run" not in report.note.lower().split():
             return

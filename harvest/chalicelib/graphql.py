@@ -110,7 +110,7 @@ query ListReportsSortedByTimestamp(
     def to_report(self, data: dict[str, Any]) -> model.RunReport:
         if data["twitterUsername"] is None:
             # twitter account "anonymous" (https://twitter.com/anonymous) は周回報告をしないと仮定してよい
-            reporter = "anonymous"
+            reporter = model.AnonymousReporter
         else:
             reporter = data["twitterUsername"]
 
