@@ -540,10 +540,11 @@ def parse_tweet(tweet: TweetCopy) -> model.RunReport:
     logger.debug('item_dict: %s', item_dict)
 
     return model.RunReport(
-        report_id=None,
+        report_id="",
         tweet_id=tweet.tweet_id,
         reporter=tweet.screen_name,
-        reporter_id=None,
+        reporter_id="",
+        reporter_name="",
         chapter=chapter,
         place=place,
         runcount=runcount,

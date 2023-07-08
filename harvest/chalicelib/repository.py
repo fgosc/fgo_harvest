@@ -20,6 +20,7 @@ Twitter API から取得した報告データは TweetRepository にそのまま
 レンダリングの時点では両方のデータを統一的に扱う必要があるので、そのギャップを埋める必要がある。
 """
 
+
 class FileNotFound(Exception):
     pass
 

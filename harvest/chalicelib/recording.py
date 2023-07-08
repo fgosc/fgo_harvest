@@ -749,12 +749,6 @@ class JSONPageProcessor:
         stream.write(s.encode('UTF-8'))
 
 
-def nvl(s: str | None, default: str = '') -> str:
-    if s is None:
-        return default
-    return s
-
-
 class CSVPageProcessor:
     def dump(
         self,
@@ -768,6 +762,7 @@ class CSVPageProcessor:
             "ツイートID",
             "報告者ID",
             "報告者",
+            "報告者名",
             "章",
             "場所",
             "周回数",
@@ -783,13 +778,14 @@ class CSVPageProcessor:
             if r["source"] == "fgodrop":
                 permalink = f"https://fgodrop.max747.org/reports/{r['report_id']}"
             else:
-                permalink = f"https://twitter.com/{r['reporter']}/status/{r['id']}",
+                permalink = f"https://twitter.com/{r['reporter']}/status/{r['id']}"
 
             row = [
-                nvl(r["report_id"]),
-                nvl(r["tweet_id"]),
-                nvl(r["reporter_id"]),
-                nvl(r["reporter"]),
+                r["report_id"],
+                helper.nvl(r["tweet_id"]),
+                r["reporter_id"],
+                r["reporter"],
+                r["reporter_name"],
                 r["chapter"],
                 r["place"],
                 r["runcount"],
