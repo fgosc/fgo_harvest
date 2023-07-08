@@ -7,10 +7,7 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from logging import getLogger
 from operator import itemgetter
-from typing import (
-    cast, Any, BinaryIO, Dict, List, Protocol,
-    Sequence, Set, Union,
-)
+from typing import cast, Any, BinaryIO, Protocol, Sequence
 
 from dateutil.relativedelta import relativedelta  # type: ignore
 from jinja2 import (  # type: ignore
@@ -57,7 +54,7 @@ class ErrorOutputFormat(Enum):
 class SupportPartitioningRule(Protocol):
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
         ...
@@ -73,7 +70,7 @@ class SupportStatefulPartitioningRule(Protocol):
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
         ...
@@ -90,7 +87,7 @@ class SupportSkipSaveRule(Protocol):
 class PartitioningRuleByDate:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -122,7 +119,7 @@ class PartitioningRuleBy1HRun:
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -145,7 +142,7 @@ class PartitioningRuleBy1HRun:
 class PartitioningRuleByMonth:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -158,7 +155,7 @@ class PartitioningRuleByMonth:
 class PartitioningRuleByUser:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -170,7 +167,7 @@ class PartitioningRuleByUser:
 class PartitioningRuleByQuest:
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -184,7 +181,7 @@ class UserListElement:
     def __init__(self, uid):
         self.uid = uid
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """
             for model.SupportDictConversible
         """
@@ -215,11 +212,11 @@ class PartitioningRuleByUserList:
         user list を作る
     """
     def __init__(self) -> None:
-        self.existing_reporters: Set[str] = set()
+        self.existing_reporters: set[str] = set()
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -268,7 +265,7 @@ class QuestListElement:
         if timestamp > self.latest:
             self.latest = timestamp
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """
             for model.SupportDictConversible
         """
@@ -312,7 +309,7 @@ class PartitioningRuleByQuestList:
         quest list を作る
     """
     def __init__(self, rebuild: bool = False):
-        self.quest_dict: Dict[str, QuestListElement] = {}
+        self.quest_dict: dict[str, QuestListElement] = {}
         self.rebuild = rebuild
 
     def setup(
@@ -330,7 +327,7 @@ class PartitioningRuleByQuestList:
         filepath = str(basepath / 'all.json')
         text = fileStorage.get_as_text(filepath)
 
-        def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+        def _load_hook(d: dict[str, Any]) -> dict[str, Any]:
             if 'since' in d:
                 ts = d['since']
                 d['since'] = datetime.fromisoformat(ts)
@@ -362,7 +359,7 @@ class PartitioningRuleByQuestList:
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -408,7 +405,7 @@ class FGO1HRunWeekListElement:
         self.week_start = week_start
         self.display_date = display_date
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """
             for model.SupportDictConversible
         """
@@ -445,7 +442,7 @@ class PartitioningRuleBy1HRunWeekList:
 
     def dispatch(
         self,
-        partitions: Dict[str, List[model.SupportDictConversible]],
+        partitions: dict[str, list[model.SupportDictConversible]],
         report: model.RunReport,
     ) -> None:
 
@@ -570,16 +567,13 @@ class SkipSaveRuleByDateAndQuest:
 class Recorder:
     def __init__(
         self,
-        partitioningRule: Union[
-            SupportPartitioningRule,
-            SupportStatefulPartitioningRule
-        ],
+        partitioningRule: SupportPartitioningRule | SupportStatefulPartitioningRule,
         skipSaveRule: SupportSkipSaveRule,
         fileStorage: storage.SupportStorage,
         basedir: str,
         formats: Sequence[OutputFormat],
     ):
-        self.partitions: Dict[str, List[model.SupportDictConversible]] = {}
+        self.partitions: dict[str, list[model.SupportDictConversible]] = {}
         self.partitioningRule = partitioningRule
         self.skipSaveRule = skipSaveRule
         self.fileStorage = fileStorage
@@ -608,13 +602,13 @@ class Recorder:
         return self.counter
 
     @staticmethod
-    def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+    def _load_hook(d: dict[str, Any]) -> dict[str, Any]:
         if 'timestamp' in d:
             ts = d['timestamp']
             d['timestamp'] = datetime.fromisoformat(ts)
         return d
 
-    def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
+    def _get_original_json(self, key: str) -> list[dict[str, Any]]:
         keypath = str(self.basepath / f'{key}.json')
         logger.info('retrieving original json: %s', keypath)
         text = self.fileStorage.get_as_text(keypath)
@@ -665,7 +659,7 @@ class Recorder:
 class PageProcessorSupport(Protocol):
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -680,11 +674,11 @@ class ReportMerger:
     """
     def _make_index(
         self,
-        original: List[Dict[str, Any]],
+        original: list[dict[str, Any]],
         deepcopy: bool = False,
-    ) -> Dict[Any, Dict[str, Any]]:
+    ) -> dict[Any, dict[str, Any]]:
 
-        d: Dict[Any, Dict[str, Any]] = {}
+        d: dict[Any, dict[str, Any]] = {}
         for r in original:
             if deepcopy:
                 d[r['id']] = copy.deepcopy(r)
@@ -694,9 +688,9 @@ class ReportMerger:
 
     def merge(
         self,
-        additional_items: List[model.SupportDictConversible],
-        original: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        additional_items: list[model.SupportDictConversible],
+        original: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
 
         logger.info('original reports: %d', len(original))
         merged_dict = self._make_index(original, deepcopy=True)
@@ -728,7 +722,7 @@ class ReportMerger:
         return merged_list
 
     @staticmethod
-    def marged_list_sorter(e: Dict[str, Any]) -> Any:
+    def marged_list_sorter(e: dict[str, Any]) -> Any:
         if 'timestamp' in e:
             return e['timestamp']
         return e['id']
@@ -737,7 +731,7 @@ class ReportMerger:
 class JSONPageProcessor:
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -752,7 +746,7 @@ class JSONPageProcessor:
 class CSVPageProcessor:
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -806,7 +800,7 @@ class DateHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -832,7 +826,7 @@ class MonthHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -858,7 +852,7 @@ class UserHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -878,7 +872,7 @@ class QuestHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -896,7 +890,7 @@ class FGO1HRunHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -919,7 +913,7 @@ class UserListHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -935,7 +929,7 @@ class QuestListHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -958,7 +952,7 @@ class FGO1HRunListHTMLPageProcessor:
 
     def dump(
         self,
-        merged_reports: List[Dict[str, Any]],
+        merged_reports: list[dict[str, Any]],
         stream: BinaryIO,
         **kwargs,
     ):
@@ -1090,7 +1084,7 @@ class ErrorPageRecorder:
         self.basedir = basedir
         self.key = key
         self.formats = formats
-        self.errors: List[twitter.ParseErrorTweet] = []
+        self.errors: list[twitter.ParseErrorTweet] = []
         self.basepath = fileStorage.path_object(basedir)
 
     def add_error(self, tweet: twitter.ParseErrorTweet) -> None:
@@ -1101,13 +1095,13 @@ class ErrorPageRecorder:
             self.add_error(tw)
 
     @staticmethod
-    def _load_hook(d: Dict[str, Any]) -> Dict[str, Any]:
+    def _load_hook(d: dict[str, Any]) -> dict[str, Any]:
         if 'timestamp' in d:
             ts = d['timestamp']
             d['timestamp'] = datetime.fromisoformat(ts)
         return d
 
-    def _get_original_json(self, key: str) -> List[Dict[str, Any]]:
+    def _get_original_json(self, key: str) -> list[dict[str, Any]]:
         keypath = str(self.basepath / f'{key}.json')
         logger.info('retrieving original json: %s', keypath)
         text = self.fileStorage.get_as_text(keypath)
@@ -1130,7 +1124,7 @@ class ErrorPageRecorder:
             _original_tweets = [
                 twitter.ParseErrorTweet.retrieve(d) for d in original
             ]
-            original_tweets: List[twitter.ParseErrorTweet] = [
+            original_tweets: list[twitter.ParseErrorTweet] = [
                 tw for tw in _original_tweets if tw is not None]
             merger = ErrorMerger()
             merged_errors = merger.merge(self.errors, original_tweets)
@@ -1146,7 +1140,7 @@ class ErrorPageRecorder:
 
 
 class ErrorMerger:
-    def _make_index(self, original: List[twitter.ParseErrorTweet]):
+    def _make_index(self, original: list[twitter.ParseErrorTweet]):
         s = set()
         for r in original:
             s.add(r.tweet_id)
@@ -1154,8 +1148,8 @@ class ErrorMerger:
 
     def merge(
         self,
-        errors: List[twitter.ParseErrorTweet],
-        original: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
+        original: list[twitter.ParseErrorTweet],
     ):
         logger.info('original error tweets: %d', len(original))
         merged = copy.deepcopy(original)
@@ -1175,7 +1169,7 @@ class ErrorMerger:
 class ErrorPageProcessorSupport(Protocol):
     def dump(
         self,
-        errors: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
         stream: BinaryIO,
     ) -> None:
         ...
@@ -1184,7 +1178,7 @@ class ErrorPageProcessorSupport(Protocol):
 class JSONErrorPageProcessor:
     def dump(
         self,
-        errors: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
         stream: BinaryIO,
     ) -> None:
         data = [tw.as_dict() for tw in errors]
@@ -1201,7 +1195,7 @@ class HTMLErrorPageProcessor:
 
     def dump(
         self,
-        errors: List[twitter.ParseErrorTweet],
+        errors: list[twitter.ParseErrorTweet],
         stream: BinaryIO,
     ) -> None:
         template = jinja2_env.get_template(self.template_html)

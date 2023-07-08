@@ -4,7 +4,7 @@ from base64 import urlsafe_b64encode
 from difflib import SequenceMatcher
 from hashlib import md5
 from logging import getLogger
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Iterable
 
 logger = getLogger(__name__)
 
@@ -45,18 +45,18 @@ ambigious_quest = (
 
 
 class Detector:
-    def __init__(self, freequests: List[Dict[str, str]]):
-        self.freequest_db: Dict[str, str] = _build_db(freequests)
-        self.freequest_chapter_db: Set[str] = _build_chapter_db(freequests)
-        self.freequest_place_index: Dict[str, str] = \
+    def __init__(self, freequests: list[dict[str, str]]):
+        self.freequest_db: dict[str, str] = _build_db(freequests)
+        self.freequest_chapter_db: set[str] = _build_chapter_db(freequests)
+        self.freequest_place_index: dict[str, str] = \
             _build_place_index(freequests)
-        self.eventquest_cache: Dict[str, str] = {}
-        self.quest_reverse_index: Dict[str, str] = \
+        self.eventquest_cache: dict[str, str] = {}
+        self.quest_reverse_index: dict[str, str] = \
             _build_reverse_index(freequests)
 
         # search_bestmatch_freequest() 内で毎回 replace() するコストを
         # 下げるため、事前に変換しておく。
-        self.freequest_db_byspace: Dict[str, str] = {}
+        self.freequest_db_byspace: dict[str, str] = {}
         for k, v in self.freequest_db.items():
             self.freequest_db_byspace[k.replace('\t', ' ')] = v
 
@@ -89,7 +89,7 @@ class Detector:
     def get_quest_name(self, qid: str) -> str:
         return self.quest_reverse_index[qid]
 
-    def search_bestmatch_freequest(self, expr: str) -> Optional[str]:
+    def search_bestmatch_freequest(self, expr: str) -> str | None:
         for title in self.freequest_db_byspace:
             # 投稿場所は正しいが前後に余計な情報がついているケースを
             # これでカバーできる。
@@ -100,7 +100,7 @@ class Detector:
         logger.debug('cannot find a candidate')
         return None
 
-    def find_freequest(self, expr: str) -> Optional[Tuple[str, str]]:
+    def find_freequest(self, expr: str) -> tuple[str, str] | None:
         """
             バビロニア高原
             シャーロットゴールドラッシュ
@@ -182,8 +182,8 @@ class Detector:
             return None
 
 
-def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
-    d: Dict[str, str] = {}
+def _build_db(freequests: list[dict[str, str]]) -> dict[str, str]:
+    d: dict[str, str] = {}
 
     for fq in freequests:
         qid = fq['id']
@@ -256,9 +256,9 @@ def _build_db(freequests: List[Dict[str, str]]) -> Dict[str, str]:
 
 
 def _build_reverse_index(
-    freequests: Iterable[Dict[str, str]]
-) -> Dict[str, str]:
-    d: Dict[str, str] = {}
+    freequests: Iterable[dict[str, str]]
+) -> dict[str, str]:
+    d: dict[str, str] = {}
 
     for fq in freequests:
         qid = fq['id']
@@ -271,7 +271,7 @@ def _build_reverse_index(
     return d
 
 
-def _build_chapter_db(freequests: Iterable[Dict[str, str]]) -> Set[str]:
+def _build_chapter_db(freequests: Iterable[dict[str, str]]) -> set[str]:
     s = set()
 
     for fq in freequests:
@@ -288,9 +288,9 @@ def _build_chapter_db(freequests: Iterable[Dict[str, str]]) -> Set[str]:
 
 
 def _build_place_index(
-    freequests: Iterable[Dict[str, str]]
-) -> Dict[str, str]:
-    d: Dict[str, str] = {}
+    freequests: Iterable[dict[str, str]]
+) -> dict[str, str]:
+    d: dict[str, str] = {}
 
     for fq in freequests:
         qid = fq['id']
