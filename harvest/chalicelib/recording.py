@@ -785,7 +785,8 @@ class CSVPageProcessor:
                 helper.nvl(r["tweet_id"]),
                 r["reporter_id"],
                 r["reporter"],
-                r["reporter_name"],
+                # NOTE: 古いデータは reporter_name を持たないことがある
+                helper.nvl(r.get("reporter_name", "")),
                 r["chapter"],
                 r["place"],
                 r["runcount"],
