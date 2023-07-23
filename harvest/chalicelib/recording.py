@@ -775,17 +775,20 @@ class CSVPageProcessor:
         w = csv.writer(sio)
         w.writerow(header)
         for r in merged_reports:
-            if r["source"] == "fgodrop":
+            # NOTE: 存在しない可能性のあるフィールドは r.get() で取得する
+            # NOTE: merged_reports の要素を model.RunReport にできれば色々
+            # 解決しそうだが改修範囲が大きくなりそう
+            source = r.get("source", "")
+            if source == "fgodrop":
                 permalink = f"https://fgodrop.max747.org/reports/{r['report_id']}"
             else:
                 permalink = f"https://twitter.com/{r['reporter']}/status/{r['id']}"
 
             row = [
-                r["report_id"],
-                helper.nvl(r["tweet_id"]),
-                r["reporter_id"],
+                r.get("report_id", ""),
+                helper.nvl(r.get("tweet_id", "")),
+                r.get("reporter_id", ""),
                 r["reporter"],
-                # NOTE: 古いデータは reporter_name を持たないことがある
                 helper.nvl(r.get("reporter_name", "")),
                 r["chapter"],
                 r["place"],
