@@ -23,10 +23,10 @@
 クエスト一覧
 </h1>
 
-<p class="subtitle">イベント</p>
+<p class="subtitle" id="event_reports">イベント&emsp;<span style="font-size:small"><a href="#freequest_reports">恒常フリークエスト</a></p>
 {{ table(eventquests) }}
 
-<p class="subtitle">恒常フリークエスト</p>
+<p class="subtitle" id="freequest_reports">恒常フリークエスト&emsp;<span style="font-size:small"><a href="#event_reports">イベント</a></p>
 {{ table(freequests) }}
 
 {% endblock %}
