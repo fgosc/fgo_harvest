@@ -55,21 +55,21 @@
   </span>
 </h1>
 
-<p class="subtitle">イベント</p>
+<p class="subtitle" id="event_reports">イベント&emsp;<span style="font-size:small"><a href="#freequest_reports">恒常フリークエスト</a> / <a href="#charts">チャート</a></span></p>
 {% if event_reports %}
 {{ table(event_reports) }}
 {% else %}
 <p style="margin-bottom: 2rem">なし</p>
 {% endif %}
 
-<p class="subtitle">恒常フリークエスト</p>
+<p class="subtitle" id="freequest_reports">恒常フリークエスト&emsp;<span style="font-size:small"><a href="#event_reports">イベント</a> / <a href="#charts">チャート</a></span></p>
 {% if freequest_reports %}
 {{ table(freequest_reports) }}
 {% else %}
 <p style="margin-bottom: 2rem">なし</p>
 {% endif %}
 
-<p class="subtitle">チャート</p>
+<p class="subtitle" id="charts">チャート&emsp;<span style="font-size:small"><a href="#event_reports">イベント</a> / <a href="#freequest_reports">恒常フリークエスト</a></span></p>
 <div class="box" id="chartbox">
   <div id="calender_chart"></div>
 </div>
