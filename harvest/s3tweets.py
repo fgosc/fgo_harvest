@@ -42,14 +42,14 @@ def exec_pull(args):
         threshold = None
 
     object_summary_iterator = s3bucket.objects.filter(
-        Prefix=settings.TweetStorageDir,
+        Prefix=args.s3_dir,
     )
 
     for object_summary in object_summary_iterator:
         key = object_summary.key
         logger.info('s3: %s', key)
 
-        name = key.replace(settings.TweetStorageDir + '/', '')
+        name = key.replace(args.s3_dir + '/', '')
 
         if threshold and name < threshold:
             logger.info('  skip downloading')
@@ -351,19 +351,27 @@ def build_parser():
 
     subparsers = parser.add_subparsers(dest='command')
 
-    pull_parser = subparsers.add_parser('pull')
+    pull_parser = subparsers.add_parser('pulltweets')
     pull_parser.add_argument('-o', '--output-dir', default='output/s3tweets')
     pull_parser.add_argument('--days', type=int)
+    pull_parser.add_argument('--s3-dir', default=settings.TweetStorageDir)
     add_common_arguments(pull_parser)
     pull_parser.set_defaults(func=exec_pull)
 
-    scan_parser = subparsers.add_parser("scan")
-    scan_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
-    scan_parser.add_argument('--dry-run', action='store_true')
-    add_common_arguments(scan_parser)
-    scan_parser.set_defaults(func=exec_scan)
+    pull_parser = subparsers.add_parser('pullreports')
+    pull_parser.add_argument('-o', '--output-dir', default='output/s3reports')
+    pull_parser.add_argument('--days', type=int)
+    pull_parser.add_argument('--s3-dir', default=settings.ReportStorageDir)
+    add_common_arguments(pull_parser)
+    pull_parser.set_defaults(func=exec_pull)
 
-    merge_parser = subparsers.add_parser('merge')
+    # scan_parser = subparsers.add_parser("scan")
+    # scan_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
+    # scan_parser.add_argument('--dry-run', action='store_true')
+    # add_common_arguments(scan_parser)
+    # scan_parser.set_defaults(func=exec_scan)
+
+    merge_parser = subparsers.add_parser('mergetweets')
     merge_parser.add_argument('-d', '--target-dir', default='output/s3tweets')
     merge_parser.add_argument(
         '-o',
@@ -373,32 +381,42 @@ def build_parser():
     add_common_arguments(merge_parser)
     merge_parser.set_defaults(func=exec_merge)
 
-    push_parser = subparsers.add_parser('push')
-    push_parser.add_argument(
-        '-d',
-        '--target-dir',
-        default='output/mergedtweets',
+    merge_parser = subparsers.add_parser('mergereports')
+    merge_parser.add_argument('-d', '--target-dir', default='output/s3reports')
+    merge_parser.add_argument(
+        '-o',
+        '--output-dir',
+        default='output/mergedreports',
     )
-    push_parser.add_argument(
-        '--test-dir',
-        default='output/s3tweets',
-    )
-    push_parser.add_argument('--dry-run', action='store_true')
-    add_common_arguments(push_parser)
-    push_parser.set_defaults(func=exec_push)
+    add_common_arguments(merge_parser)
+    merge_parser.set_defaults(func=exec_merge)
 
-    clean_parser = subparsers.add_parser('clean')
-    clean_parser.add_argument(
-        '-d',
-        '--target-dir',
-        default='output/s3tweets',
-    )
-    clean_parser.add_argument('--dry-run', action='store_true')
-    g = clean_parser.add_mutually_exclusive_group()
-    g.add_argument('--month', action='store_true')
-    g.add_argument('--day', action='store_true')
-    add_common_arguments(clean_parser)
-    clean_parser.set_defaults(func=exec_clean)
+    # push_parser = subparsers.add_parser('push')
+    # push_parser.add_argument(
+    #     '-d',
+    #     '--target-dir',
+    #     default='output/mergedtweets',
+    # )
+    # push_parser.add_argument(
+    #     '--test-dir',
+    #     default='output/s3tweets',
+    # )
+    # push_parser.add_argument('--dry-run', action='store_true')
+    # add_common_arguments(push_parser)
+    # push_parser.set_defaults(func=exec_push)
+
+    # clean_parser = subparsers.add_parser('clean')
+    # clean_parser.add_argument(
+    #     '-d',
+    #     '--target-dir',
+    #     default='output/s3tweets',
+    # )
+    # clean_parser.add_argument('--dry-run', action='store_true')
+    # g = clean_parser.add_mutually_exclusive_group()
+    # g.add_argument('--month', action='store_true')
+    # g.add_argument('--day', action='store_true')
+    # add_common_arguments(clean_parser)
+    # clean_parser.set_defaults(func=exec_clean)
     return parser
 
 
