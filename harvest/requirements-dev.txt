@@ -1,5 +1,5 @@
 -i https://pypi.org/simple
-black==23.12.1
+black==24.3.0
 click==8.1.7 ; python_version >= '3.7'
 exceptiongroup==1.2.0 ; python_version < '3.11'
 flake8==6.1.0
