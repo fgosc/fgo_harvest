@@ -2072,74 +2072,102 @@
     "quest": "神の肉"
   },
   {
-    "id": "25a01",
+    "id": "25a01a",
     "internal_id": "93040101",
     "chapter": "オーディール・コール",
     "place": "ロシアエリア",
     "quest": "凍土の試練"
   },
   {
-    "id": "25a02",
+    "id": "25a02a",
     "internal_id": "93040102",
     "chapter": "オーディール・コール",
     "place": "東欧エリア",
     "quest": "悪夢のカボチャ"
   },
   {
-    "id": "25a03",
+    "id": "25a03a",
     "internal_id": "93040103",
     "chapter": "オーディール・コール",
     "place": "ハワイエリア",
     "quest": "常夏の休暇"
   },
   {
-    "id": "25a04",
+    "id": "25a03b",
+    "internal_id": "94095301",
+    "chapter": "オーディール・コール",
+    "place": "ハワイエリア",
+    "quest": "常夏即売会場"
+  },
+  {
+    "id": "25a04a",
     "internal_id": "93040105",
     "chapter": "オーディール・コール",
     "place": "オセアニア北部エリア",
     "quest": "大堡礁の卵"
   },
   {
-    "id": "25a05",
+    "id": "25a05a",
     "internal_id": "94086601",
     "chapter": "オーディール・コール",
     "place": "北欧エリア",
     "quest": "残された神話"
   },
   {
-    "id": "25a06",
+    "id": "25a06a",
     "internal_id": "94086602",
     "chapter": "オーディール・コール",
     "place": "カリブ海エリア",
     "quest": "高貴なる海賊"
   },
   {
-    "id": "25a07",
+    "id": "25a07a",
     "internal_id": "94089601",
     "chapter": "オーディール・コール",
     "place": "東アジアエリア",
     "quest": "天下の飛将軍"
   },
   {
-    "id": "25a08",
+    "id": "25a08a",
     "internal_id": "94089602",
     "chapter": "オーディール・コール",
     "place": "アメリカ南部エリア",
     "quest": "蘇る太古のロマン"
   },
   {
-    "id": "25a09",
+    "id": "25a09a",
     "internal_id": "94090701",
     "chapter": "オーディール・コール",
     "place": "南アジアエリア",
     "quest": "神秘主義者と魂の故郷"
   },
   {
-    "id": "25a10",
+    "id": "25a10a",
     "internal_id": "94090702",
     "chapter": "オーディール・コール",
     "place": "アフリカ南部エリア",
     "quest": "荒野に芽吹く王の花"
+  },
+  {
+    "id": "25a11a",
+    "internal_id": "94093201",
+    "chapter": "オーディール・コール",
+    "place": "北大西洋エリア",
+    "quest": "光糸導く迷宮"
+  },
+  {
+    "id": "25a11b",
+    "internal_id": "94093202",
+    "chapter": "オーディール・コール",
+    "place": "北大西洋エリア",
+    "quest": "久遠の微笑"
+  },
+  {
+    "id": "25a12a",
+    "internal_id": "94095302",
+    "chapter": "オーディール・コール",
+    "place": "アメリカ東部エリア",
+    "quest": "女神像を求めて"
   },
   {
     "id": "25b01",
@@ -2217,5 +2245,89 @@
     "chapter": "ペーパームーン",
     "place": "生産部本部",
     "quest": "ビッグストレージ"
+  },
+  {
+    "id": "25c01",
+    "internal_id": "93040301",
+    "chapter": "イド",
+    "place": "繁華街",
+    "quest": "かいもの帰り"
+  },
+  {
+    "id": "25c02",
+    "internal_id": "93040302",
+    "chapter": "イド",
+    "place": "自宅",
+    "quest": "ないしょの待ち合わせ"
+  },
+  {
+    "id": "25c03",
+    "internal_id": "93040303",
+    "chapter": "イド",
+    "place": "学校",
+    "quest": "しずかな放課後"
+  },
+  {
+    "id": "25c04",
+    "internal_id": "93040304",
+    "chapter": "イド",
+    "place": "学校",
+    "quest": "ななふしぎ調査"
+  },
+  {
+    "id": "25c05",
+    "internal_id": "93040305",
+    "chapter": "イド",
+    "place": "学校",
+    "quest": "とつぜんの呼び出し"
+  },
+  {
+    "id": "25c06",
+    "internal_id": "93040306",
+    "chapter": "イド",
+    "place": "学校",
+    "quest": "いのこり特訓"
+  },
+  {
+    "id": "25c07",
+    "internal_id": "93040307",
+    "chapter": "イド",
+    "place": "通学路",
+    "quest": "いつもの通い道"
+  },
+  {
+    "id": "25c08",
+    "internal_id": "93040308",
+    "chapter": "イド",
+    "place": "東京駅",
+    "quest": "たびだちの駅"
+  },
+  {
+    "id": "25c09",
+    "internal_id": "93040309",
+    "chapter": "イド",
+    "place": "西新宿",
+    "quest": "であいの交差点"
+  },
+  {
+    "id": "25c10",
+    "internal_id": "93040310",
+    "chapter": "イド",
+    "place": "西新宿",
+    "quest": "たたずむ摩天楼"
+  },
+  {
+    "id": "25c11",
+    "internal_id": "93040311",
+    "chapter": "イド",
+    "place": "お台場",
+    "quest": "あいにくの空模様"
+  },
+  {
+    "id": "25c12",
+    "internal_id": "93040312",
+    "chapter": "イド",
+    "place": "新宿御苑",
+    "quest": "バードウォッチング"
   }
 ]

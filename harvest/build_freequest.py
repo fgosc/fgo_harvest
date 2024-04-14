@@ -6,12 +6,12 @@ import json
 import logging
 import sys
 from operator import itemgetter
-from typing import Iterable, Dict, List
+from typing import Iterable
 
 logger = logging.getLogger(__name__)
 
 
-harvest_chapter_map: Dict[str, str] = {
+harvest_chapter_map: dict[str, str] = {
     '剣の修練場': '00a',
     '弓の修練場': '00b',
     '槍の修練場': '00c',
@@ -44,11 +44,12 @@ harvest_chapter_map: Dict[str, str] = {
     'ナウイ・ミクトラン': '20j',
     'オーディール・コール': '25a',
     'ペーパームーン': '25b',
+    'イド': '25c',
 }
 
 
-def build_syurenquest_dict(reader: csv.DictReader) -> Iterable[Dict[str, str]]:
-    fq_list: List[Dict[str, str]] = []
+def build_syurenquest_dict(reader: csv.DictReader) -> Iterable[dict[str, str]]:
+    fq_list: list[dict[str, str]] = []
     prev_chapter: str = ''
     counter: int = 1
 
@@ -71,26 +72,55 @@ def build_syurenquest_dict(reader: csv.DictReader) -> Iterable[Dict[str, str]]:
     return sorted(fq_list, key=itemgetter('id'))
 
 
-def build_freequest_dict(reader: csv.DictReader) -> Iterable[Dict[str, str]]:
-    fq_list: List[Dict[str, str]] = []
+def number_to_suffix(num: int) -> str:
+    if num < 1 or num > 26:
+        raise ValueError('num must be in range 1-26')
+    return chr(96 + num)
+
+
+def build_freequest_dict(reader: csv.DictReader) -> Iterable[dict[str, str]]:
+    fq_list: list[dict[str, str]] = []
     prev_chapter: str = ''
-    counter: int = 1
+    prev_place: str = ''
+    counter: int = 0
+    subcounter: int = 0
 
     for row in reader:
         current_chapter = row['chapter']
+        current_place = row['place']
+
+        # chapter が切り替わったらカウンターをリセット
         if prev_chapter != current_chapter:
             counter = 1
+
+        # オーディール・コールのみ特別な処理
+        if current_chapter != 'オーディール・コール':
+            suffix = ''
+        else:
+            # place が切り替わったら subcounter をリセット
+            if prev_place != current_place:
+                subcounter = 1
+            else:
+                subcounter += 1
+                # subcounter を増やすときは counter は止める
+                counter -= 1
+            suffix = number_to_suffix(subcounter)
+
         id_prefix = harvest_chapter_map[current_chapter]
+
         d = {
-            'id': f'{id_prefix}{counter:0>2}',
+            'id': f'{id_prefix}{counter:0>2}{suffix}',
             'internal_id': row['id'],
             'chapter': row['chapter'],
             'place': row['place'],
             'quest': row['quest'],
         }
         fq_list.append(d)
-        prev_chapter = current_chapter
+        logger.debug(d)
+
         counter += 1
+        prev_chapter = current_chapter
+        prev_place = current_place
 
     return sorted(fq_list, key=itemgetter('id'))
 
@@ -99,7 +129,7 @@ def main(args: argparse.Namespace) -> None:
     freequest_reader = csv.DictReader(args.freequest_csv)
     syuren_reader = csv.DictReader(args.syurenquest_csv)
 
-    all_list: List[Dict[str, str]] = []
+    all_list: list[dict[str, str]] = []
     syuren_list = build_syurenquest_dict(syuren_reader)
     all_list.extend(syuren_list)
 
