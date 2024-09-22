@@ -91,16 +91,22 @@ class Detector:
             かなり多様なパターンに対応している。実際にどのようなパターンで
             True と判定されるかは freequest_test.py の例を見るとよい。
         """
-        key_for_freequest = f'{chapter}\t{place}'
-        return key_for_freequest in self.freequest_db
+        first_key = f'{chapter}\t{place}'
+        if first_key in self.freequest_db:
+            return True
+
+        second_key = f'{place}\t'
+        return second_key in self.freequest_db
 
     def get_quest_id(self, chapter: str, place: str, year: int) -> str:
-        key_for_freequest = f'{chapter}\t{place}'
+        key_for_freequest_1st = f'{chapter}\t{place}'
+        key_for_freequest_2nd = f'{place}\t'
         key_for_eventquest = f'{chapter}\t{place}\t{year}'
 
-        if key_for_freequest in self.freequest_db:
-            return self.freequest_db[key_for_freequest]
-
+        if key_for_freequest_1st in self.freequest_db:
+            return self.freequest_db[key_for_freequest_1st]
+        elif key_for_freequest_2nd in self.freequest_db:
+            return self.freequest_db[key_for_freequest_2nd]
         elif key_for_eventquest in self.eventquest_cache:
             return self.eventquest_cache[key_for_eventquest]
 
