@@ -1,0 +1,26 @@
+[project]
+name = "fgo-harvest"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "max747" }
+]
+dependencies = [
+    "chalice>=1.31.3",
+    "boto3>=1.35.90",
+    "jinja2>=3.1.5",
+    "tweepy>=4.14.0",
+    "mypy>=1.14.1",
+]
+readme = "README.md"
+requires-python = ">= 3.11"
+
+[tool.rye]
+managed = true
+virtual = true
+dev-dependencies = [
+    "pytest>=8.3.4",
+    "black>=24.10.0",
+    "flake8>=7.1.1",
+    "types-requests>=2.32.0.20241016",
+]
