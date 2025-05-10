@@ -314,6 +314,7 @@ class PartitioningRuleByQuestList:
     def __init__(self, rebuild: bool = False):
         self.quest_dict: dict[str, QuestListElement] = {}
         self.rebuild = rebuild
+        self.report_id_cache: set[str] = set()
 
     def setup(
         self,
@@ -366,6 +367,11 @@ class PartitioningRuleByQuestList:
         report: model.RunReport,
     ) -> None:
 
+        report_id = report.get_id()
+        if report_id in self.report_id_cache:
+            logger.info("already counted report: %s", report_id)
+            return
+
         e = QuestListElement(
             report.quest_id,
             report.chapter,
@@ -387,6 +393,11 @@ class PartitioningRuleByQuestList:
             new_entry = False
 
         actual_e = self.quest_dict[e.quest_id]
+        # 同じ report をカウントしないためのガードレール。
+        # PartitionRuleByQuest は ReportMerger.merge() が最後の砦となって
+        # 重複を弾いてくれる (ので結果的に dispatch の重複処理が厳密でなくても許される)
+        # が、ByQuestList はこれが効かないので事前に弾いておく必要がある。
+        self.report_id_cache.add(report_id)
 
         # パーティションは常に all のみ
         if 'all' not in partitions:
