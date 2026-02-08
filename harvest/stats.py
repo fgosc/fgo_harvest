@@ -41,6 +41,10 @@ class StatUser:
         self.avg_run_count = float(0)
         # 報告日数
         self.report_date_count = 0
+        # 報告者ID
+        self.reporter_id = ""
+        # 最終報告日時
+        self.last_report_timestamp: datetime | None = None
 
     def analyze(self, data: list[dict[str, Any]]):
         report_date_set = set()
@@ -52,6 +56,12 @@ class StatUser:
             self.report_count_total += 1
             self.run_count_total += runcount
 
+            if "reporter_id" in r:
+                if self.reporter_id == "":
+                    self.reporter_id = r["reporter_id"]
+                elif self.reporter_id != r["reporter_id"]:
+                    logger.warning(f"報告者ID不一致: {self.name} {self.reporter_id} != {r['reporter_id']}")
+
             if r["freequest"]:
                 self.report_count_freequest += 1
                 self.run_count_freequest += runcount
@@ -62,13 +72,18 @@ class StatUser:
             if runcount > self.max_run_count:
                 self.max_run_count = runcount
 
+            if self.last_report_timestamp is None:
+                self.last_report_timestamp = r["timestamp"]
+            elif r["timestamp"] > self.last_report_timestamp:
+                self.last_report_timestamp = r["timestamp"]
+
         if self.report_count_total == 0:
             self.avg_run_count = 0
         else:
-            self.avg_run_count = round(
-                self.run_count_total / self.report_count_total, 2)
+            self.avg_run_count = round(self.run_count_total / self.report_count_total, 2)
 
         self.report_date_count = len(report_date_set)
+
 
 
 class StatUsers:
@@ -108,6 +123,42 @@ class StatUsers:
             ]
             print("\t".join([str(c) for c in row]))
 
+    def merge_by_reporter_id(self) -> "StatUsers":
+        reporters = {}
+        for u in self.users:
+            if u.reporter_id not in reporters:
+                reporters[u.reporter_id] = u
+            else:
+                exist = reporters[u.reporter_id]
+                exist.report_count_total += u.report_count_total
+                exist.report_count_freequest += u.report_count_freequest
+                exist.report_count_event += u.report_count_event
+                exist.run_count_total += u.run_count_total
+                exist.run_count_freequest += u.run_count_freequest
+                exist.run_count_event += u.run_count_event
+                if u.max_run_count > exist.max_run_count:
+                    exist.max_run_count = u.max_run_count
+                # 平均周回数は再計算が必要
+                if exist.report_count_total == 0:
+                    exist.avg_run_count = 0
+                else:
+                    exist.avg_run_count = round(exist.run_count_total / exist.report_count_total, 2)
+                exist.report_date_count += u.report_date_count
+
+                # 最終報告日時が新しい方の name を採用する
+                if exist.last_report_timestamp is None:
+                    exist.name = u.name
+                    exist.last_report_timestamp = u.last_report_timestamp
+                elif u.last_report_timestamp is None:
+                    pass
+                elif u.last_report_timestamp > exist.last_report_timestamp:
+                    exist.name = u.name
+                    exist.last_report_timestamp = u.last_report_timestamp
+
+        new_stat_users = StatUsers()
+        new_stat_users.users = list(reporters.values())
+        return new_stat_users
+
 
 def exec_user(args):
     target_dir = Path(args.target_directory)
@@ -125,6 +176,9 @@ def exec_user(args):
         su = StatUser(filepath.stem)
         su.analyze(filtered)
         stat_users.add(su)
+    # オプションが有効なら reporter でマージする
+    if args.merge_reporter:
+        stat_users = stat_users.merge_by_reporter_id()
     stat_users.print_all()
 
 
@@ -150,6 +204,7 @@ def build_parser():
         '--target-directory',
         default='output/contents/user',
     )
+    user_parser.add_argument('-m', '--merge-reporter', action='store_true')
     user_parser.set_defaults(func=exec_user)
     return parser
 
