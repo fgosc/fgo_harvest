@@ -7,14 +7,14 @@
       "lambda_functions": {
         "rebuild_outputs": {
           "lambda_timeout": 900,
-          "lambda_memory_size": 256
+          "lambda_memory_size": 512
         },
         "merge_tweets_into_monthfile": {
-          "lambda_timeout": 180
+          "lambda_timeout": 300
         },
         "rebuild_month_summary": {
-          "lambda_timeout": 600,
-          "lambda_memory_size": 256
+          "lambda_timeout": 900,
+          "lambda_memory_size": 512
         },
         "collect_reports_manually": {
           "lambda_timeout": 300,
