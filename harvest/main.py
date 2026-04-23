@@ -297,6 +297,29 @@ def command_build(args: argparse.Namespace) -> None:
     last_report_ts_retriever.save(newest_report.report_id, newest_report.timestamp)
 
 
+def command_fetch(args: argparse.Namespace) -> None:
+    client = graphql.GraphQLClient(settings.GraphQLEndpoint, settings.GraphQLApiKey)
+    reports = []
+    for report_id in args.report_id:
+        report = client.get_report(report_id)
+        if report is None:
+            logger.warning("report not found: %s", report_id)
+            continue
+        logger.info("fetched report: %s", report_id)
+        reports.append(report)
+
+    if not reports:
+        logger.info('no reports fetched')
+        return
+
+    report_repository = setup_report_repository(args.output_dir)
+    fallback_key = '{}.json'.format(datetime.now(tz=timezone.Local).strftime('%Y%m%d_%H%M%S'))
+    report_repository.save_fetched(reports, fallback_key)
+
+    parse_error_tweets: list[twitter.ParseErrorTweet] = []
+    render_all(reports, parse_error_tweets, args.output_dir, date(2000, 1, 1), rebuild=False)
+
+
 def command_delete(args: argparse.Namespace) -> None:
     report_repository = setup_report_repository(args.output_dir)
     ts = datetime.fromisoformat(args.timestamp) if args.timestamp else None
@@ -362,6 +385,16 @@ def build_parser() -> argparse.ArgumentParser:
     static_parser = subparsers.add_parser('static')
     add_common_arguments(static_parser)
     static_parser.set_defaults(func=command_static)
+
+    fetch_parser = subparsers.add_parser('fetch')
+    add_common_arguments(fetch_parser)
+    fetch_parser.add_argument(
+        '--report-id',
+        nargs='+',
+        required=True,
+        help="取得対象の report ID (複数指定可)",
+    )
+    fetch_parser.set_defaults(func=command_fetch)
 
     delete_parser = subparsers.add_parser('delete')
     add_common_arguments(delete_parser)

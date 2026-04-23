@@ -168,7 +168,7 @@ class ReportRepository:
         merged_reports.extend(reports)
 
         s = json.dumps(
-            [r.as_dict() for r in reports if r is not None],
+            [r.as_dict() for r in merged_reports if r is not None],
             ensure_ascii=False,
             default=helper.json_serialize_helper,
         )
@@ -176,6 +176,36 @@ class ReportRepository:
         stream.seek(0)
         stream.write(s.encode("UTF-8"))
         self.fileStorage.close_output_stream(stream)
+
+    def _resolve_key(self, ts: datetime, fallback_key: str) -> str:
+        """
+        タイムスタンプに対応する保存先キーを優先順位に従って決定する。
+        YYYYMM.json > YYYYMMDD.json > fallback_key の順で探索する。
+        """
+        month_key = ts.strftime('%Y%m') + '.json'
+        date_key = ts.strftime('%Y%m%d') + '.json'
+        if self.exists(month_key):
+            return month_key
+        if self.exists(date_key):
+            return date_key
+        return fallback_key
+
+    def save_fetched(self, reports: list[model.RunReport], fallback_key: str) -> None:
+        """
+        各レポートのタイムスタンプを元に保存先を決定して保存する。
+        同じキーに割り当てられたレポートはまとめて追記または新規作成する。
+        """
+        groups: dict[str, list[model.RunReport]] = {}
+        for report in reports:
+            key = self._resolve_key(report.timestamp, fallback_key)
+            groups.setdefault(key, []).append(report)
+
+        for key, group in groups.items():
+            if self.exists(key):
+                self.append(key, group)
+            else:
+                self.put(key, group)
+            logger.info(f"saved {len(group)} report(s) to {key}")
 
     def exists(self, key: str) -> bool:
         basepath = self.fileStorage.path_object(self.basedir)
