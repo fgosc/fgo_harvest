@@ -195,6 +195,74 @@ class ReportRepository:
         all_reports.sort(key=lambda e: e.timestamp, reverse=True)
         return all_reports
 
+    def delete_by_ids(
+        self,
+        entries: list[tuple[str, datetime | None]],
+    ) -> int:
+        target_ids = {report_id for report_id, _ in entries}
+        basepath = self.fileStorage.path_object(self.basedir)
+
+        candidate_paths: set[str] = set()
+        # タイムスタンプなしのエントリが1件でもあれば全ファイルスキャンが必要
+        scan_all = any(ts is None for _, ts in entries)
+
+        # 候補の絞り込み
+        if scan_all:
+            # 絞り込みできない場合は全探索
+            for path in self.fileStorage.list(self.basedir, suffix=".json"):
+                candidate_paths.add(path)
+        else:
+            # タイプスタンプがある場合は候補ファイルを絞ることができる
+            for _, ts in entries:
+                # このブロックでは ts is not None が確実
+                # (ts is None のエントリがあれば scan_all が True になるため)
+                if ts is None:
+                    continue
+                date_str = ts.strftime("%Y%m%d")
+                month_str = ts.strftime("%Y%m")
+                for path in self.fileStorage.list(self.basedir, prefix=date_str, suffix=".json"):
+                    candidate_paths.add(path)
+                month_file = str(basepath / (month_str + ".json"))
+                if self.fileStorage.exists(month_file):
+                    candidate_paths.add(month_file)
+
+        deleted = 0
+
+        for filepath in candidate_paths:
+            text = self.fileStorage.get_as_text(filepath)
+            if not text:
+                continue
+            try:
+                loaded: list[dict] = json.loads(text)
+            except json.JSONDecodeError as e:
+                logger.warning("failed to parse %s: %s", filepath, e)
+                continue
+
+            before = len(loaded)
+            filtered = [r for r in loaded if r.get("report_id") not in target_ids]
+            after = len(filtered)
+
+            if before == after:
+                continue
+
+            deleted += before - after
+            logger.info("deleted %d report(s) from %s", before - after, filepath)
+
+            if not filtered:
+                logger.info("deleting empty file: %s", filepath)
+                self.fileStorage.delete(filepath)
+            else:
+                s = json.dumps(
+                    filtered,
+                    ensure_ascii=False,
+                    default=helper.json_serialize_helper,
+                )
+                stream = self.fileStorage.get_output_stream(filepath)
+                stream.write(s.encode("UTF-8"))
+                self.fileStorage.close_output_stream(stream)
+
+        return deleted
+
 
 class LastReportTimeStamp:
     """

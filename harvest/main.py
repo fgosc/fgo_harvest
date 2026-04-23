@@ -298,8 +298,11 @@ def command_build(args: argparse.Namespace) -> None:
 
 
 def command_delete(args: argparse.Namespace) -> None:
-    # TODO 実装
-    pass
+    report_repository = setup_report_repository(args.output_dir)
+    ts = datetime.fromisoformat(args.timestamp) if args.timestamp else None
+    entries = [(args.report_id, ts)]
+    deleted = report_repository.delete_by_ids(entries)
+    logger.info("deleted %d report(s)", deleted)
 
 
 def date_type(date_str: str) -> date:
@@ -362,6 +365,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     delete_parser = subparsers.add_parser('delete')
     add_common_arguments(delete_parser)
+    delete_parser.add_argument(
+        '--report-id',
+        required=True,
+        help="削除対象の report ID",
+    )
+    delete_parser.add_argument(
+        '--timestamp',
+        default=None,
+        help='report の投稿時刻のヒント (形式: "YYYY-MM-DD HH:MM:SS")。省略時は全ファイルをスキャン',
+    )
     delete_parser.set_defaults(func=command_delete)
 
     return parser

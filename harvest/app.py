@@ -508,6 +508,25 @@ def rebuild_month_summary(event):
 
 
 @app.lambda_function()
+def delete_reports(event, context):
+    report_repository = repository.ReportRepository(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.ReportStorageDir,
+    )
+
+    entries = []
+    for r in event["reports"]:
+        report_id = r["reportId"]
+        ts_str = r.get("timestamp")
+        ts = datetime.fromisoformat(ts_str) if ts_str else None
+        entries.append((report_id, ts))
+
+    deleted = report_repository.delete_by_ids(entries)
+    app.log.info("deleted %d report(s)", deleted)
+    return {"deleted": deleted}
+
+
+@app.lambda_function()
 def build_static_contents(event, context):
     renderer = static.StaticPagesRenderer(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
