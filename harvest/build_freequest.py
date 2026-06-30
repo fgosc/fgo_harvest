@@ -47,6 +47,8 @@ harvest_chapter_map: dict[str, str] = {
     'イド': '25c',
     'アーキタイプ・インセプション': '25d',
     'トリニティ・メタトロニオス': '25e',
+    '冠位戴冠戦': '26a',
+    'パスト・カルデア': '30a',
 }
 
 
@@ -85,20 +87,25 @@ def build_freequest_dict(reader: csv.DictReader) -> Iterable[dict[str, str]]:
     prev_chapter: str = ''
     prev_place: str = ''
     counter: int = 0
-    subcounter: int = 0
+    subcounter_dict: dict[str, int] = {
+        'オーディール・コール': 0,
+        '冠位戴冠戦': 0,
+    }
 
     for row in reader:
         current_chapter = row['chapter']
         current_place = row['place']
+        current_quest = row['quest']
 
         # chapter が切り替わったらカウンターをリセット
         if prev_chapter != current_chapter:
             counter = 1
 
-        # オーディール・コールのみ特別な処理
-        if current_chapter != 'オーディール・コール':
+        # オーディール・コールと冠位戴冠戦のみ特別な処理
+        if current_chapter not in ('オーディール・コール', '冠位戴冠戦'):
             suffix = ''
-        else:
+        elif current_chapter == 'オーディール・コール':
+            subcounter = subcounter_dict[current_chapter]
             # place が切り替わったら subcounter をリセット
             if prev_place != current_place:
                 subcounter = 1
@@ -107,6 +114,31 @@ def build_freequest_dict(reader: csv.DictReader) -> Iterable[dict[str, str]]:
                 # subcounter を増やすときは counter は止める
                 counter -= 1
             suffix = number_to_suffix(subcounter)
+            # 書き戻す
+            subcounter_dict[current_chapter] = subcounter
+
+        elif current_chapter == '冠位戴冠戦':
+            subcounter = subcounter_dict[current_chapter]
+            # freequest.csv の冠位戴冠戦記載ルールが harvest と非互換であるため、強引に合わせる
+            # ex) 冠位研鑽戦〔セイバー〕 Ⅰ
+            # place と quest にフルネームでクエスト名を入れる
+            current_place = row['scName']
+            current_quest = row['scName']
+            # カウンター切り替え用の place
+            # ex) 冠位研鑽戦〔セイバー〕 Ⅰ → 冠位研鑽戦〔セイバー〕
+            # 何も考えずに連番で採番してしまうと後から各クラスのクエストが増えた場合に対応難易度が上がるのと
+            # 数字2桁を超える可能性があるので、クラス単位で連番をまとめておきたいという意図。
+            place_for_grand_duel = current_place.split()[0]
+            # place_for_grand_duel が切り替わったら subcounter をリセット
+            if prev_place != place_for_grand_duel:
+                subcounter = 1
+            else:
+                subcounter += 1
+                # subcounter を増やすときは counter は止める
+                counter -= 1
+            suffix = number_to_suffix(subcounter)
+            # 書き戻す
+            subcounter_dict[current_chapter] = subcounter
 
         id_prefix = harvest_chapter_map[current_chapter]
 
@@ -114,15 +146,18 @@ def build_freequest_dict(reader: csv.DictReader) -> Iterable[dict[str, str]]:
             'id': f'{id_prefix}{counter:0>2}{suffix}',
             'internal_id': row['id'],
             'chapter': row['chapter'],
-            'place': row['place'],
-            'quest': row['quest'],
+            'place': current_place,
+            'quest': current_quest,
         }
         fq_list.append(d)
         logger.debug(d)
 
         counter += 1
         prev_chapter = current_chapter
-        prev_place = current_place
+        if current_chapter == '冠位戴冠戦':
+            prev_place = place_for_grand_duel
+        else:
+            prev_place = current_place
 
     return sorted(fq_list, key=itemgetter('id'))
 
