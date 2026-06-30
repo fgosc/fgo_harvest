@@ -107,6 +107,65 @@ query ListReportsSortedByTimestamp(
 
         return reports
 
+    def get_report(self, report_id: str) -> "model.RunReport | None":
+        """
+        report_id を指定して単一の周回報告を取得する
+        """
+        headers = {
+            "Content-Type": "application/graphql",
+            "x-api-key": self.api_key,
+        }
+        query = """
+query GetReport($id: ID!) {
+    getReport(id: $id) {
+        id
+        owner
+        name
+        twitterId
+        twitterName
+        twitterUsername
+        type
+        warName
+        questType
+        questName
+        timestamp
+        runs
+        note
+        createdAt
+        dropObjects {
+            objectName
+            drops {
+                num
+                stack
+            }
+        }
+    }
+}
+        """
+
+        resp = requests.post(
+            self.endpoint,
+            json={
+                "query": query,
+                "variables": {"id": report_id},
+            },
+            headers=headers,
+        )
+
+        if resp.status_code != 200:
+            raise ValueError(f"Failed to fetch data from AppSync: {resp.text}")
+
+        data = resp.json()
+
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(data)
+
+        item = data["data"]["getReport"]
+        if item is None:
+            return None
+
+        return self.to_report(item)
+
     def to_report(self, data: dict[str, Any]) -> model.RunReport:
         if data["twitterUsername"] is None:
             # twitter account "anonymous" (https://twitter.com/anonymous) は周回報告をしないと仮定してよい

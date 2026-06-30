@@ -85,7 +85,6 @@ class StatUser:
         self.report_date_count = len(report_date_set)
 
 
-
 class StatUsers:
     def __init__(self) -> None:
         self.users: list[StatUser] = []

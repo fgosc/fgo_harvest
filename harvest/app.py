@@ -508,6 +508,61 @@ def rebuild_month_summary(event):
 
 
 @app.lambda_function()
+def delete_reports(event, context):
+    report_repository = repository.ReportRepository(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.ReportStorageDir,
+    )
+
+    entries = []
+    for r in event["reports"]:
+        report_id = r["reportId"]
+        ts_str = r.get("timestamp")
+        ts = datetime.fromisoformat(ts_str) if ts_str else None
+        entries.append((report_id, ts))
+
+    deleted = report_repository.delete_by_ids(entries)
+    app.log.info("deleted %d report(s)", deleted)
+    return {"deleted": deleted}
+
+
+@app.lambda_function()
+def fetch_reports(event, context):
+    report_ids = event["reportIds"]
+
+    agent = setup_graphql_client()
+    reports = []
+    for report_id in report_ids:
+        report = agent.get_report(report_id)
+        if report is None:
+            app.log.warning("report not found: %s", report_id)
+            continue
+        app.log.info("fetched report: %s", report_id)
+        reports.append(report)
+
+    if not reports:
+        app.log.info('no reports fetched')
+        return {"fetched": 0}
+
+    report_repository = repository.ReportRepository(
+        fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
+        basedir=settings.ReportStorageDir,
+    )
+    fallback_key = '{}.json'.format(datetime.now(tz=timezone.Local).strftime('%Y%m%d_%H%M%S'))
+    app.log.info('fallback report log: %s', fallback_key)
+    report_repository.save_fetched(reports, fallback_key)
+
+    skip_target_date = date(2000, 1, 1)
+    render_date_contents(reports, skip_target_date)
+    render_user_contents(reports, skip_target_date)
+    render_quest_contents(reports, skip_target_date)
+    render_1hrun_contents(reports, skip_target_date)
+
+    app.log.info('done')
+    return {"fetched": len(reports)}
+
+
+@app.lambda_function()
 def build_static_contents(event, context):
     renderer = static.StaticPagesRenderer(
         fileStorage=storage.AmazonS3Storage(settings.S3Bucket),
